@@ -100,7 +100,13 @@ All three source files live at `/home/ubuntu/anthropic_text_processor/prompts/`.
 3. **How to install on a new server** — git clone + `./install.sh`, with a brief explanation of what the script does (symlinks)
 4. **CEO update workflow** — the symlink mechanic + the three scripts (`install.sh`, `update.sh`, `pull.sh`) and the table from section 9 of the spec
 5. **Skill catalog** — one subsection per skill: source file, trigger description, when to use, last updated date
-6. **Adding a new skill** — step-by-step procedure so future-Marc (or future-Claude) can extend cleanly
+6. **Adding a new skill (Cold-Agent Procedure)** — written so a brand-new Claude session, reading only DOCUMENTATION.md, can add a new skill end-to-end with one approval beat from Marc. MUST include:
+   - The 7-step procedure (slug → folder → SKILL.md template → frontmatter rules → verbatim-port rule → `./install.sh` → `./update.sh`)
+   - A complete worked example showing actual file contents
+   - Slug naming rules (lowercase, hyphens, descriptive, prefix-grouped where it makes sense)
+   - The verbatim-port rule in **bold** (impossible to miss)
+   - The "draft description, ask Marc to approve, THEN write the file" rule
+   - Handling for source prompts that aren't `.txt` files (e.g., Marc pastes prompt body directly into chat)
 7. **Decisions & rationale** — verbatim-port rule, naming convention, single-doc choice, private repo default, etc.
 8. **Where we left off / next steps** — running narrative for cold-start continuation
 
@@ -168,13 +174,26 @@ Optionally cron `pull.sh` on remote servers (e.g., hourly) so they self-sync wit
 10. Run `./install.sh` on this server to symlink the 3 skills into `~/.claude/skills/`.
 11. Verify Claude Code picks up the skills (restart session if needed).
 
-## 11. Risks / Open Questions
+## 11. Cold-Agent Test (acceptance criteria for DOCUMENTATION.md)
+
+After DOCUMENTATION.md is written, validate it by imagining a cold Claude session that reads only that file. The session must be able to:
+
+- Explain the project's purpose in one sentence
+- Locate the three existing skills and their roles
+- Add a new skill (provided a source prompt) without asking architectural questions — only one question, the description-approval beat
+- Run `./install.sh` and `./update.sh` correctly
+- Know NOT to modify the verbatim body of an existing SKILL.md
+- Know how to convert a slug to a folder path and where it lives
+
+If any of these fail in a thought experiment, the doc is not done.
+
+## 12. Risks / Open Questions
 
 - **Description quality.** The auto-trigger behavior depends on the `description` field. If descriptions are too vague, Claude won't load the skill when it should. If too specific, Claude won't load it when context shifts. Mitigation: Marc approves each description before writing.
 - **Verbatim port may include outdated boilerplate.** Some prompts may start with "You are an expert assistant…" which is redundant inside a skill. Per Marc's explicit instruction, this stays as-is. Acceptable risk.
 - **Slug stability.** Once published and used, renaming a skill folder breaks any saved references. The three slugs in section 7 are final.
 - **Future plugin wrap.** When this becomes a plugin, slugs gain a namespace prefix (`/marc-jovani-powerups:distill-general-conversations`). Document this in `DOCUMENTATION.md` so it isn't a surprise later.
 
-## 12. Approval
+## 13. Approval
 
 Marc approved this design verbally during the brainstorm session on 2026-04-29 ("PROCEED").
