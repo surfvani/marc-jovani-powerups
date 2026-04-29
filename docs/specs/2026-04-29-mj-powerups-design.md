@@ -21,7 +21,6 @@ The first batch converts three "Destile Information" prompts into skills.
 
 ## 3. Non-goals (this iteration)
 
-- No `install.sh` automation. Symlinks are manual for now.
 - No CHANGELOG, no README, no separate EVOLUTION doc — only `DOCUMENTATION.md`.
 - No conversion of prompts beyond YAML frontmatter. Bodies are 100% verbatim.
 - No plugin manifest (`plugin.json`) yet. We stay on standalone skills (Option A from the conversation).
@@ -38,6 +37,9 @@ The first batch converts three "Destile Information" prompts into skills.
 ```
 marc-jovani-powerups/
 ├── DOCUMENTATION.md
+├── install.sh                ← one-time setup on a new server (clones + symlinks)
+├── update.sh                 ← from this server: git add/commit/push
+├── pull.sh                   ← from any other server: git pull (refresh skills)
 ├── docs/
 │   └── specs/
 │       └── 2026-04-29-mj-powerups-design.md   ← this file (workflow artifact)
@@ -95,40 +97,76 @@ All three source files live at `/home/ubuntu/anthropic_text_processor/prompts/`.
    - Difference between a skill and a plugin
    - The verbatim-port rule
 2. **Project purpose** — what this collection is and the evolution path (skills → workflows → plugin)
-3. **How to install on a new server** — git clone + symlink steps, including `~/.claude/skills/` target
-4. **Skill catalog** — one subsection per skill: source file, trigger description, when to use, last updated date
-5. **Adding a new skill** — step-by-step procedure so future-Marc (or future-Claude) can extend cleanly
-6. **Decisions & rationale** — verbatim-port rule, naming convention, single-doc choice, private repo default, etc.
-7. **Where we left off / next steps** — running narrative for cold-start continuation
+3. **How to install on a new server** — git clone + `./install.sh`, with a brief explanation of what the script does (symlinks)
+4. **CEO update workflow** — the symlink mechanic + the three scripts (`install.sh`, `update.sh`, `pull.sh`) and the table from section 9 of the spec
+5. **Skill catalog** — one subsection per skill: source file, trigger description, when to use, last updated date
+6. **Adding a new skill** — step-by-step procedure so future-Marc (or future-Claude) can extend cleanly
+7. **Decisions & rationale** — verbatim-port rule, naming convention, single-doc choice, private repo default, etc.
+8. **Where we left off / next steps** — running narrative for cold-start continuation
 
 The doc is written in Markdown, comprehensive but not so schematic that context is lost. It must give a future AI enough context to start working and ask informed follow-up questions.
 
-## 9. Distribution / Install Procedure (manual, for now)
+## 9. CEO-Frictionless Update Workflow
 
-On each server where these skills should be available:
+The whole point of this section: edit a skill in ONE place, have it apply everywhere — without manual copy steps.
+
+### The mechanic: symlinks
+
+`~/.claude/skills/<skill-name>` on each server is a **symlink** into the cloned repo at `~/marc-jovani-powerups/skills/<skill-name>`. Because of the symlink, there is only one file on disk. Editing either path edits the same file. Claude Code reads the live file on next skill load — no copy step ever.
+
+### One-time setup on a new server: `install.sh`
 
 ```bash
 git clone git@github.com:surfvani/marc-jovani-powerups.git ~/marc-jovani-powerups
 cd ~/marc-jovani-powerups
-ln -s "$PWD/skills/distill-general-conversations" ~/.claude/skills/distill-general-conversations
-ln -s "$PWD/skills/distill-educational-generic" ~/.claude/skills/distill-educational-generic
-ln -s "$PWD/skills/distill-educational-audio-composition" ~/.claude/skills/distill-educational-audio-composition
+./install.sh
 ```
 
-Symlinks (rather than copies) so a `git pull` updates all servers automatically.
+`install.sh` iterates `skills/*` and creates a symlink in `~/.claude/skills/` for each. Idempotent (safe to re-run; existing symlinks are left alone, broken ones are repaired).
+
+### To edit and publish (from primary dev server): `update.sh`
+
+```bash
+# 1. Edit any SKILL.md (via either the repo path or the ~/.claude/skills/<name>/SKILL.md symlink — same file)
+# 2. Stage, commit, push:
+cd ~/marc-jovani-powerups
+./update.sh "tightened distill-general intro"
+```
+
+`update.sh` runs `git add -A`, commits with the supplied message (or a default if none given), and pushes to `origin`.
+
+### To receive updates on another server: `pull.sh`
+
+```bash
+cd ~/marc-jovani-powerups
+./pull.sh
+```
+
+`pull.sh` runs `git pull --ff-only`. Because skills are symlinked, the pull updates the live skills instantly. No restart required.
+
+Optionally cron `pull.sh` on remote servers (e.g., hourly) so they self-sync without intervention.
+
+### Summary table
+
+| Action | Command | Where |
+|---|---|---|
+| One-time setup | `./install.sh` | any new server |
+| Edit + publish | `./update.sh "<msg>"` | primary dev server |
+| Receive updates | `./pull.sh` (or cron) | each remote server |
 
 ## 10. Implementation Sequence
 
-1. Create `/home/ubuntu/marc-jovani-powerups/` and `git init` (DONE as of this spec).
-2. Write this spec to `docs/specs/2026-04-29-mj-powerups-design.md` and commit (in progress).
+1. Create `/home/ubuntu/marc-jovani-powerups/` and `git init` — DONE.
+2. Write this spec to `docs/specs/2026-04-29-mj-powerups-design.md` and commit — DONE.
 3. Read each of the 3 source `.txt` files in full.
 4. Draft a `description` field for each skill — present all 3 to Marc for approval in a single message.
 5. After approval, write the 3 `SKILL.md` files (frontmatter + verbatim body).
-6. Write `DOCUMENTATION.md` per section 8.
-7. Commit everything.
-8. Create private GitHub repo `surfvani/marc-jovani-powerups`, push.
-9. Symlink the 3 skills into `~/.claude/skills/` on this server.
-10. Verify Claude Code picks up the skills (restart session if needed).
+6. Write `install.sh`, `update.sh`, `pull.sh` (Bash, set -euo pipefail, idempotent where applicable, all chmod +x).
+7. Write `DOCUMENTATION.md` per section 8 (now including the workflow section from section 9).
+8. Commit everything.
+9. Create private GitHub repo `surfvani/marc-jovani-powerups`, push.
+10. Run `./install.sh` on this server to symlink the 3 skills into `~/.claude/skills/`.
+11. Verify Claude Code picks up the skills (restart session if needed).
 
 ## 11. Risks / Open Questions
 
