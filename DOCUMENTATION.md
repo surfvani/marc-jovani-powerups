@@ -111,6 +111,20 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/distill-educational-audio-composition/SKILL.md`
 - **Last updated:** 2026-04-29 (created)
 
+### `doc-new-project`
+
+- **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-docnew.txt`
+- **Trigger description:** see frontmatter `description:` field in `skills/doc-new-project/SKILL.md`
+- **Purpose:** Marc's instructions for creating a new `DOCUMENTATION.md` from scratch for a new project, app, or build. Produces a comprehensive Markdown doc starting with the locked `⚠️ CRITICAL FILE STRUCTURE & ARCHITECTURE REFERENCE` first section, with detailed file structure (paying special attention to modularized clusters so future AIs don't get confused by old monolithic files), and enough context for a future AI session to ask informed follow-up questions.
+- **Last updated:** 2026-04-29 (created)
+
+### `doc-update-project`
+
+- **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-doccode.txt`
+- **Trigger description:** see frontmatter `description:` field in `skills/doc-update-project/SKILL.md`
+- **Purpose:** Marc's instructions for updating an existing `DOCUMENTATION.md` after a coding session, implementation, bugfix, or upgrade. Preserves all critical info (carefully-discovered solutions, roadblocks overcome), adds new learnings, removes only fully-obsolete content, targets ~1% shorter while remaining comprehensive. Includes a clear next-steps plan so a fresh AI session can resume cold without context loss.
+- **Last updated:** 2026-04-29 (created)
+
 ### `plan-build`
 
 - **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt`
