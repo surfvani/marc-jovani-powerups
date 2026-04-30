@@ -1,0 +1,151 @@
+---
+name: plan-build
+description: Use when Marc wants to plan or design a new build, feature, app, software, or major refactor before implementation — the skill puts you into planning-agent mode (discuss the concept, propose deep-research prompts where useful, then create a build plan document containing all downstream instructions including TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with DOCUMENTATION.md maintenance, and the Deep Research 10x Multiplier Rule) so the next AI agent can execute by just reading the doc. Skip for direct implementation requests where Marc explicitly says just do it or execute this.
+---
+
+above I GAVE YOU WHAT I  – THE USER WITH MY KNOWLEDGE, PLUS UNDERSTNADING WHERE ARE WE GOING  – HAVE IN MIND (IN OTHER WORDS, THESE ARE THE INITIAL IDEAS THAT WE NEED TO BUILD UPON. HERE’S THE PROCESS FROM HERE: 
+
+========= THE CONCEPT - YOU'RE NOT GOING TO DO THE FINAL ANALYSIS OF THE DEEP RESEARCH RESULTS - YOU'RE GOING TO PLAN FOR ANOTHER IA AGANE TO DO THE ANNALYSIS ======
+
+Process
+1. Understand first idea
+2. Discuss with user concept (back and fort questions)
+3. Prepare prompt/s for user to run deep research/es and wait for information to come back to you (this gives you extra intellgence, current information, or proven solutions)
+4. Based on understanding, clarity of concept, newly gain skill, Create full prompt for next agent to execute the analysis
+
+=============
+
+  start by investigating, reading the documents that I gave you.... gather all information needed
+
+  then ask questions if you need clarification with user
+
+  When you have clarity, explain your understanding to user
+
+  Then purpose needed resarches to user.
+
+WHEN USER APPROVES, ASK USER FOR INSTRUCTIONS TO REDACT THE RESEARCH PROMPTS. USER WILL GIVE YOU SPECIFIC INSTRUCTIONS
+
+WAIT FOR RESEARCHES RESULTS. USER WILL GIVE THEM BACK TO YOU WHEN THEY ARE DON
+
+======
+
+when everythign is clear (discussion with user + research results received), then you can proceed with the plan creation
+
+start by planning the document structure
+then print the list of topics/sections here in the chat —>  create a todo
+  then create document just with the basic structure and placeholders
+  do not create instructions document all at once
+  create first part of the document (replace first placeholder with content —> first item in todo list —> use EDITDOC tool)
+  then next one - use editdoc tool
+  continue systematically
+
+  the goal is that with this document I can go to the next AI and say
+
+  Hey claude, read this doc xyz.md, start.
+
+  When you are done, give me the short instruction prompt to give next AI with clear instructions on how to follow the md instructions
+
+=======
+
+=======
+
+
+❯ For long format tasks, AI works best with TODO lists (I’m not talking about a todo list inside the document, I’m talking about that you should instruct the next AI to create a TODO (using their todo tool) and follow it. Ideally, suggest the right todo list to create…. Again I don't mean for you to just create a TODO inside the docuemntation... I mean for you to create an example todo and instruct the future AI to actually create a TODO (using todo tool) and to follow the todo.
+  
+Instruct the next AI to do the work exactly as I told you.
+- One task at a time
+- completing the work systematically. 
+- Following the todo items one by one (if all the work is done inside a document, then it should use the EditDoc tool. 
+
+
+Also, in the document – where appropriate – instruct the AI to ask user for deep researches if any implementation would benefit from Hard-Won or community knowledge. 
+- For example... let's say that we're about to train a model and the particular tech stack could use a training configuration that allows us to set up training configurat either get the most of GPU specks... or even better, to stack two graphics and actually do things 10x faster than if the agent AI just wings the configuration. This would take us from 2 or 3 weeks of training to 2 days. Massive difference. This is just an example, but this way of thinking should be promoted and incentivized. 
+- Mentioning multiple times should be considered best practice. 
+- Adapting the recommendation to each use case is the right approach. Identify the key locations where deep research callouts would yield the biggest multipliers and suggest what to research, why, and how to approach it.
+- Include Deep Research Protocol (at the end of the document) — A full working principle explaining the "10x Multiplier Rule." Instructs the AI to proactively identify moments where community/hard-won knowledge could dramatically accelerate work, and to always ask the user before proceeding with naive defaults. Includes concrete examples (examples: training config, multi-GPU, sampling strategies, etc).
+- The philosophy should be baked in: the AI agent should be explicitly incentivized to pause, research, and ask rather than wing it with defaults — especially for tasks where the ROI of 45 minutes of research can be a 6x speedup (ie. long trainings, future debuging avoidance, etc)
+- Include Research Checkpoints in TODO list —  (mark them with 🔬) interleaved with implementation tasks, each tagged with "ask user first."
+IMPORTANT CLARIFICATION: The agent that is exectuing the task must NOT do the research. The agent executing the task must JUST create the research prompt. User will take that prompt to temporal sateilte agent to execute research and user must provide research resuilt back to executing agent. Remding user to invoke the "research-prompt-instructions" skill (or type `/research-prompt-instructions`) — this is the skill that gives you the instructions for how to write a good research prompt. It is NOT the deep research engine itself; it just loads the instructions that tell **YOU** (the planning agent) how to construct the research prompt. So when it's time to create research prompts, remind the user to invoke that skill so the right instructions get loaded into your context.
+
+
+Additionally, if the execution is going to take place accross multiple sessions (1 session = between 120k and 180k tockens of context), then instruct AI agent to update this prompt document with progress, status, and next steps, each time we close a session and before moveing to the next one. You should add two things
+  1. Cross-Session Continuity Protocol (separate section) — Clear instructions for the AI agent on what to do at the end and start of each session:
+      End of session: Update Section 11 with completed work, current state, files touched, key discoveries, blockers, and exact next steps. Update the TODO list. Commit.
+       Start of session: Read the latest session log entry, confirm with user, don't re-read files or redo work.
+  2.  Session Log (new section at the bottom) — Empty template ready to receive entries. Each session gets a structured entry with: completed items, current state, files created/modified, key discoveries, blockers, and ordered next steps.
+
+
+  Documentation Protocol: Include a section that instructs the executing AI to create and maintain a DOCUMENTATION.md file at the project root, separate from the build plan's own progress tracking. This file serves one purpose: give a fresh AI session enough context to start working immediately without re-reading every source file. First session: create it after the first meaningful implementation work. Structure must include: 
+   (1) Critical File Structure & Architecture Reference — complete directory tree, brief description of each app file, how files interact, explicit documentation of any modularized file groups so the AI doesn't try modifying old monolithic files that were split — this section must NOT be changed unless actual file structure modifications occur; 
+   (2) Architecture & Data Flow — end-to-end pipeline, what runs where, model specs, data formats; 
+   (3) Environment & Setup — versions, paths, activation commands, system dependencies; 
+   (4) Hard-Won Knowledge & Solved Problems — every gotcha encountered and how it was solved, configuration values found through debugging, dead ends and why they failed — these save massive trial-and-error in future sessions and must NEVER be removed; 
+   (5) Key Constraints & Non-Negotiables — architecture decisions that must not be second-guessed, read-only files, platform-specific issues; 
+   (6) Current State & Next Steps — what works, what's partial, the plan going forward in enough detail that a fresh AI can execute it. 
+Following sessions: make targeted updates only (Edit tool, not full rewrite), add new files/gotchas/config values, update changed descriptions, remove ONLY genuinely obsolete content with a 1% reduction target, never remove solved problems or architecture decisions. 
+Verification:  "Is this the same doc but with updates?" and "Could a fresh AI continue working from just this doc?" 
+Include an internal checklist for the AI to follow when updating. Critical warnings: do not skip information that creates lack of context, do not be so schematic that context is lost, do not bloat with fluff — keep it tight and token-efficient.
+
+
+Finally, instruct the future AI to EDUCATE and COMUNICATE to user what are we doing in each step. What are we doing, how are we going to do it, and why. This way userr learns and feels confident.
+
+
+========
+
+
+## Deep Research Protocol — 10x Multiplier Rule
+
+
+PRINCIPLE: Never implement with naive defaults when 45 min of research can yield 6-10x speedup.
+
+
+TRIGGER: Before implementing any task that involves:
+- Framework/library selection
+- Model architecture or training config
+- Infrastructure or environment setup
+- Any decision that conditions future work
+
+
+ACTION:
+1. STOP — Do not implement yet
+2. IDENTIFY — What specific knowledge would change the approach?
+3. GENERATE — Write a research prompt for user to run externally
+4. WAIT — User runs research in separate session, returns results
+5. VALIDATE — Confirm results answer the actual questions
+6. PROCEED — Build on proven ground
+
+
+WHY THIS EXISTS:
+- Your training data may be outdated or incomplete
+- Battle-tested solutions exist that you don't know about
+- Wrong early decisions compound into weeks of rework
+- Community-discovered configs/tricks often outperform defaults by 5-10x
+
+
+ANTI-PATTERNS TO AVOID:
+- ❌ Guessing framework defaults when optimal configs exist
+- ❌ Building from scratch when mature libraries solve the problem
+- ❌ Choosing well-documented but abandoned tech over active alternatives
+- ❌ Skipping research because "I probably know enough"
+
+
+MARKER: 🔬 (used in TODO items that require research before execution)
+REMINDER: Remind user to use "resss" snippet to get the research prompt INSTRUCTIONS so you can create a good research prompt.
+
+
+======
+
+
+TO SUMARIZE
+Process
+1. Understand first idea
+2. Discuss with user concept (back and fort questions)
+3. Optional - prepare prompt for user to run deep research and wait for information to come back to you (this gives you extra intellgence, current information, or proven solutions)
+4. Based on understanding, clarity of concept, newly gain skill, Create full prompt for next agent to execute (this prompt MUST BE WRITTEN IN THE CHAT CONVERSATION, NOT IN THE BUILD PLAN DOCUMENT, so the USER can easily copy and paste it to the next agent, without having to go find the file, open, scroll to bottom and find the prompt to copy paste... too many steps!)
+
+
+
+
+=============
+
+

@@ -18,7 +18,11 @@ marc-jovani-powerups/
 └── skills/                     ← every Claude Code skill in this collection
     ├── distill-general-conversations/SKILL.md
     ├── distill-educational-generic/SKILL.md
-    └── distill-educational-audio-composition/SKILL.md
+    ├── distill-educational-audio-composition/SKILL.md
+    ├── doc-new-project/SKILL.md
+    ├── doc-update-project/SKILL.md
+    ├── plan-build/SKILL.md
+    └── research-prompt-instructions/SKILL.md
 ```
 
 ### How Claude Code loads skills
@@ -105,6 +109,20 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 
 - **Source file:** `Destile Information FOR AUDIO & COMPOSITION CONTENT (Includes Context & Examples).txt`
 - **Trigger description:** see frontmatter `description:` field in `skills/distill-educational-audio-composition/SKILL.md`
+- **Last updated:** 2026-04-29 (created)
+
+### `plan-build`
+
+- **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt`
+- **Trigger description:** see frontmatter `description:` field in `skills/plan-build/SKILL.md`
+- **Purpose:** Marc's planning-agent workflow. Triggered when starting a new build/feature/app/refactor. Discusses concept with Marc, generates deep-research prompts, then produces a build plan document containing all downstream instructions (TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with `DOCUMENTATION.md` maintenance, Deep Research 10x Multiplier Rule). Designed so the next agent can execute with just `"read this doc, start"` — no execution-phase or doc-phase skill needed.
+- **Last updated:** 2026-04-29 (created)
+
+### `research-prompt-instructions`
+
+- **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-resss.txt`
+- **Trigger description:** see frontmatter `description:` field in `skills/research-prompt-instructions/SKILL.md`
+- **Purpose:** Loads the instruction set for writing a high-quality deep-research prompt (paradigm-shifting framing, no-abandoned-tech filter, parallel-prompt splitting, mandatory contextualization checklist, post-result validation questions). Invoked by user during a `plan-build` session when it's time to draft research prompts. Replaces the former `resss` TextExpander snippet — `plan-build` references this skill explicitly (see edit applied to `-plania.txt` line 63).
 - **Last updated:** 2026-04-29 (created)
 
 ---
@@ -229,7 +247,12 @@ Add a new subsection to the "Skill catalog" with: source file (or "pasted in cha
 - Repo pushed to `github.com/surfvani/marc-jovani-powerups` (private).
 - Symlinks active on this server (`/home/ubuntu`, the primary dev server).
 
+**As of 2026-04-29 (later — workflow skills added):**
+- Two workflow skills added: `plan-build` (verbatim port of `-plania.txt`) and `research-prompt-instructions` (verbatim port of `-resss.txt`). Together they encode Marc's full build-philosophy: planning agent creates a build plan document that contains all downstream executor + documenter instructions; `research-prompt-instructions` is invoked when the planner needs to draft deep-research prompts for satellite agents.
+- Source edit applied to `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt` line 63: replaced the "resss snippet" reference with the `research-prompt-instructions` skill reference. Per the verbatim-port rule, the source was edited first, then ported.
+- **Note:** `doc-new-project` and `doc-update-project` skills exist on disk and are now reflected in the repo tree, but do NOT yet have catalog entries in this file. Add when Marc gets to them.
+
 **Next, when Marc resumes:**
-- Add more skills from his existing prompt library (he has many; these three were chosen as a starting batch).
-- Start sketching what "workflows and ways-of-working" looks like — likely a new top-level concept (e.g., `workflows/`) that may be skills, slash commands, or hooks.
+- Add catalog entries for `doc-new-project` and `doc-update-project`.
+- Add more skills from his existing prompt library.
 - When the collection is stable, evaluate wrapping it as a plugin (`plugin.json` + `marketplace.json`) for `/plugin install`-style distribution to other servers.
