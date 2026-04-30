@@ -157,7 +157,7 @@ This procedure is written so a brand-new Claude session, reading only this file,
 - Group related skills with a shared prefix when it makes sense (`distill-*`)
 - Once published, a slug is stable — renaming breaks references. Pick well.
 
-### The 7-step procedure
+### The 8-step procedure
 
 1. **Pick the slug.** Propose one to Marc; get a yes/no.
 2. **Create the folder:** `mkdir -p skills/<slug>`.
@@ -191,8 +191,9 @@ This procedure is written so a brand-new Claude session, reading only this file,
    diff /tmp/skill-body.txt "<path to source .txt>"
    ```
    The diff must be empty.
-6. **Run `./install.sh`** — this auto-creates the symlink for the new skill. (Existing skills are unaffected; idempotent.)
-7. **Run `./update.sh "added <slug> skill"`** — commits and pushes.
+6. **Run `./install.sh`** — auto-creates the symlink (idempotent).
+7. **Add a Skill-catalog entry** to this `DOCUMENTATION.md` under "Skill catalog": new `### \`<slug>\`` subsection with source file path, trigger description (or "see frontmatter"), one-line Purpose, last updated date. **Do not skip — the catalog is the cold-agent's index.**
+8. **Run `./update.sh "added <slug> skill"`** — commits and pushes (includes the catalog edit).
 
 ### Worked example
 
@@ -228,17 +229,15 @@ diff /tmp/skill-body.txt "/path/to/My New Prompt.txt"
 cd /home/ubuntu/marc-jovani-powerups
 ./install.sh
 
-# Step 7: Publish
+# Step 7: Edit DOCUMENTATION.md — add a "### `my-new-skill`" entry under "Skill catalog"
+
+# Step 8: Publish (commits both SKILL.md AND the catalog edit, pushes)
 ./update.sh "added my-new-skill skill"
 ```
 
 ### Handling source prompts that are NOT in `.txt` files
 
-If Marc pastes the prompt body directly into chat (no file), the procedure is identical except step 5 uses the pasted text as the verbatim body. Save the original pasted text to a temp file first, then use `cat` on it as in the worked example. Do not "clean it up" before writing the SKILL.md.
-
-### After adding a new skill — update this file
-
-Add a new subsection to the "Skill catalog" with: source file (or "pasted in chat <date>"), trigger description (or "see frontmatter"), last updated date.
+If Marc pastes the prompt body directly into chat (no file), the procedure is identical except step 5 uses the pasted text as the verbatim body. Save the original pasted text to a temp file first, then use `cat` on it as in the worked example. Do not "clean it up" before writing the SKILL.md. For step 7, write `pasted in chat <YYYY-MM-DD>` in place of the source file path.
 
 ---
 
