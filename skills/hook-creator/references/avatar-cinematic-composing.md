@@ -1,0 +1,1 @@
+/home/ubuntu/storage/CC_Sync/FOR TRANSCRIPTS/cc-secrets-booklet/reference/cinematic_composing_main_avatar.md

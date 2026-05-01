@@ -22,7 +22,16 @@ marc-jovani-powerups/
     ├── doc-new-project/SKILL.md
     ├── doc-update-project/SKILL.md
     ├── plan-build/SKILL.md
-    └── research-prompt-instructions/SKILL.md
+    ├── research-prompt-instructions/SKILL.md
+    └── hook-creator/                       ← Schwartz-style 6-pass hook extractor (alpha v0)
+        ├── SKILL.md
+        ├── .gitignore                      ← excludes runs/
+        ├── references/
+        │   ├── 01-existing-solutions-research.md
+        │   ├── 02-frameworks-and-cognitive-science-research.md
+        │   ├── 03-hidden-hook-extraction-research.md
+        │   └── avatar-cinematic-composing.md   ← symlink to live avatar (per-server)
+        └── runs/                            ← gitignored: per-run outputs land here
 ```
 
 ### How Claude Code loads skills
