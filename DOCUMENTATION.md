@@ -23,15 +23,23 @@ marc-jovani-powerups/
     ├── doc-update-project/SKILL.md
     ├── plan-build/SKILL.md
     ├── research-prompt-instructions/SKILL.md
-    └── hook-creator/                       ← Schwartz-style 6-pass hook extractor (alpha v0)
+    ├── hook-creator/                       ← Schwartz-style 6-pass hook extractor (alpha v0)
+    │   ├── SKILL.md
+    │   ├── .gitignore                      ← excludes runs/
+    │   ├── references/
+    │   │   ├── 01-existing-solutions-research.md
+    │   │   ├── 02-frameworks-and-cognitive-science-research.md
+    │   │   ├── 03-hidden-hook-extraction-research.md
+    │   │   └── avatar-cinematic-composing.md   ← symlink to live avatar (per-server)
+    │   └── runs/                            ← gitignored: per-run outputs land here
+    ├── scroll-stop-prompter/                ← 3D website asset prompt generator
+    │   ├── SKILL.md
+    │   └── assets/prompt-page-template.html   ← gorgeous tabbed copy-prompt page
+    └── scroll-stop-builder/                 ← scroll-driven 3D website builder (ffmpeg + canvas)
         ├── SKILL.md
-        ├── .gitignore                      ← excludes runs/
-        ├── references/
-        │   ├── 01-existing-solutions-research.md
-        │   ├── 02-frameworks-and-cognitive-science-research.md
-        │   ├── 03-hidden-hook-extraction-research.md
-        │   └── avatar-cinematic-composing.md   ← symlink to live avatar (per-server)
-        └── runs/                            ← gitignored: per-run outputs land here
+        ├── assets/                          ← (empty placeholder)
+        ├── references/sections-guide.md     ← per-section implementation details
+        └── scripts/                         ← (empty placeholder)
 ```
 
 ### How Claude Code loads skills
@@ -147,6 +155,44 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/research-prompt-instructions/SKILL.md`
 - **Purpose:** Loads the instruction set for writing a high-quality deep-research prompt (paradigm-shifting framing, no-abandoned-tech filter, parallel-prompt splitting, mandatory contextualization checklist, post-result validation questions). Invoked by user during a `plan-build` session when it's time to draft research prompts. Replaces the former `resss` TextExpander snippet — `plan-build` references this skill explicitly (see edit applied to `-plania.txt` line 63).
 - **Last updated:** 2026-04-29 (created)
+
+### `scroll-stop-prompter`
+
+- **Source:** Google Drive folder "3D Website Asset Generator" (downloaded 2026-05-04)
+- **Trigger description:** see frontmatter `description:` field in `skills/scroll-stop-prompter/SKILL.md`
+- **Purpose:** For a given product/object, generates 3 linked AI prompts — (A) clean assembled product shot on white, (B) exploded/deconstructed view, (C) video transition between the two. Delivers them via a styled HTML page (`prompt-page-template.html`) with tabs, one-click copy buttons, and confetti. Image- and video-model-agnostic (Higgsfield, Midjourney, Runway, Kling, Pika, etc.).
+- **Reusable assets:** `assets/prompt-page-template.html` — the tabbed/copy/confetti HTML template can be reused on its own for any 3-prompt set, not just deconstruction. See "Using just a piece" below.
+- **Last updated:** 2026-05-04 (added)
+
+### `scroll-stop-builder`
+
+- **Source:** Google Drive folder "scroll-stop-builder-skill" (downloaded 2026-05-04)
+- **Trigger description:** see frontmatter `description:` field in `skills/scroll-stop-builder/SKILL.md`
+- **Purpose:** Takes a video file (e.g., a product deconstruction animation) and builds a production-quality website where the video plays forward/backward as the user scrolls — Apple-style. Uses ffmpeg to extract 60–150 JPEG frames, draws them to a canvas based on scroll position, and assembles a full site (starscape, loader, transforming navbar, hero, sticky-canvas scroll animation, snap-stop annotation cards, count-up specs, glass-morphism feature cards, optional testimonials, optional Three.js card scanner, footer). Customized via a mandatory interview (brand, logo, accent color, content source).
+- **Prerequisite:** `ffmpeg` installed on the machine running the skill (`sudo apt install ffmpeg` / `brew install ffmpeg`).
+- **Reusable assets:** `references/sections-guide.md` — implementation details for each website section, readable on its own as a reference for similar builds.
+- **Last updated:** 2026-05-04 (added)
+
+---
+
+## Using just a piece (modular access)
+
+Sometimes you don't want to invoke a whole skill — you just want a specific template, design token, or reference doc. Because every skill folder is symlinked into `~/.claude/skills/<skill-name>/`, every file inside is reachable from a stable path on every server.
+
+Examples:
+
+```bash
+# Grab just the styled tabbed prompt page template (use it for any 3-prompt set)
+cp ~/marc-jovani-powerups/skills/scroll-stop-prompter/assets/prompt-page-template.html \
+   ./my-page.html
+
+# Read the section-by-section website implementation guide without triggering the build skill
+less ~/marc-jovani-powerups/skills/scroll-stop-builder/references/sections-guide.md
+```
+
+You can also reference these paths inside a Claude Code session — e.g., "use the design tokens from `~/marc-jovani-powerups/skills/scroll-stop-builder/SKILL.md` (Design System section) for this new project." Claude can read the file directly without auto-triggering the full skill.
+
+If a piece becomes broadly reusable across many projects, lift it into its own focused skill (e.g., a future `voltflow-design-system` skill exposing just the design tokens + glass-morphism components).
 
 ---
 
