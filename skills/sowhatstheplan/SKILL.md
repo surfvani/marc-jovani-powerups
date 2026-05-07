@@ -102,22 +102,28 @@ Output is one tight Markdown block. Use the exact section headers below. Match M
 
 🔴 **NEXT (in order)**
 1. **Stream X — <plain-language outcome in 4-8 words>**
-   <1-2 short sentences: what the work concretely involves. Plain language. Pull from milestone Notes + stream section.>
-   <size signal: "~N sub-tasks · ~T time" if derivable; else omit>
+   - <concrete deliverable — bold the key term>
+   - <concrete deliverable — bold the key term>
+   - <concrete deliverable — bold the key term>
+   - <size: `~N sub-tasks · ~T time` if derivable; else omit this bullet>
 
 2. **Stream Y — <plain-language outcome>**
-   <…>
+   - <bullet>
+   - <bullet>
+   - <bullet>
 
 3. **Stream Z — <plain-language outcome>**
-   <…>
+   - <bullet>
+   - <bullet>
+   - <bullet>
 
 <Cap at 3. If more, end with: "…then the rest per BUILD_PLAN order.">
 
 💡 **SUGGESTED MOVE**
 **<Action verb + concrete what — one short bold line>**
-- <reason 1 — short>
-- <reason 2 — short>
-- <unlock / dependency / time signal — short>
+- <reason 1 — bold the key term>
+- <reason 2 — bold the key term>
+- <unlock / dependency / time signal — bold the key term>
 
 **OPTIONS**
 **A.** <recommended next move> — <one-line>
@@ -178,7 +184,8 @@ Keep visuals tight. ASCII serves the briefing, not the other way around.
 - **No metaphors. No analogies. No "kinda like X".** Plain language only. Simple words.
 - **Concrete over conceptual.** Every NEXT entry must say what the work IS, not just its label.
 - **Recommendation-shaped, not decision-shaped.** "I suggest A" — not "We will do A".
-- **Bullets over paragraphs in SUGGESTED MOVE.** A bold action line followed by 2-4 short bullets. Use prose only when bullets would feel forced.
+- **Bullets, not paragraphs, in NEXT and SUGGESTED MOVE.** Each NEXT entry: a bold heading line + 3-5 short bullets describing the concrete deliverables (last bullet = size signal if derivable). SUGGESTED MOVE: a bold action line + 2-4 short bullets. Use prose only when bullets would feel forced.
+- **Bold key terms inside bullets.** A reader should be able to skim the bold words alone and get the gist.
 - **Marc may have been away for months.** The briefing must let him pick up cold without re-reading the BUILD_PLAN.
 - **Executive-summary shape, not dumbed down.** Short and sharp; assume Marc is the smart owner of this project, not a stakeholder needing introduction.
 
