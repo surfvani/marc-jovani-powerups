@@ -61,40 +61,63 @@ If the BUILD_PLAN names a "what's NOT in scope" section, skim it — it shapes t
 
 ## What to compute
 
-From the milestone tracker + Session Log:
+From the milestone tracker + Session Log + each stream's section:
 
-- **DONE:** milestones marked 🟢 / ✅ / "done" / "completed".
-- **IN PROGRESS:** milestones marked 🟡 / "in progress", OR the stream with the most recent Session Log activity.
+- **DONE — project state only.** Milestones marked 🟢 / ✅ / "done" / "completed". **Filter out plan-creation meta-facts** like "BUILD_PLAN was written" or "streams enumerated" — those belong in WHERE WE ARE, not DONE. DONE is what's true about the **project**, not about the plan document.
+- **IN PROGRESS:** milestones marked 🟡, OR the stream with the most recent Session Log activity.
 - **NEXT:** the next 1-3 milestones in dependency-respecting order.
 - **BLOCKED:** milestones with explicit blockers (look for "Depends-on:", "blocked by", "🔴 blocked").
-- **EXIT GATE:** if the BUILD_PLAN names an exit gate, surface it.
+- **EXIT GATE:** if the BUILD_PLAN names an exit gate, surface it in WHERE WE ARE as part of the phase line.
+- **Phase + runway:** compute current phase (build / run / done), date range, and progress signal (e.g., `0% started`, `3/7 streams done`, `Run phase active`).
+- **Plain-language "what it IS" per NEXT entry.** For every NEXT entry, do NOT just print the stream label. Pull from:
+  1. The milestone tracker's "Notes" column for that stream (if present).
+  2. The first paragraph (or first ~3 lines) under the stream's section heading in the BUILD_PLAN.
+  3. The TODO sub-headings inside the stream (e.g., "1A — Install + AWS SES", "1B — Theme + plugins", "1C — AI moderation").
+  Synthesize 1-2 short sentences in plain language naming the concrete deliverables. No jargon labels.
+- **Size signal per NEXT entry.** Count `[ ]` checkbox lines under the stream to get sub-task count. If the doc names a duration estimate, include it. Format: `~N sub-tasks` or `~N sub-tasks · ~T weeks`. If nothing is countable, omit.
 
-**Group when count is high.** Marc explicitly does not want big lists. If 20 sub-TODOs are done in a stream, say "Stream X complete (20 TODOs)", not the list.
+**Group when count is high.** Marc does not want big lists. If 20 sub-TODOs are done in a stream, say "Stream X complete (20 TODOs)", not the list.
 
 ---
 
 ## Output format (LOCKED — do not deviate)
 
-Output is one tight Markdown block. Use the exact section headers below. Match Marc's claudeclarity style: short sentences, no filler words, no preambles.
+Output is one tight Markdown block. Use the exact section headers below. Match Marc's claudeclarity style: short sentences, simple language, no filler, no preambles, no metaphors. Executive-summary shape.
 
 ```
 📍 **WHERE WE ARE**
-<1-2 lines: project name + most recent activity from Session Log>
+**Project:** <name pulled from BUILD_PLAN title>
+**Plan:** <absolute path to BUILD_PLAN.md>
+**Phase:** <build / run / done> · <date range> · <progress signal>
+**Last session:** <date — 1 line gist from Session Log>
 
-✅ **DONE**
-<2-5 short bullets, grouped/aggregated at stream or milestone level. Not every TODO.>
+[OPTIONAL — only when useful: a 1-3 line ASCII timeline or stream progress bar block.]
+
+✅ **DONE** (project state only)
+- <bullet — what's true about the project, not the plan>
+- <bullet>
 
 🟡 **IN PROGRESS**
-<1-line per active stream. If nothing active, write: "Nothing currently active.">
+<1 line per active stream. If nothing, write: "Nothing currently active.">
 
 🔴 **NEXT (in order)**
-1. <Stream/milestone name> — <one-line reason it's next>
-2. <…>
-3. <…>
+1. **Stream X — <plain-language outcome in 4-8 words>**
+   <1-2 short sentences: what the work concretely involves. Plain language. Pull from milestone Notes + stream section.>
+   <size signal: "~N sub-tasks · ~T time" if derivable; else omit>
+
+2. **Stream Y — <plain-language outcome>**
+   <…>
+
+3. **Stream Z — <plain-language outcome>**
+   <…>
+
 <Cap at 3. If more, end with: "…then the rest per BUILD_PLAN order.">
 
 💡 **SUGGESTED MOVE**
-<One sentence: what to do next and why. Brainstorming-style — this is a recommendation, not a decision.>
+**<Action verb + concrete what — one short bold line>**
+- <reason 1 — short>
+- <reason 2 — short>
+- <unlock / dependency / time signal — short>
 
 **OPTIONS**
 **A.** <recommended next move> — <one-line>
@@ -106,13 +129,58 @@ After the output block, **stop**. Don't start executing. Don't ask follow-up que
 
 ---
 
+## ASCII visuals — when helpful, when not
+
+ASCII visuals go inside the WHERE WE ARE block (or right under it), and they are **optional**. Use them only when they make the briefing easier to grasp at a glance. Skip them when they would just add noise.
+
+**Use when:**
+- Build phase has a hard deadline → 1-line timeline showing where "now" sits
+- Multiple streams with countable TODOs → small progress-bar block (max ~7 lines)
+- Run phase with named triggers spread across months → 1-line trigger timeline
+
+**Skip when:**
+- Single-doc project with no clear phases
+- Run phase has only 1-2 trigger events left
+- The visual would take more than ~7 lines
+
+**Examples (use as templates, adapt to actual data):**
+
+1-line phase timeline:
+```
+Build  May 6 ●──────────────── Jun 1   ●  Run  Jun 1 ──────────── Nov 30
+       ▲ now (0/7 streams done)
+```
+
+Stream progress bars (only when useful and count is small):
+```
+Stream 0  ░░░░░░░░░░  0/5     (lineage)
+Stream 1  ░░░░░░░░░░  0/20    (forum)
+Stream 2  ░░░░░░░░░░  0/12    (yt ads)
+Stream 3  ░░░░░░░░░░  0/7     (launches)
+Stream 4  ░░░░░░░░░░  0/6     (emails)
+```
+
+Run-phase trigger timeline:
+```
+Jun ──● Jul ──● Aug ──● Sep ──● Oct ──● Nov
+      T1     T2     T3   T4-review    rotate
+```
+
+Keep visuals tight. ASCII serves the briefing, not the other way around.
+
+---
+
 ## Style rules (claudeclarity)
 
-- No filler. No "Great, I've loaded the docs!" preamble. Open with 📍 directly.
-- No fabrication. If a status is unclear from the docs, write `?` next to it; don't guess.
-- No big lists. Aggregate at stream / milestone level.
-- Recommendation-shaped, not decision-shaped. "I suggest A" — not "We will do A".
-- Marc may have been away for months. The briefing must let him pick up cold without re-reading the BUILD_PLAN.
+- **No filler.** No "Great, I've loaded the docs!" preamble. Open with 📍 directly.
+- **No fabrication.** If a status is unclear from the docs, write `?` next to it; don't guess.
+- **No big lists.** Aggregate at stream / milestone level.
+- **No metaphors. No analogies. No "kinda like X".** Plain language only. Simple words.
+- **Concrete over conceptual.** Every NEXT entry must say what the work IS, not just its label.
+- **Recommendation-shaped, not decision-shaped.** "I suggest A" — not "We will do A".
+- **Bullets over paragraphs in SUGGESTED MOVE.** A bold action line followed by 2-4 short bullets. Use prose only when bullets would feel forced.
+- **Marc may have been away for months.** The briefing must let him pick up cold without re-reading the BUILD_PLAN.
+- **Executive-summary shape, not dumbed down.** Short and sharp; assume Marc is the smart owner of this project, not a stakeholder needing introduction.
 
 ---
 
