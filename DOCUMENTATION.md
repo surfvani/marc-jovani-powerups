@@ -173,6 +173,13 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Reusable assets:** `references/sections-guide.md` — implementation details for each website section, readable on its own as a reference for similar builds.
 - **Last updated:** 2026-05-04 (added)
 
+### `sowhatstheplan`
+
+- **Source:** fresh-authored 2026-05-07 (not a verbatim port of an existing prompt). Designed during a brainstorm session on the 6_MONTH_CC_AUTOMATED build plan.
+- **Trigger description:** see frontmatter `description:` field in `skills/sowhatstheplan/SKILL.md`
+- **Purpose:** Marc's "where are we / what's next" briefer for any existing build-plan project. Generic across any folder containing the BUILD_PLAN family pattern (`*BUILD_PLAN*.md` + optional `*RUN_OPERATIONS*.md` + optional `*STATUS*.md`). Loads docs in fastest order, computes done/in-progress/next from the milestone tracker + Session Log, outputs a tight Marc-Jovani-style executive briefing (📍 / ✅ / 🟡 / 🔴 / 💡 / OPTIONS A-B-C) without big lists, then stops and waits for Marc's pick. Lets Marc pick up cold on a project he hasn't touched in months. Read-only — does not modify any doc.
+- **Last updated:** 2026-05-07 (added)
+
 ---
 
 ## Using just a piece (modular access)
@@ -320,7 +327,10 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 - Source edit applied to `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt` line 63: replaced the "resss snippet" reference with the `research-prompt-instructions` skill reference. Per the verbatim-port rule, the source was edited first, then ported.
 - **Note:** `doc-new-project` and `doc-update-project` skills exist on disk and are now reflected in the repo tree, but do NOT yet have catalog entries in this file. Add when Marc gets to them.
 
+**As of 2026-05-07 (sowhatstheplan added):**
+- New skill `sowhatstheplan` added — Marc's "where are we / what's next" briefer for any existing build-plan project. Generic across any folder containing the BUILD_PLAN family pattern (`*BUILD_PLAN*.md` + optional `*RUN_OPERATIONS*.md` + optional `*STATUS*.md`). Outputs a tight Marc-Jovani-style briefing (📍/✅/🟡/🔴/💡/OPTIONS) and stops. First fresh-authored skill in the collection (not a verbatim port). Designed during the brainstorm session that produced `/home/ubuntu/NORTH_STAR/6_MONTH_COMMITMENT/6_MONTH_CC_AUTOMATED-BUILD_PLAN.md` and its sibling docs.
+
 **Next, when Marc resumes:**
-- Add catalog entries for `doc-new-project` and `doc-update-project`.
+- Add a catalog entry for `hook-creator` (currently missing from the catalog despite being in the file structure).
 - Add more skills from his existing prompt library.
 - When the collection is stable, evaluate wrapping it as a plugin (`plugin.json` + `marketplace.json`) for `/plugin install`-style distribution to other servers.
