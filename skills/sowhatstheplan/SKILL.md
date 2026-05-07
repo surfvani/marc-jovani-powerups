@@ -61,11 +61,16 @@ If the BUILD_PLAN names a "what's NOT in scope" section, skim it — it shapes t
 
 ## What to compute
 
-From the milestone tracker + Session Log + each stream's section:
+From the milestone tracker + Session Log + each stream's section + any Active State / Live / Bleeding / Urgent section:
 
+- **🚨 URGENT — what's actively bleeding right now.** This is the highest-priority computation. **Look for it BEFORE computing NEXT.** Sources, in order:
+  1. An explicit `Active State` / `Live` / `Bleeding` / `Urgent` section in the BUILD_PLAN. Prefer rows marked 🚨, "URGENT", "LIVE", or with a "Cost of inaction" / "per day" column.
+  2. Heuristic fallback when no such section exists: scan the full plan for lines combining (`live` OR `running` OR `deployed` OR `$X/day` OR `spending`) WITH (`not tracked` OR `no tracking` OR `blind` OR `untracked` OR `broken`). Flag any match as URGENT.
+  3. Milestone Tracker rows tagged with 🚨, `URGENT`, or `pre-build`.
+- **🚨 takes precedence over dependency order.** A bleeding state outranks the dependency root. If something is actively losing value per day of inaction, surface it in URGENT and recommend it as the SUGGESTED MOVE — even if a dependency-shape sequencer would put something else first.
 - **DONE — project state only.** Milestones marked 🟢 / ✅ / "done" / "completed". **Filter out plan-creation meta-facts** like "BUILD_PLAN was written" or "streams enumerated" — those belong in WHERE WE ARE, not DONE. DONE is what's true about the **project**, not about the plan document.
 - **IN PROGRESS:** milestones marked 🟡, OR the stream with the most recent Session Log activity.
-- **NEXT:** the next 1-3 milestones in dependency-respecting order.
+- **NEXT:** the next 1-3 milestones in dependency-respecting order. **If URGENT is non-empty, NEXT begins with the urgent item.**
 - **BLOCKED:** milestones with explicit blockers (look for "Depends-on:", "blocked by", "🔴 blocked").
 - **EXIT GATE:** if the BUILD_PLAN names an exit gate, surface it in WHERE WE ARE as part of the phase line.
 - **Phase + runway:** compute current phase (build / run / done), date range, and progress signal (e.g., `0% started`, `3/7 streams done`, `Run phase active`).
@@ -92,6 +97,10 @@ Output is one tight Markdown block. Use the exact section headers below. Match M
 **Last session:** <date — 1 line gist from Session Log>
 
 [OPTIONAL — only when useful: a 1-3 line ASCII timeline or stream progress bar block.]
+
+🚨 **URGENT (acting/bleeding right now)** *(only render this section if at least one urgent item was found)*
+- **<item — bold key term>** — <what's bleeding + cost of delay in 1 line>
+- **<item>** — <…>
 
 ✅ **DONE** (project state only)
 - <bullet — what's true about the project, not the plan>
@@ -188,6 +197,7 @@ Keep visuals tight. ASCII serves the briefing, not the other way around.
 - **Bold key terms inside bullets.** A reader should be able to skim the bold words alone and get the gist.
 - **Marc may have been away for months.** The briefing must let him pick up cold without re-reading the BUILD_PLAN.
 - **Executive-summary shape, not dumbed down.** Short and sharp; assume Marc is the smart owner of this project, not a stakeholder needing introduction.
+- **Bleeding outranks dependencies.** When 🚨 URGENT items exist, they go first in NEXT and they are the SUGGESTED MOVE. Dependency-shape sequencing is the right heuristic only when nothing is actively losing value per day.
 
 ---
 

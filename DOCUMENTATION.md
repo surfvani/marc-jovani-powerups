@@ -146,8 +146,8 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 
 - **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt`
 - **Trigger description:** see frontmatter `description:` field in `skills/plan-build/SKILL.md`
-- **Purpose:** Marc's planning-agent workflow. Triggered when starting a new build/feature/app/refactor. Discusses concept with Marc, generates deep-research prompts, then produces a build plan document containing all downstream instructions (TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with `DOCUMENTATION.md` maintenance, Deep Research 10x Multiplier Rule). Designed so the next agent can execute with just `"read this doc, start"` — no execution-phase or doc-phase skill needed.
-- **Last updated:** 2026-04-29 (created)
+- **Purpose:** Marc's planning-agent workflow. Triggered when starting a new build/feature/app/refactor. Discusses concept with Marc, generates deep-research prompts, captures the Active State (live spend, deployed systems, anything bleeding per day of inaction), then produces a build plan document containing all downstream instructions (TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with `DOCUMENTATION.md` maintenance, Deep Research 10x Multiplier Rule, Active State Protocol). Designed so the next agent can execute with just `"read this doc, start"` — no execution-phase or doc-phase skill needed.
+- **Last updated:** 2026-05-07 (Active State Protocol added: mandatory "what's running in production today, and what's broken or untracked about it?" question in the discussion phase + required Active State section in plan output, so urgency outranks dependency-shape sequencing)
 
 ### `research-prompt-instructions`
 
@@ -329,6 +329,13 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 
 **As of 2026-05-07 (sowhatstheplan added):**
 - New skill `sowhatstheplan` added — Marc's "where are we / what's next" briefer for any existing build-plan project. Generic across any folder containing the BUILD_PLAN family pattern (`*BUILD_PLAN*.md` + optional `*RUN_OPERATIONS*.md` + optional `*STATUS*.md`). Outputs a tight Marc-Jovani-style briefing (📍/✅/🟡/🔴/💡/OPTIONS) and stops. First fresh-authored skill in the collection (not a verbatim port). Designed during the brainstorm session that produced `/home/ubuntu/NORTH_STAR/6_MONTH_COMMITMENT/6_MONTH_CC_AUTOMATED-BUILD_PLAN.md` and its sibling docs.
+
+**As of 2026-05-07 (Active State Protocol — sowhatstheplan + plan-build update):**
+- Diagnosis: when given a fresh BUILD_PLAN, `sowhatstheplan` recommended Stream 0 (Lineage) instead of fixing live Google Ads conversion tracking that was bleeding $200/day of unrecoverable data. Root cause: plans naturally encode dependency / size / owner / status — but NOT active state or cost-of-delay-per-day. Sub-bullets labeled "user handles directly" got read as "low priority" by the sequencing logic. Diagnosis spanned 4 levels: brainstorm miss (never asked the live-state question), plan-structure miss (no Active State section), skill-logic miss (no urgency override), output-format miss (no URGENT row).
+- Fix: 3-layer change applied today.
+  - **Layer 1 (plan):** This Cinematic Composing build plan got an Active State section + 🚨 row promoted to top-level milestone (Stream 2.1a, urgent pre-build).
+  - **Layer 2 (skill — `sowhatstheplan`):** Added Active State / URGENT scan with explicit section in output above NEXT, plus heuristic fallback (live + $X/day + untracked → URGENT). Bleeding outranks dependencies.
+  - **Layer 3 (skill — `plan-build`):** Source `-plania.txt` updated with mandatory "what's running in production today, and what's broken or untracked about it?" question in the discussion phase + new "Active State Protocol — Live & Bleeding Check" section requiring the Active State table in every plan output. Re-ported verbatim to `skills/plan-build/SKILL.md`; byte-equality verified. Convention is now baked into every future build plan.
 
 **Next, when Marc resumes:**
 - Add a catalog entry for `hook-creator` (currently missing from the catalog despite being in the file structure).

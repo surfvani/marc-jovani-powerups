@@ -1,6 +1,6 @@
 ---
 name: plan-build
-description: Use when Marc wants to plan or design a new build, feature, app, software, or major refactor before implementation — the skill puts you into planning-agent mode (discuss the concept, propose deep-research prompts where useful, then create a build plan document containing all downstream instructions including TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with DOCUMENTATION.md maintenance, and the Deep Research 10x Multiplier Rule) so the next AI agent can execute by just reading the doc. Skip for direct implementation requests where Marc explicitly says just do it or execute this.
+description: Use when Marc wants to plan or design a new build, feature, app, software, or major refactor before implementation — the skill puts you into planning-agent mode (discuss the concept, propose deep-research prompts where useful, capture the Active State / Live & Bleeding check, then create a build plan document containing all downstream instructions including TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with DOCUMENTATION.md maintenance, the Deep Research 10x Multiplier Rule, and the Active State Protocol so urgency outranks dependency order) so the next AI agent can execute by just reading the doc. Skip for direct implementation requests where Marc explicitly says just do it or execute this.
 ---
 
 above I GAVE YOU WHAT I  – THE USER WITH MY KNOWLEDGE, PLUS UNDERSTNADING WHERE ARE WE GOING  – HAVE IN MIND (IN OTHER WORDS, THESE ARE THE INITIAL IDEAS THAT WE NEED TO BUILD UPON. HERE’S THE PROCESS FROM HERE: 
@@ -18,6 +18,8 @@ Process
   start by investigating, reading the documents that I gave you.... gather all information needed
 
   then ask questions if you need clarification with user
+
+  ALWAYS ask one specific question early in the discussion: "What's already running in production today, and what's broken or untracked about it?" — this captures the project's Active State (live spend, deployed systems, ongoing campaigns, paused integrations, anything where every day of inaction has a measurable cost). Capture the answers verbatim — they become the seed of a mandatory Active State section in the build plan document. Without this question, urgent bleeding states (e.g., live ad spend without conversion tracking) get buried as sub-bullets and the next agent reads the plan and starts on the wrong thing.
 
   When you have clarity, explain your understanding to user
 
@@ -91,6 +93,38 @@ Finally, instruct the future AI to EDUCATE and COMUNICATE to user what are we do
 
 
 ========
+
+
+## Active State Protocol — Live & Bleeding Check
+
+
+PRINCIPLE: A plan that ignores what's already running in production will sequence the wrong thing first. Dependency order is correct ONLY when nothing is actively bleeding value per day. Live spend without tracking, deployed-but-broken systems, paid integrations sitting idle, contracts about to expire — these are first-class urgency signals that outrank dependency-shape sequencing.
+
+
+REQUIRED IN EVERY BUILD PLAN: an "Active State" section near the top of the document (immediately after the strategic frame / problem statement). Format as a small table with columns: Item, State, Cost of inaction (per day). Mark bleeding rows with 🚨. Mark stable/normal rows with 🟢. The 🚨 rule: any item with non-zero per-day cost of inaction takes priority over dependency-shape sequencing.
+
+
+WHAT GOES IN THE ACTIVE STATE TABLE:
+- Live ad spend (with tracking status)
+- Deployed services / sites / apps (status: working, broken, partial)
+- Active subscriptions / SaaS / integrations being paid for
+- In-flight campaigns / launches / promotions
+- Any contractor or team work currently in progress
+- Anything where the cost of doing nothing today is non-zero
+
+
+WHAT TO DO WITH 🚨 ROWS:
+1. They become the FIRST executable TODOs in the plan, not buried sub-bullets.
+2. Promote each 🚨 item to its own top-level milestone in the milestone tracker.
+3. If an 🚨 item is owned by the user (not dispatchable to an agent), say so explicitly and put it in parallel with the first agent-dispatchable stream — do not let "user handles" be misread as "low priority."
+
+
+WHY THIS EXISTS:
+- "User handles directly" labels conflate ownership with priority. Without an explicit Active State surface, sequencing algorithms (and future Claude agents reading the plan) treat them as low-attention.
+- Live spend without instrumentation is the canonical example: every day of $200/day untracked = permanent data loss. The plan must make that visible at the top, not in a sub-bullet of stream 2.1.
+
+
+MARKER: 🚨 (used for any actively-bleeding row in Active State and in Milestone Tracker)
 
 
 ## Deep Research Protocol — 10x Multiplier Rule
