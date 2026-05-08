@@ -9,7 +9,7 @@
 ```
 marc-jovani-powerups/
 ├── DOCUMENTATION.md            ← this file (the single user-facing doc)
-├── install.sh                  ← one-time setup on a new server: symlinks skills into ~/.claude/skills/
+├── install.sh                  ← one-time setup on a new server: symlinks skill folders into ~/.claude/skills/, symlinks skill-bundled executables into ~/.local/bin/, creates per-skill venvs at ~/.config/<skill>/venv/ when requirements.txt is present
 ├── update.sh                   ← from primary dev server: git add -A + commit + push
 ├── pull.sh                     ← from any other server: git pull --ff-only
 ├── docs/
@@ -23,6 +23,7 @@ marc-jovani-powerups/
     ├── doc-update-project/SKILL.md
     ├── plan-build/SKILL.md
     ├── research-prompt-instructions/SKILL.md
+    ├── sowhatstheplan/SKILL.md
     ├── hook-creator/                       ← Schwartz-style 6-pass hook extractor (alpha v0)
     │   ├── SKILL.md
     │   ├── .gitignore                      ← excludes runs/
@@ -35,11 +36,15 @@ marc-jovani-powerups/
     ├── scroll-stop-prompter/                ← 3D website asset prompt generator
     │   ├── SKILL.md
     │   └── assets/prompt-page-template.html   ← gorgeous tabbed copy-prompt page
-    └── scroll-stop-builder/                 ← scroll-driven 3D website builder (ffmpeg + canvas)
+    ├── scroll-stop-builder/                 ← scroll-driven 3D website builder (ffmpeg + canvas)
+    │   ├── SKILL.md
+    │   ├── assets/                          ← (empty placeholder)
+    │   ├── references/sections-guide.md     ← per-section implementation details
+    │   └── scripts/                         ← (empty placeholder)
+    └── cc-google-ads/                       ← Cinematic Composing Google Ads operator (skill + bundled CLI)
         ├── SKILL.md
-        ├── assets/                          ← (empty placeholder)
-        ├── references/sections-guide.md     ← per-section implementation details
-        └── scripts/                         ← (empty placeholder)
+        ├── cc-gads                          ← Python CLI executable (symlinked into ~/.local/bin/ by install.sh)
+        └── requirements.txt                 ← google-ads + click; install.sh creates venv at ~/.config/cc-google-ads/venv/
 ```
 
 ### How Claude Code loads skills
@@ -156,6 +161,14 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Purpose:** Loads the instruction set for writing a high-quality deep-research prompt (paradigm-shifting framing, no-abandoned-tech filter, parallel-prompt splitting, mandatory contextualization checklist, post-result validation questions). Invoked by user during a `plan-build` session when it's time to draft research prompts. Replaces the former `resss` TextExpander snippet — `plan-build` references this skill explicitly (see edit applied to `-plania.txt` line 63).
 - **Last updated:** 2026-04-29 (created)
 
+### `hook-creator`
+
+- **Source:** Google Drive folder "Hook Creator (Schwartz 6-pass)" (downloaded 2026-05-04, alpha v0)
+- **Trigger description:** see frontmatter `description:` field in `skills/hook-creator/SKILL.md`
+- **Purpose:** Extracts 20 captivating hook-style book/course/module/episode titles from any long-form work (manuscript, transcript, chapter, course module, book draft) by running the Schwartz-style 6-pass extraction discipline (Idea × Avatar × Pattern). The "Tim Ferriss found '4-Hour Workweek' inside his book" / "James Clear found 'Atomic Habits' inside his research" family. Default avatar: Cinematic Composing student (loaded automatically from `references/avatar-cinematic-composing.md` — symlinked to the live avatar per-server).
+- **Reusable assets:** `references/01-existing-solutions-research.md`, `02-frameworks-and-cognitive-science-research.md`, `03-hidden-hook-extraction-research.md` — readable on their own as standalone references for hook theory.
+- **Last updated:** 2026-05-04 (added)
+
 ### `scroll-stop-prompter`
 
 - **Source:** Google Drive folder "3D Website Asset Generator" (downloaded 2026-05-04)
@@ -179,6 +192,53 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/sowhatstheplan/SKILL.md`
 - **Purpose:** Marc's "where are we / what's next" briefer for any existing build-plan project. Generic across any folder containing the BUILD_PLAN family pattern (`*BUILD_PLAN*.md` + optional `*RUN_OPERATIONS*.md` + optional `*STATUS*.md`). Loads docs in fastest order, computes done/in-progress/next from the milestone tracker + Session Log, outputs a tight Marc-Jovani-style executive briefing (📍 / ✅ / 🟡 / 🔴 / 💡 / OPTIONS A-B-C) without big lists, then stops and waits for Marc's pick. Lets Marc pick up cold on a project he hasn't touched in months. Read-only — does not modify any doc.
 - **Last updated:** 2026-05-07 (added)
+
+### `cc-google-ads`
+
+- **Source:** fresh-authored 2026-05-08 (not a verbatim port — Marc's first powerup that bundles a CLI binary alongside `SKILL.md`). Designed during the Google Ads integration build (Phase 4 of `/home/ubuntu/app_cc/docs/specs/2026-05-07-google-ads-integration-build-plan.md`).
+- **Trigger description:** see frontmatter `description:` field in `skills/cc-google-ads/SKILL.md`.
+- **Purpose:** Operator skill for Cinematic Composing's Google Ads account. Two-layer split per BPD §1.4 Finding C: **reads** via the official `googleads/google-ads-mcp` MCP server (installed per-machine via `pipx`, NOT vendored into this repo); **writes** via the Marc-authored `cc-gads` Python CLI (~600 LOC, lives next to SKILL.md, symlinked into `~/.local/bin/` by `install.sh`). The skill enforces the CEP protocol — Confirm (dry-run) → Execute (with `--confirm` after Marc types "yes") → Postcheck (re-query via read MCP). Hard policy ceilings live INSIDE the CLI (max bid $15, max budget delta 25%, regex blocklist `_PROD_|_LIVE_|^Brand_`), so even if Claude forgets a rule the binary refuses the operation.
+- **Bundled tool:** `cc-gads` (Python CLI, requires `google-ads` + `click` from `requirements.txt` — `install.sh` creates a venv at `~/.config/cc-google-ads/venv/` automatically). Subcommands: `list-campaigns`, `list-ad-groups`, `set-budget`, `set-bid`, `pause-campaign`, `enable-campaign`, `add-negative-keyword`, `env-check`. Every mutation is dry-run by default; `--confirm` required to apply. Audit log at `~/.config/cc-google-ads/audit.log`.
+- **Per-machine setup:** credentials in `~/.config/cc-google-ads/env` (chmod 600, sourced from `.bashrc`); gcloud ADC JSON via `gcloud auth application-default login --no-browser --client-id-file=$HOME/google-ads-oauth-client.json --scopes=adwords,cloud-platform`; user-scope read MCP wired via `claude mcp add --scope user google-ads-read /home/ubuntu/.local/bin/google-ads-mcp` (writes to `~/.claude.json`, one-time, requires Claude Code restart for tools to appear).
+- **Last updated:** 2026-05-08 (added — first skill to introduce the "Skill-bundled tools" powerup category; see Powerup taxonomy below)
+
+---
+
+## Powerup taxonomy
+
+This repo distributes three categories of powerup, each with different distribution mechanics. The `cc-google-ads` skill (added 2026-05-08) was the first to introduce categories #2 and #3.
+
+### 1. Skills (Markdown, propagate via symlink)
+
+Operator playbooks Claude reads at session start. Pure Markdown, no runtime dependencies. Distributed automatically by `install.sh` / `pull.sh`: each `skills/<slug>/` folder is symlinked into `~/.claude/skills/<slug>/` on every server.
+
+Examples: `distill-general-conversations`, `plan-build`, `sowhatstheplan`, `cc-google-ads`.
+
+This is the dominant category — all 12 skills in this repo include a `SKILL.md`. Most live entirely as Markdown (the verbatim-port ones plus `sowhatstheplan`); a few include reference sub-folders (`hook-creator/references/`, `scroll-stop-builder/references/`).
+
+### 2. Skill-bundled tools (executable scripts, propagate via symlink)
+
+Optional CLI binaries that ship alongside a `SKILL.md`. `install.sh` symlinks each into `~/.local/bin/` on every server, so Claude can invoke them via the `Bash` tool from any working directory. The skill teaches Claude when and how to call the tool; the CLI enforces the hard policy below the LLM layer.
+
+Detection rule used by `install.sh`: any regular, executable file at the skill folder root (no subfolders) whose basename is not a dotfile and whose extension is NOT in `{.md, .txt, .json, .yaml, .yml}`. Such files are symlinked to `~/.local/bin/<basename>`.
+
+Currently: `cc-google-ads/cc-gads` (Python CLI for Google Ads writes). Future bundled tools (any language — bash, python, node, rust binary) follow the same rule.
+
+If the skill has runtime dependencies, list them in `skills/<slug>/requirements.txt` (Python pip format). `install.sh` creates a venv at `~/.config/<slug>/venv/` once per server (idempotent — re-runs skip if the venv already exists; delete the venv to force a rebuild). The bundled tool's auto-route shim re-execs into the venv's `python3` so it Just Works regardless of which `python3` is on `PATH`.
+
+### 3. MCP servers (NOT distributed via powerups)
+
+Per-machine installations (via `pipx`, `npx`, or platform-specific package managers) registered with Claude Code via `claude mcp add --scope user|project|local <name> <command>`. User-scope MCP entries land in `~/.claude.json` (NOT `~/.claude/settings.json` — that file's schema rejects `mcpServers`); project-scope entries land in the project's `.mcp.json`. **Powerups never vendors third-party MCP code** — we wire to upstream releases instead. Vendoring a third-party MCP into this repo would mean tracking upstream commits and shipping security patches; out of scope for a personal skill collection.
+
+When a skill REQUIRES an MCP server (like `cc-google-ads` requires `googleads/google-ads-mcp` for reads), the skill's per-machine setup is documented in its catalog entry above. The `install.sh` script does NOT install MCP servers — it would need credentials and project IDs that vary per-machine. MCPs are installed once, manually, with eyes open.
+
+Currently: `googleads/google-ads-mcp` (official, Apache-2.0, Google-maintained) installed via `pipx` on the dev VPS for `cc-google-ads`. Registered at user scope via `claude mcp add --scope user google-ads-read /home/ubuntu/.local/bin/google-ads-mcp` (entry written to `~/.claude.json`).
+
+### 4. Per-machine installs (documented, not automated)
+
+Some skills require one-time machine setup beyond what `install.sh` can automate (e.g. `gcloud auth application-default login` requires browser consent; `pipx install` of an MCP requires explicit approval; ffmpeg requires `apt install`). These steps are documented in the skill's catalog entry above, not automated by `install.sh`, because they require credentials, network calls, or sudo.
+
+Examples: `cc-google-ads` needs `pipx install googleads/google-ads-mcp` + `gcloud auth application-default login`; `scroll-stop-builder` needs `ffmpeg` installed system-wide.
 
 ---
 
@@ -337,7 +397,14 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
   - **Layer 2 (skill — `sowhatstheplan`):** Added Active State / URGENT scan with explicit section in output above NEXT, plus heuristic fallback (live + $X/day + untracked → URGENT). Bleeding outranks dependencies.
   - **Layer 3 (skill — `plan-build`):** Source `-plania.txt` updated with mandatory "what's running in production today, and what's broken or untracked about it?" question in the discussion phase + new "Active State Protocol — Live & Bleeding Check" section requiring the Active State table in every plan output. Re-ported verbatim to `skills/plan-build/SKILL.md`; byte-equality verified. Convention is now baked into every future build plan.
 
+**As of 2026-05-08 (cc-google-ads added — first bundled-CLI skill):**
+- New skill `cc-google-ads` added — Marc's Google Ads operator playbook (SKILL.md) + `cc-gads` Python CLI (~600 LOC) for writes. First skill to introduce two new powerup categories: **Skill-bundled tools** (CLI binaries that ship next to SKILL.md and get symlinked into `~/.local/bin/` by `install.sh`) and **MCP servers** (per-machine pipx installs that powerups deliberately does NOT vendor, e.g. the official `googleads/google-ads-mcp` for reads).
+- `install.sh` extended (backward-compatible — all existing skills still work) to: (a) detect skill-bundled executables and symlink them to `~/.local/bin/`, (b) create per-skill venvs at `~/.config/<skill>/venv/` when `requirements.txt` is present (idempotent — re-runs skip if venv exists).
+- Caught up on the catalog: `hook-creator` entry was missing from the Skill catalog despite being in the file structure — added today.
+- New "Powerup taxonomy" section formalizes the 4 categories: Skills / Skill-bundled tools / MCP servers / Per-machine installs.
+- Source: app_cc Google Ads Integration build, Phase 4 — `/home/ubuntu/app_cc/docs/specs/2026-05-07-google-ads-integration-build-plan.md` §9.
+
 **Next, when Marc resumes:**
-- Add a catalog entry for `hook-creator` (currently missing from the catalog despite being in the file structure).
-- Add more skills from his existing prompt library.
+- Add more skills from Marc's prompt library as they get authored.
 - When the collection is stable, evaluate wrapping it as a plugin (`plugin.json` + `marketplace.json`) for `/plugin install`-style distribution to other servers.
+- Cross-server propagation test: after `./update.sh` from this dev VPS, `git pull` on a second machine and run `./install.sh` to verify the new bundled-tool + venv logic works on a fresh setup (the venv creation path hasn't been exercised on a cold server yet).

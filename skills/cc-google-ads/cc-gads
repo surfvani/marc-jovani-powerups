@@ -1,0 +1,613 @@
+#!/usr/bin/env python3
+# Auto-route to the dedicated venv if present (so cc-gads works regardless of
+# which python3 is on PATH). The venv is created per-machine by install.sh.
+import os as _os, sys as _sys
+_VENV_PY = _os.path.expanduser("~/.config/cc-google-ads/venv/bin/python3")
+if _os.path.isfile(_VENV_PY) and _sys.executable != _VENV_PY:
+    # Re-exec with the venv's python so SDK + click are importable. Compare
+    # sys.executable verbatim (no realpath) — venv's python3 is typically a
+    # symlink to the system binary, so realpath would flatten them and the
+    # auto-route would never fire.
+    _os.execv(_VENV_PY, [_VENV_PY] + _sys.argv)
+
+"""cc-gads — Cinematic Composing Google Ads write CLI.
+
+Hardcoded policy. Dry-run default. CEP-protocol-friendly output.
+Writes audit log to ~/.config/cc-google-ads/audit.log.
+
+Usage:
+  cc-gads list-campaigns [--status=ENABLED|PAUSED|REMOVED|ALL]
+  cc-gads list-ad-groups <campaign_id>
+  cc-gads set-budget <campaign_id> <new_amount_usd> [--confirm]
+  cc-gads set-bid <ad_group_id> <new_cpc_usd> [--confirm]
+  cc-gads pause-campaign <campaign_id> [--confirm]
+  cc-gads enable-campaign <campaign_id> [--confirm]
+  cc-gads add-negative-keyword <campaign_id> <keyword> [--match=exact|phrase|broad] [--confirm]
+
+Defaults to dry-run for every mutation. Pass --confirm to actually apply.
+
+Hard policy (refused at CLI level, NOT at LLM level):
+  - max bid                 $CC_GADS_MAX_BID_USD               (default $15.00)
+  - max budget delta        $CC_GADS_MAX_BUDGET_DELTA_PCT %    (default 25%)
+  - protected pattern       /_PROD_|_LIVE_|^Brand_/  (override: CC_GADS_ALLOW_PROTECTED=1)
+  - new campaigns           always created PAUSED
+
+Auth: reads from ~/.config/cc-google-ads/env (sourced via .bashrc).
+Required env: GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_LOGIN_CUSTOMER_ID,
+              CC_GADS_DEFAULT_CUSTOMER_ID, plus OAuth credentials (either
+              GOOGLE_APPLICATION_CREDENTIALS pointing at the gcloud ADC JSON,
+              OR the explicit refresh_token / client_id / client_secret triple).
+"""
+import datetime
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+import click
+
+try:
+    from google.ads.googleads.client import GoogleAdsClient
+    from google.ads.googleads.errors import GoogleAdsException
+except ImportError:
+    sys.exit(
+        "ERROR: google-ads-python SDK not installed. "
+        "Install: pip install google-ads click  (or install into the venv that runs cc-gads)"
+    )
+
+
+# ───── Policy from env (read at call time, not import time) ─────
+
+def _env(name: str, default: str = "") -> str:
+    return os.environ.get(name, default)
+
+
+def _customer_id() -> str:
+    cid = _env("CC_GADS_DEFAULT_CUSTOMER_ID").replace("-", "")
+    if not cid:
+        sys.exit("REFUSE: CC_GADS_DEFAULT_CUSTOMER_ID not set in env")
+    return cid
+
+
+def _login_customer_id() -> str:
+    return _env("GOOGLE_ADS_LOGIN_CUSTOMER_ID").replace("-", "")
+
+
+def _max_bid_usd() -> float:
+    return float(_env("CC_GADS_MAX_BID_USD", "15.00"))
+
+
+def _max_budget_delta_pct() -> float:
+    return float(_env("CC_GADS_MAX_BUDGET_DELTA_PCT", "25"))
+
+
+def _allow_protected() -> bool:
+    return _env("CC_GADS_ALLOW_PROTECTED", "0") == "1"
+
+
+PROTECTED_PATTERN = re.compile(r"_PROD_|_LIVE_|^Brand_")
+AUDIT_LOG = Path.home() / ".config" / "cc-google-ads" / "audit.log"
+
+
+# ───── Auth ─────
+
+def _build_client() -> GoogleAdsClient:
+    """Build a GoogleAdsClient.
+
+    Prefers explicit OAuth refresh_token credentials in env
+    (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REFRESH_TOKEN)
+    — same triple Phase 1 sync uses, lifted from app_cc/.env if Marc copies them.
+
+    Falls back to GOOGLE_APPLICATION_CREDENTIALS (the gcloud ADC user-creds JSON
+    written by `gcloud auth application-default login`), parsing out the
+    refresh_token / client_id / client_secret stored inside.
+    """
+    dev_token = _env("GOOGLE_ADS_DEVELOPER_TOKEN")
+    if not dev_token:
+        sys.exit("REFUSE: GOOGLE_ADS_DEVELOPER_TOKEN not set in env")
+
+    config: dict[str, object] = {
+        "developer_token": dev_token,
+        "use_proto_plus": True,
+    }
+    login_cid = _login_customer_id()
+    if login_cid:
+        config["login_customer_id"] = login_cid
+
+    # Path 1: explicit OAuth env triple
+    client_id = _env("GOOGLE_OAUTH_CLIENT_ID") or _env("GOOGLE_ADS_CLIENT_ID")
+    client_secret = _env("GOOGLE_OAUTH_CLIENT_SECRET") or _env("GOOGLE_ADS_CLIENT_SECRET")
+    refresh_token = _env("GOOGLE_OAUTH_REFRESH_TOKEN") or _env("GOOGLE_ADS_REFRESH_TOKEN")
+
+    if client_id and client_secret and refresh_token:
+        config["client_id"] = client_id
+        config["client_secret"] = client_secret
+        config["refresh_token"] = refresh_token
+        return GoogleAdsClient.load_from_dict(config)
+
+    # Path 2: gcloud ADC user-creds JSON
+    adc_path = _env("GOOGLE_APPLICATION_CREDENTIALS")
+    if adc_path and Path(adc_path).is_file():
+        try:
+            adc = json.loads(Path(adc_path).read_text())
+        except Exception as e:
+            sys.exit(f"REFUSE: cannot parse GOOGLE_APPLICATION_CREDENTIALS at {adc_path}: {e}")
+        if adc.get("type") == "authorized_user":
+            config["client_id"] = adc["client_id"]
+            config["client_secret"] = adc["client_secret"]
+            config["refresh_token"] = adc["refresh_token"]
+            return GoogleAdsClient.load_from_dict(config)
+        sys.exit(
+            f"REFUSE: ADC JSON at {adc_path} is type={adc.get('type')!r}; "
+            "cc-gads requires user credentials (run `gcloud auth application-default login`)."
+        )
+
+    sys.exit(
+        "REFUSE: no OAuth credentials found. Either set GOOGLE_OAUTH_CLIENT_ID + "
+        "GOOGLE_OAUTH_CLIENT_SECRET + GOOGLE_OAUTH_REFRESH_TOKEN, or run "
+        "`gcloud auth application-default login` and ensure GOOGLE_APPLICATION_CREDENTIALS "
+        "points at the resulting JSON."
+    )
+
+
+# ───── Policy guards ─────
+
+def _check_protected(name: str) -> None:
+    if PROTECTED_PATTERN.search(name) and not _allow_protected():
+        sys.exit(
+            f"REFUSE: {name!r} matches protected pattern /_PROD_|_LIVE_|^Brand_/. "
+            "Set CC_GADS_ALLOW_PROTECTED=1 in your shell only when explicitly intended."
+        )
+
+
+def _check_bid(amount_usd: float) -> None:
+    ceiling = _max_bid_usd()
+    if amount_usd > ceiling:
+        sys.exit(f"REFUSE: bid ${amount_usd:.2f} exceeds ceiling ${ceiling:.2f}")
+
+
+def _check_budget_delta(old_usd: float, new_usd: float) -> None:
+    if old_usd <= 0:
+        return
+    delta_pct = abs(new_usd - old_usd) / old_usd * 100
+    ceiling = _max_budget_delta_pct()
+    if delta_pct > ceiling:
+        sys.exit(
+            f"REFUSE: budget delta {delta_pct:.1f}% exceeds {ceiling:.1f}%. "
+            f"Old=${old_usd:.2f} New=${new_usd:.2f}"
+        )
+
+
+# ───── Audit log ─────
+
+def _audit(op: str, dry_run: bool, payload: dict) -> None:
+    AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "ts": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+        "op": op,
+        "dry_run": dry_run,
+        "customer_id": _customer_id(),
+        "login_customer_id": _login_customer_id() or None,
+        "payload": payload,
+    }
+    with open(AUDIT_LOG, "a") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+def _handle_ads_exception(e: "GoogleAdsException") -> None:
+    click.echo(f"GoogleAdsException: request_id={e.request_id} status={e.error.code().name}", err=True)
+    for err in e.failure.errors:
+        click.echo(f"  - {err.message}", err=True)
+        if err.location:
+            for fpe in err.location.field_path_elements:
+                click.echo(f"    at {fpe.field_name}", err=True)
+    sys.exit(1)
+
+
+# ───── CLI ─────
+
+@click.group()
+def cli() -> None:
+    """Cinematic Composing Google Ads CLI. All mutations are dry-run by default."""
+
+
+# ────────── list-campaigns ──────────
+
+@cli.command("list-campaigns")
+@click.option(
+    "--status",
+    default="ENABLED",
+    type=click.Choice(["ENABLED", "PAUSED", "REMOVED", "ALL"]),
+    help="Filter by status (default ENABLED).",
+)
+def list_campaigns(status: str) -> None:
+    """List campaigns in the account. Read-only."""
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    where = "" if status == "ALL" else f"WHERE campaign.status = '{status}'"
+    query = (
+        "SELECT campaign.id, campaign.name, campaign.status, "
+        "campaign.advertising_channel_type "
+        f"FROM campaign {where} ORDER BY campaign.name"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    click.echo(f"{'ID':<14}{'STATUS':<10}{'CHANNEL':<22}NAME")
+    click.echo("─" * 80)
+    for r in rows:
+        c = r.campaign
+        click.echo(
+            f"{c.id:<14}{c.status.name:<10}{c.advertising_channel_type.name:<22}{c.name}"
+        )
+    click.echo(f"\n{len(rows)} campaign(s).")
+
+
+# ────────── list-ad-groups ──────────
+
+@cli.command("list-ad-groups")
+@click.argument("campaign_id")
+def list_ad_groups(campaign_id: str) -> None:
+    """List ad groups in a campaign with their max-CPC bids. Read-only."""
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    query = (
+        "SELECT ad_group.id, ad_group.name, ad_group.status, ad_group.cpc_bid_micros, "
+        "campaign.name "
+        f"FROM ad_group WHERE campaign.id = {campaign_id} ORDER BY ad_group.name"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    if not rows:
+        click.echo(f"No ad groups in campaign {campaign_id}.")
+        return
+
+    click.echo(f"Campaign: {rows[0].campaign.name}")
+    click.echo(f"{'AD GROUP ID':<14}{'STATUS':<10}{'MAX CPC':<10}NAME")
+    click.echo("─" * 80)
+    for r in rows:
+        ag = r.ad_group
+        cpc_usd = ag.cpc_bid_micros / 1_000_000 if ag.cpc_bid_micros else 0
+        click.echo(f"{ag.id:<14}{ag.status.name:<10}${cpc_usd:<9.2f}{ag.name}")
+    click.echo(f"\n{len(rows)} ad group(s).")
+
+
+# ────────── set-budget ──────────
+
+@cli.command("set-budget")
+@click.argument("campaign_id")
+@click.argument("new_amount_usd", type=float)
+@click.option("--confirm", is_flag=True, help="Skip dry-run and execute.")
+def set_budget(campaign_id: str, new_amount_usd: float, confirm: bool) -> None:
+    """Set a campaign's daily budget (USD). Default behavior is dry-run."""
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    query = (
+        "SELECT campaign.name, campaign_budget.id, campaign_budget.amount_micros "
+        f"FROM campaign WHERE campaign.id = {campaign_id}"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+    if not rows:
+        sys.exit(f"campaign {campaign_id} not found")
+
+    row = rows[0]
+    name = row.campaign.name
+    budget_id = row.campaign_budget.id
+    old_micros = row.campaign_budget.amount_micros
+    old_usd = old_micros / 1_000_000
+
+    _check_protected(name)
+    _check_budget_delta(old_usd, new_amount_usd)
+
+    delta_usd = new_amount_usd - old_usd
+    delta_pct = (delta_usd / old_usd * 100) if old_usd > 0 else 0
+    payload = {
+        "campaign_id": campaign_id,
+        "name": name,
+        "old_usd": old_usd,
+        "new_usd": new_amount_usd,
+        "delta_pct": round(delta_pct, 2),
+    }
+
+    if not confirm:
+        click.echo("DRY-RUN — no changes applied.")
+        click.echo(f"Resource: {name} (campaign {campaign_id})")
+        click.echo(f"Field:    daily budget")
+        click.echo(f"Old:      ${old_usd:.2f}")
+        click.echo(f"New:      ${new_amount_usd:.2f}")
+        click.echo(f"Delta:    {delta_usd:+.2f} ({delta_pct:+.1f}%)")
+        click.echo("\nRe-run with --confirm to apply.")
+        _audit("set-budget", dry_run=True, payload=payload)
+        return
+
+    bs = client.get_service("CampaignBudgetService")
+    op = client.get_type("CampaignBudgetOperation")
+    op.update.resource_name = bs.campaign_budget_path(cid, budget_id)
+    op.update.amount_micros = int(round(new_amount_usd * 1_000_000))
+    op.update_mask.paths.append("amount_micros")
+
+    try:
+        bs.mutate_campaign_budgets(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    _audit("set-budget", dry_run=False, payload=payload)
+    click.echo(f"OK — {name} budget set to ${new_amount_usd:.2f}")
+
+
+# ────────── set-bid ──────────
+
+@cli.command("set-bid")
+@click.argument("ad_group_id")
+@click.argument("new_cpc_usd", type=float)
+@click.option("--confirm", is_flag=True)
+def set_bid(ad_group_id: str, new_cpc_usd: float, confirm: bool) -> None:
+    """Set an ad group's max CPC bid (USD). Default behavior is dry-run."""
+    _check_bid(new_cpc_usd)
+
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    query = (
+        "SELECT ad_group.id, ad_group.name, ad_group.cpc_bid_micros, campaign.name "
+        f"FROM ad_group WHERE ad_group.id = {ad_group_id}"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+    if not rows:
+        sys.exit(f"ad group {ad_group_id} not found")
+
+    row = rows[0]
+    ag_name = row.ad_group.name
+    camp_name = row.campaign.name
+    old_micros = row.ad_group.cpc_bid_micros
+    old_usd = old_micros / 1_000_000 if old_micros else 0
+
+    _check_protected(camp_name)
+    _check_protected(ag_name)
+
+    payload = {
+        "ad_group_id": ad_group_id,
+        "ad_group_name": ag_name,
+        "campaign_name": camp_name,
+        "old_usd": old_usd,
+        "new_usd": new_cpc_usd,
+    }
+
+    if not confirm:
+        click.echo("DRY-RUN — no changes applied.")
+        click.echo(f"Resource: {ag_name} (ad group {ad_group_id})")
+        click.echo(f"Campaign: {camp_name}")
+        click.echo(f"Field:    max CPC bid")
+        click.echo(f"Old:      ${old_usd:.2f}")
+        click.echo(f"New:      ${new_cpc_usd:.2f}")
+        click.echo("\nRe-run with --confirm to apply.")
+        _audit("set-bid", dry_run=True, payload=payload)
+        return
+
+    ags = client.get_service("AdGroupService")
+    op = client.get_type("AdGroupOperation")
+    op.update.resource_name = ags.ad_group_path(cid, ad_group_id)
+    op.update.cpc_bid_micros = int(round(new_cpc_usd * 1_000_000))
+    op.update_mask.paths.append("cpc_bid_micros")
+
+    try:
+        ags.mutate_ad_groups(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    _audit("set-bid", dry_run=False, payload=payload)
+    click.echo(f"OK — {ag_name} max CPC set to ${new_cpc_usd:.2f}")
+
+
+# ────────── pause-campaign / enable-campaign ──────────
+
+def _set_campaign_status(campaign_id: str, target_status: str, confirm: bool) -> None:
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    query = (
+        "SELECT campaign.id, campaign.name, campaign.status "
+        f"FROM campaign WHERE campaign.id = {campaign_id}"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+    if not rows:
+        sys.exit(f"campaign {campaign_id} not found")
+
+    row = rows[0]
+    name = row.campaign.name
+    old_status = row.campaign.status.name
+
+    _check_protected(name)
+
+    payload = {
+        "campaign_id": campaign_id,
+        "name": name,
+        "old_status": old_status,
+        "new_status": target_status,
+    }
+
+    if old_status == target_status:
+        click.echo(f"NO-OP — {name} is already {target_status}.")
+        _audit(f"set-status:{target_status.lower()}", dry_run=True, payload=payload)
+        return
+
+    if not confirm:
+        click.echo("DRY-RUN — no changes applied.")
+        click.echo(f"Resource: {name} (campaign {campaign_id})")
+        click.echo(f"Field:    status")
+        click.echo(f"Old:      {old_status}")
+        click.echo(f"New:      {target_status}")
+        click.echo("\nRe-run with --confirm to apply.")
+        _audit(f"set-status:{target_status.lower()}", dry_run=True, payload=payload)
+        return
+
+    cs = client.get_service("CampaignService")
+    op = client.get_type("CampaignOperation")
+    op.update.resource_name = cs.campaign_path(cid, campaign_id)
+    op.update.status = client.enums.CampaignStatusEnum[target_status]
+    op.update_mask.paths.append("status")
+
+    try:
+        cs.mutate_campaigns(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    _audit(f"set-status:{target_status.lower()}", dry_run=False, payload=payload)
+    click.echo(f"OK — {name} → {target_status}")
+
+
+@cli.command("pause-campaign")
+@click.argument("campaign_id")
+@click.option("--confirm", is_flag=True)
+def pause_campaign(campaign_id: str, confirm: bool) -> None:
+    """Pause a campaign. Default behavior is dry-run."""
+    _set_campaign_status(campaign_id, "PAUSED", confirm)
+
+
+@cli.command("enable-campaign")
+@click.argument("campaign_id")
+@click.option("--confirm", is_flag=True)
+def enable_campaign(campaign_id: str, confirm: bool) -> None:
+    """Enable a paused campaign. Default behavior is dry-run."""
+    _set_campaign_status(campaign_id, "ENABLED", confirm)
+
+
+# ────────── add-negative-keyword ──────────
+
+@cli.command("add-negative-keyword")
+@click.argument("campaign_id")
+@click.argument("keyword")
+@click.option(
+    "--match",
+    default="exact",
+    type=click.Choice(["exact", "phrase", "broad"]),
+    help="Keyword match type (default exact).",
+)
+@click.option("--confirm", is_flag=True)
+def add_negative_keyword(campaign_id: str, keyword: str, match: str, confirm: bool) -> None:
+    """Add a campaign-level negative keyword. Low-risk write."""
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    query = f"SELECT campaign.id, campaign.name FROM campaign WHERE campaign.id = {campaign_id}"
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+    if not rows:
+        sys.exit(f"campaign {campaign_id} not found")
+
+    name = rows[0].campaign.name
+    _check_protected(name)
+
+    payload = {
+        "campaign_id": campaign_id,
+        "name": name,
+        "keyword": keyword,
+        "match_type": match.upper(),
+    }
+
+    if not confirm:
+        click.echo("DRY-RUN — no changes applied.")
+        click.echo(f"Resource: {name} (campaign {campaign_id})")
+        click.echo(f"Action:   add negative keyword")
+        click.echo(f"Keyword:  {keyword!r}")
+        click.echo(f"Match:    {match.upper()}")
+        click.echo("\nRe-run with --confirm to apply.")
+        _audit("add-negative-keyword", dry_run=True, payload=payload)
+        return
+
+    ccs = client.get_service("CampaignCriterionService")
+    op = client.get_type("CampaignCriterionOperation")
+    crit = op.create
+    crit.campaign = client.get_service("CampaignService").campaign_path(cid, campaign_id)
+    crit.negative = True
+    crit.keyword.text = keyword
+    crit.keyword.match_type = client.enums.KeywordMatchTypeEnum[match.upper()]
+
+    try:
+        ccs.mutate_campaign_criteria(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    _audit("add-negative-keyword", dry_run=False, payload=payload)
+    click.echo(f"OK — added negative keyword {keyword!r} ({match}) to {name}")
+
+
+# ────────── create-campaign (stub) ──────────
+
+@cli.command("create-campaign")
+def create_campaign() -> None:
+    """[NOT IMPLEMENTED] Create a new campaign. Use Google Ads UI for now."""
+    sys.exit(
+        "REFUSE: create-campaign is not yet implemented in cc-gads.\n"
+        "Creating a campaign requires too many parameters (channel type, bidding strategy, "
+        "budget, ad groups, ads) to do safely from a CLI without a config file.\n"
+        "Create the campaign in the Google Ads UI (it will start ENABLED — pause it after "
+        "creation), then use cc-gads set-budget / set-bid / pause-campaign to adjust.\n"
+        "Reminder per BPD §10.3 #20: all new campaigns should be created PAUSED."
+    )
+
+
+# ────────── env-check ──────────
+
+@cli.command("env-check")
+def env_check() -> None:
+    """Report whether all required env vars are present (no values printed)."""
+    required = [
+        "GOOGLE_ADS_DEVELOPER_TOKEN",
+        "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
+        "CC_GADS_DEFAULT_CUSTOMER_ID",
+    ]
+    optional_auth = [
+        ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"),
+        ("GOOGLE_APPLICATION_CREDENTIALS",),
+    ]
+    click.echo("Required env vars:")
+    for v in required:
+        click.echo(f"  {v}: {'SET' if _env(v) else 'MISSING'}")
+    click.echo("\nAuth (need at least ONE complete path):")
+    for path in optional_auth:
+        all_set = all(_env(v) for v in path)
+        click.echo(f"  {' + '.join(path)}: {'COMPLETE' if all_set else 'incomplete'}")
+    click.echo(f"\nCeilings: max_bid=${_max_bid_usd():.2f}, max_budget_delta_pct={_max_budget_delta_pct():.1f}%")
+    click.echo(f"Allow protected: {_allow_protected()}")
+    click.echo(f"Audit log: {AUDIT_LOG} (exists: {AUDIT_LOG.is_file()})")
+
+
+if __name__ == "__main__":
+    cli()
