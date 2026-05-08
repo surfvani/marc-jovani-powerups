@@ -11,7 +11,7 @@ marc-jovani-powerups/
 ├── DOCUMENTATION.md            ← this file (the single user-facing doc)
 ├── install.sh                  ← one-time setup on a new server: symlinks skill folders into ~/.claude/skills/, symlinks skill-bundled executables into ~/.local/bin/, creates per-skill venvs at ~/.config/<skill>/venv/ when requirements.txt is present
 ├── update.sh                   ← from primary dev server: git add -A + commit + push
-├── pull.sh                     ← from any other server: git pull --ff-only
+├── pull.sh                     ← from any other server: git pull --ff-only, then auto-runs install.sh so new skills / bundled tools / venvs wire up immediately
 ├── docs/
 │   ├── specs/                  ← design specs (workflow artifacts)
 │   └── plans/                  ← implementation plans (workflow artifacts)
@@ -100,7 +100,7 @@ The whole point: edit ONE place, have it apply everywhere — without manual cop
 | One-time setup | `./install.sh` | any new server |
 | Edit a skill | edit `skills/<name>/SKILL.md` (or `~/.claude/skills/<name>/SKILL.md` — same file) | primary dev server |
 | Publish the edit | `./update.sh "your message"` | primary dev server |
-| Receive updates | `./pull.sh` | each remote server |
+| Receive updates | `./pull.sh` (auto-runs `install.sh`) | each remote server |
 
 ### Optional cron for remote servers
 

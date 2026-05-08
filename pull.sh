@@ -19,3 +19,7 @@ fi
 
 git pull --ff-only origin "$(git rev-parse --abbrev-ref HEAD)"
 echo "Up to date."
+
+# Auto-run install.sh so any newly added skills / bundled tools / venvs get
+# wired up immediately. install.sh is idempotent — safe on every pull.
+"$REPO_DIR/install.sh"
