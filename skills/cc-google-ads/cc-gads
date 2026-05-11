@@ -23,6 +23,7 @@ Usage:
   cc-gads pause-campaign <campaign_id> [--confirm]
   cc-gads enable-campaign <campaign_id> [--confirm]
   cc-gads add-negative-keyword <campaign_id> <keyword> [--match=exact|phrase|broad] [--confirm]
+  cc-gads set-tracking-template [--campaign-id ID | --ad-group-id ID | --from-tsv PATH] --template TEXT [--confirm]
 
 Defaults to dry-run for every mutation. Pass --confirm to actually apply.
 
@@ -566,6 +567,201 @@ def add_negative_keyword(campaign_id: str, keyword: str, match: str, confirm: bo
 
     _audit("add-negative-keyword", dry_run=False, payload=payload)
     click.echo(f"OK — added negative keyword {keyword!r} ({match}) to {name}")
+
+
+# ────────── set-tracking-template ──────────
+
+def _set_tracking_template_campaign(client, cid, campaign_id, new_template, confirm):
+    """Update one campaign's tracking_url_template. Returns (ok, name, old, new)."""
+    ga = client.get_service("GoogleAdsService")
+    query = (
+        "SELECT campaign.id, campaign.name, campaign.tracking_url_template "
+        f"FROM campaign WHERE campaign.id = {campaign_id}"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return (False, None, None, None)
+    if not rows:
+        click.echo(f"  SKIP campaign {campaign_id} not found", err=True)
+        return (False, None, None, None)
+
+    row = rows[0]
+    name = row.campaign.name
+    old = row.campaign.tracking_url_template or ""
+    _check_protected(name)
+
+    payload = {
+        "level": "campaign",
+        "campaign_id": campaign_id,
+        "name": name,
+        "old_template": old,
+        "new_template": new_template,
+    }
+
+    if old == new_template:
+        click.echo(f"  NO-OP campaign {campaign_id} {name!r} already at target.")
+        _audit("set-tracking-template", dry_run=True, payload=payload)
+        return (True, name, old, new_template)
+
+    if not confirm:
+        _audit("set-tracking-template", dry_run=True, payload=payload)
+        return (True, name, old, new_template)
+
+    cs = client.get_service("CampaignService")
+    op = client.get_type("CampaignOperation")
+    op.update.resource_name = cs.campaign_path(cid, campaign_id)
+    op.update.tracking_url_template = new_template
+    op.update_mask.paths.append("tracking_url_template")
+    try:
+        cs.mutate_campaigns(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return (False, name, old, new_template)
+    _audit("set-tracking-template", dry_run=False, payload=payload)
+    return (True, name, old, new_template)
+
+
+def _set_tracking_template_ad_group(client, cid, ad_group_id, new_template, confirm):
+    """Update one ad_group's tracking_url_template. Returns (ok, name, old, new)."""
+    ga = client.get_service("GoogleAdsService")
+    query = (
+        "SELECT ad_group.id, ad_group.name, ad_group.tracking_url_template, campaign.name "
+        f"FROM ad_group WHERE ad_group.id = {ad_group_id}"
+    )
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return (False, None, None, None)
+    if not rows:
+        click.echo(f"  SKIP ad group {ad_group_id} not found", err=True)
+        return (False, None, None, None)
+
+    row = rows[0]
+    ag_name = row.ad_group.name
+    camp_name = row.campaign.name
+    old = row.ad_group.tracking_url_template or ""
+    _check_protected(camp_name)
+    _check_protected(ag_name)
+
+    payload = {
+        "level": "ad_group",
+        "ad_group_id": ad_group_id,
+        "ad_group_name": ag_name,
+        "campaign_name": camp_name,
+        "old_template": old,
+        "new_template": new_template,
+    }
+
+    if old == new_template:
+        click.echo(f"  NO-OP ad group {ad_group_id} {ag_name!r} already at target.")
+        _audit("set-tracking-template", dry_run=True, payload=payload)
+        return (True, f"{camp_name} / {ag_name}", old, new_template)
+
+    if not confirm:
+        _audit("set-tracking-template", dry_run=True, payload=payload)
+        return (True, f"{camp_name} / {ag_name}", old, new_template)
+
+    ags = client.get_service("AdGroupService")
+    op = client.get_type("AdGroupOperation")
+    op.update.resource_name = ags.ad_group_path(cid, ad_group_id)
+    op.update.tracking_url_template = new_template
+    op.update_mask.paths.append("tracking_url_template")
+    try:
+        ags.mutate_ad_groups(customer_id=cid, operations=[op])
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return (False, f"{camp_name} / {ag_name}", old, new_template)
+    _audit("set-tracking-template", dry_run=False, payload=payload)
+    return (True, f"{camp_name} / {ag_name}", old, new_template)
+
+
+@cli.command("set-tracking-template")
+@click.option("--campaign-id", default=None, help="Single campaign ID to update.")
+@click.option("--ad-group-id", default=None, help="Single ad group ID to update.")
+@click.option(
+    "--from-tsv",
+    "from_tsv",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Bulk: TSV file with columns level/status/campaign/ad_group/current_template/campaign_id/ad_group_id (header required).",
+)
+@click.option("--template", "template", required=True, help="New tracking_url_template value (literal string).")
+@click.option("--confirm", is_flag=True, help="Skip dry-run and execute.")
+def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, confirm):
+    """Set tracking_url_template on a campaign, ad group, or bulk-from-TSV. Dry-run by default."""
+    targets = [t for t in (campaign_id, ad_group_id, from_tsv) if t]
+    if len(targets) != 1:
+        sys.exit("REFUSE: pass exactly one of --campaign-id, --ad-group-id, --from-tsv.")
+
+    client = _build_client()
+    cid = _customer_id()
+
+    # Build the worklist: list of ("campaign"|"ad_group", id) tuples.
+    worklist: list[tuple[str, str]] = []
+    if campaign_id:
+        worklist.append(("campaign", campaign_id))
+    elif ad_group_id:
+        worklist.append(("ad_group", ad_group_id))
+    else:
+        with open(from_tsv) as f:
+            header = f.readline().rstrip("\n").split("\t")
+            try:
+                i_level = header.index("level")
+                i_camp = header.index("campaign_id")
+                i_ag = header.index("ad_group_id")
+            except ValueError:
+                sys.exit(
+                    "REFUSE: --from-tsv expects a header row with columns including "
+                    "'level', 'campaign_id', 'ad_group_id'."
+                )
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) <= max(i_level, i_camp, i_ag):
+                    continue
+                lvl = parts[i_level].strip()
+                if lvl == "campaign" and parts[i_camp].strip():
+                    worklist.append(("campaign", parts[i_camp].strip()))
+                elif lvl == "ad_group" and parts[i_ag].strip():
+                    worklist.append(("ad_group", parts[i_ag].strip()))
+
+    if not worklist:
+        sys.exit("REFUSE: empty worklist.")
+
+    mode = "EXECUTE" if confirm else "DRY-RUN"
+    click.echo(f"{mode} — {len(worklist)} target(s). Target template: {template!r}")
+    click.echo("─" * 80)
+
+    ok = 0
+    fail = 0
+    diffs: list[tuple[str, str, str, str]] = []  # (kind, name, old, new)
+    for kind, rid in worklist:
+        if kind == "campaign":
+            success, name, old, new = _set_tracking_template_campaign(client, cid, rid, template, confirm)
+        else:
+            success, name, old, new = _set_tracking_template_ad_group(client, cid, rid, template, confirm)
+        if success and name is not None and old != new:
+            diffs.append((kind, name, old, new))
+            ok += 1
+        elif success:
+            ok += 1
+        else:
+            fail += 1
+
+    # Print a compact diff table (show first 20, then summarize).
+    for kind, name, old, new in diffs[:20]:
+        click.echo(f"  [{kind:<8}] {name}")
+        click.echo(f"      OLD: {old!r}")
+        click.echo(f"      NEW: {new!r}")
+    if len(diffs) > 20:
+        click.echo(f"  … and {len(diffs) - 20} more changes.")
+
+    click.echo("─" * 80)
+    click.echo(f"{mode}: {ok} succeeded, {fail} failed, {len(diffs)} would-change.")
+    if not confirm:
+        click.echo("Re-run with --confirm to apply.")
 
 
 # ────────── create-campaign (stub) ──────────

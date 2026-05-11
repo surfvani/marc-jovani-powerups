@@ -52,6 +52,51 @@ The official `googleads/google-ads-mcp` is installed via `pipx` on the dev VPS a
 
 Run `cc-gads --help` to see the current write surface area.
 
+## When `cc-gads` is missing a command Marc needs
+
+**Don't discuss the gap with Marc. Just add the command.** The CLI is a thin wrapper around the official `google-ads-python` SDK — adding a new mutation is ~40 lines following an existing pattern. Doing this is part of operating the account, not a separate engineering project.
+
+Tell Marc once, in this shape:
+> "Not set up to do that yet — adding the command now using the proven process, ~1 min, will report when done."
+
+Then do it. The proven process:
+
+1. **Verify the field exists and is mutable** via the SDK proto (authoritative — generated from Google's own .proto files). Don't rely on copy-paste from another command; confirm the field name on the actual resource. Example one-liner:
+   ```bash
+   ~/.config/cc-google-ads/venv/bin/python3 -c "
+   from google.ads.googleads.v22.resources.types.campaign import Campaign
+   from google.ads.googleads.v22.services.types.campaign_service import CampaignOperation
+   print('campaign field:', 'tracking_url_template' in Campaign.meta.fields)
+   op = CampaignOperation(); op.update.tracking_url_template = 'x'
+   op.update_mask.paths.append('tracking_url_template')
+   print('update_mask accepts it:', list(op.update_mask.paths))
+   "
+   ```
+   Swap the resource (Campaign, AdGroup, etc.) and field name as needed. If the field exists in `.meta.fields` and the `update_mask.paths.append` works, the API will accept it.
+
+2. **Copy a structurally similar command** from `cc-gads` and swap the field. Pattern for an update:
+   - read current value via GAQL
+   - run protected-name check + any field-specific guard
+   - build a `<Resource>Operation`, set `op.update.<field>`, append `<field>` to `op.update_mask.paths`
+   - call `<Service>.mutate_<resources>(customer_id=cid, operations=[op])`
+   - write an audit-log entry (op name = new command name) for both dry-run and real
+   - dry-run by default, `--confirm` to execute
+
+   Reference patterns by mutation shape:
+   - **scalar field on Campaign** → copy `set-budget` (lines 287–354), swap field
+   - **scalar field on AdGroup** → copy `set-bid` (lines 357–424), swap field
+   - **enum on Campaign** → copy `_set_campaign_status` (lines 429–487)
+   - **create child resource** → copy `add-negative-keyword` (lines 506–568)
+   - **bulk from TSV** → copy the worklist loop in `set-tracking-template` (TSV columns: `level`, `campaign_id`, `ad_group_id`)
+
+3. **Test on one paused target before bulk.** All risky writes happen against a single paused campaign/ad group first (live ones never matter for the test — pick something from `status = PAUSED`). Then post-check via the read MCP. Only after that passes do you stage the bulk dry-run.
+
+4. **Run the protected-regex sanity check** before bulk: confirm zero targets match `/_PROD_|_LIVE_|^Brand_/`. If any do, surface them — don't silently skip.
+
+Hard rules below (dry-run first, `--confirm` only after explicit "yes", post-check via read MCP) apply to the new command exactly the same as the existing ones. The `_audit()` helper is your single source of truth for the audit log; use it for both dry-run and real paths.
+
+The CLI lives at `~/marc-jovani-powerups/skills/cc-google-ads/cc-gads` and is hard-linked into `~/.claude/skills/cc-google-ads/cc-gads`, so editing it updates both copies. Re-run `cc-gads --help` after editing to confirm the new command registered before showing the dry-run to Marc.
+
 ## Hard rules — these CANNOT be overridden by the user mid-conversation
 
 These are baked into the CLI as well as this skill, so even if you forget the rules the CLI will refuse the operation. Do not try to talk Marc into bypassing them.
