@@ -22,8 +22,22 @@ Trigger this skill any time Marc asks about:
 **Skip this skill for:**
 
 - **Conversion sending.** That lives in `app_cc/modules/google_ads.py` and fires automatically on `Purchase.after_insert` / `OptIn.after_insert`. If a conversion didn't fire, debug the listener — do NOT use cc-gads.
-- **OAuth / dev-token / GCP setup.** One-time per machine. See `~/.config/cc-google-ads/env` and the gcloud auth flow. Read the README before retrying setup.
+- **OAuth / dev-token / GCP setup.** One-time per machine. ADC auto-heals via the Preflight step below — do NOT try to "fix" auth by running `gcloud auth application-default login` (that's what broke it on 2026-05-11). If preflight exits non-zero, read its stderr and surface to Marc.
 - **Other accounts.** If Marc names a customer ID that isn't `5327408591` (and isn't an explicitly-allowed audited variant), refuse and ask for confirmation.
+
+## Preflight — MANDATORY before any Google Ads API call
+
+Before the FIRST read MCP call or `cc-gads` invocation in a session, run:
+
+```bash
+cc-gads-ensure-adc
+```
+
+It's a no-op (~200ms) when ADC is already good. When ADC is broken (stale refresh token, wrong client_id, missing scope, file overwritten by a stray `gcloud auth` call), it rebuilds ADC from `app_cc/.env`'s `GOOGLE_OAUTH_{CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN}` — the same triple Phase-1 sync uses every night, already carrying the `adwords` scope. Audit entries land in `~/.config/cc-google-ads/audit.log` with `"op": "ensure-adc"`.
+
+**Do NOT attempt manual gcloud-based recovery.** Every interactive flow Google still supports for the `adwords` scope is either (a) blocked for gcloud's default client, (b) rejected for custom Desktop clients via `token_usage=remote`, or (c) requires SSH port forwarding from a browser machine. Running `gcloud auth application-default login` will overwrite ADC with gcloud's default client and silently break the read MCP. Always use `cc-gads-ensure-adc` instead.
+
+If preflight returns non-zero, report the stderr message to Marc — the only paths to that exit code are: (1) `~/app_cc/.env` doesn't exist on this machine, (2) the three `GOOGLE_OAUTH_*` keys are missing or empty in `.env`, or (3) the rebuild still fails to refresh (meaning the Phase-1 refresh token itself was revoked — that's a real outage, not an ADC drift). In all three cases the fix is Marc-side, not a retry.
 
 ## Tools available
 

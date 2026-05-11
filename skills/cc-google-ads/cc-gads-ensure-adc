@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""cc-gads-ensure-adc — auto-heal Google Ads ADC for the cc-google-ads skill.
+
+Idempotent preflight script. Run before any Google Ads API call (read MCP or
+cc-gads write CLI). Exits 0 if ADC was already good OR was successfully
+rebuilt; exits 1 only on unrecoverable error.
+
+What it does:
+  1. Read ~/.config/gcloud/application_default_credentials.json.
+  2. Exchange its refresh_token at oauth2.googleapis.com/token.
+  3. If the returned scope string contains 'adwords' → ADC OK, exit 0.
+  4. Otherwise, read GOOGLE_OAUTH_{CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN}
+     from app_cc/.env, write a fresh ADC JSON (type=authorized_user),
+     log a JSON line to ~/.config/cc-google-ads/audit.log, exit 0.
+  5. If app_cc/.env is missing or the triple is incomplete → exit 1.
+
+Why this exists:
+  gcloud's interactive auth flows (`--no-browser`, `--no-launch-browser`)
+  are unreliable for custom Desktop OAuth clients combined with the
+  sensitive `adwords` scope. Any of:
+    - gcloud `--client-id-file` driver requires Desktop type
+    - Google deprecated the adwords scope on gcloud's default client
+    - --no-browser's token_usage=remote flow rejects unregistered clients
+    - sensitive-scope refresh tokens expire on Google's reauth timer
+  …will silently break the read MCP. This script bypasses all of it by
+  reusing the Phase-1-sync refresh token from app_cc/.env, which is
+  already valid and already carries the adwords scope.
+
+Author: Marc Jovani via Claude. Stdlib-only. No deps.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+HOME = Path.home()
+ADC_PATH = HOME / ".config" / "gcloud" / "application_default_credentials.json"
+ENV_PATH = HOME / "app_cc" / ".env"
+AUDIT_LOG = HOME / ".config" / "cc-google-ads" / "audit.log"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+REQUIRED_SCOPE = "https://www.googleapis.com/auth/adwords"
+
+
+def log_event(event: str, **extra) -> None:
+    AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()) + "Z",
+        "op": "ensure-adc",
+        "event": event,
+        **extra,
+    }
+    with AUDIT_LOG.open("a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def try_refresh(adc: dict) -> tuple[bool, str | None]:
+    """Return (scope_has_adwords, error_message_or_None)."""
+    required = ("client_id", "client_secret", "refresh_token")
+    if not all(k in adc for k in required):
+        return False, f"ADC missing keys (have: {sorted(adc.keys())})"
+    body = urllib.parse.urlencode({
+        "client_id": adc["client_id"],
+        "client_secret": adc["client_secret"],
+        "refresh_token": adc["refresh_token"],
+        "grant_type": "refresh_token",
+    }).encode()
+    try:
+        resp = urllib.request.urlopen(
+            urllib.request.Request(TOKEN_URL, data=body), timeout=10
+        ).read()
+    except urllib.error.HTTPError as e:
+        return False, f"HTTP {e.code}: {e.read().decode()[:200]}"
+    except urllib.error.URLError as e:
+        return False, f"URLError: {e}"
+    payload = json.loads(resp)
+    scope = payload.get("scope", "")
+    return REQUIRED_SCOPE in scope.split(), scope or None
+
+
+def read_env_triple() -> dict[str, str] | None:
+    if not ENV_PATH.exists():
+        return None
+    out = {}
+    keymap = {
+        "GOOGLE_OAUTH_CLIENT_ID": "client_id",
+        "GOOGLE_OAUTH_CLIENT_SECRET": "client_secret",
+        "GOOGLE_OAUTH_REFRESH_TOKEN": "refresh_token",
+    }
+    for line in ENV_PATH.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        k = k.strip()
+        if k in keymap:
+            out[keymap[k]] = v.strip().strip('"').strip("'")
+    if len(out) != 3 or not all(out.values()):
+        return None
+    return out
+
+
+def write_adc_from_env(triple: dict[str, str]) -> None:
+    new_adc = {
+        "client_id": triple["client_id"],
+        "client_secret": triple["client_secret"],
+        "refresh_token": triple["refresh_token"],
+        "type": "authorized_user",
+        "universe_domain": "googleapis.com",
+    }
+    ADC_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if ADC_PATH.exists():
+        backup = ADC_PATH.with_suffix(f".bak.{int(time.time())}")
+        ADC_PATH.rename(backup)
+    ADC_PATH.write_text(json.dumps(new_adc, indent=2))
+    ADC_PATH.chmod(0o600)
+
+
+def main() -> int:
+    existing_scope = None
+    refresh_error = None
+
+    if ADC_PATH.exists():
+        try:
+            adc = json.loads(ADC_PATH.read_text())
+        except json.JSONDecodeError as e:
+            adc = None
+            refresh_error = f"ADC unparseable: {e}"
+        if adc and adc.get("type") == "authorized_user":
+            ok, info = try_refresh(adc)
+            if ok:
+                print("ADC OK (adwords scope active)")
+                return 0
+            existing_scope = info if not info or info.startswith("https://") else None
+            refresh_error = info if (info and not info.startswith("https://")) else (
+                f"scope missing adwords (got: {info!r})" if info else "refresh failed"
+            )
+        elif adc:
+            refresh_error = f"ADC type={adc.get('type')!r}, not authorized_user"
+    else:
+        refresh_error = "ADC file missing"
+
+    triple = read_env_triple()
+    if triple is None:
+        print(
+            f"ERROR: ADC unusable ({refresh_error}) and {ENV_PATH} is missing or "
+            "doesn't have all three GOOGLE_OAUTH_{CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN}.",
+            file=sys.stderr,
+        )
+        return 1
+
+    write_adc_from_env(triple)
+    ok, info = try_refresh(triple)
+    if not ok:
+        print(
+            f"ERROR: ADC rebuilt from {ENV_PATH} but refresh still fails: {info}",
+            file=sys.stderr,
+        )
+        log_event("rebuild_failed", reason=info, prior_error=refresh_error)
+        return 1
+    log_event(
+        "rebuilt_from_env",
+        prior_error=refresh_error,
+        existing_scope=existing_scope,
+        new_scope=info,
+    )
+    print(f"ADC healed from {ENV_PATH} (adwords scope active)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
