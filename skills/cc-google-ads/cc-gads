@@ -571,8 +571,12 @@ def add_negative_keyword(campaign_id: str, keyword: str, match: str, confirm: bo
 
 # ────────── set-tracking-template ──────────
 
-def _set_tracking_template_campaign(client, cid, campaign_id, new_template, confirm):
-    """Update one campaign's tracking_url_template. Returns (ok, name, old, new)."""
+def _set_tracking_template_campaign(client, cid, campaign_id, new_template, confirm, clear=False):
+    """Update one campaign's tracking_url_template. Returns (ok, name, old, new).
+
+    If clear=True, the field is cleared (Google's API clear-via-update-mask pattern:
+    include field in update_mask but don't assign a value on the update message).
+    """
     ga = client.get_service("GoogleAdsService")
     query = (
         "SELECT campaign.id, campaign.name, campaign.tracking_url_template "
@@ -592,38 +596,43 @@ def _set_tracking_template_campaign(client, cid, campaign_id, new_template, conf
     old = row.campaign.tracking_url_template or ""
     _check_protected(name)
 
+    effective_new = "" if clear else new_template
     payload = {
         "level": "campaign",
         "campaign_id": campaign_id,
         "name": name,
         "old_template": old,
-        "new_template": new_template,
+        "new_template": effective_new,
+        "clear": clear,
     }
 
-    if old == new_template:
+    if old == effective_new:
         click.echo(f"  NO-OP campaign {campaign_id} {name!r} already at target.")
         _audit("set-tracking-template", dry_run=True, payload=payload)
-        return (True, name, old, new_template)
+        return (True, name, old, effective_new)
 
     if not confirm:
         _audit("set-tracking-template", dry_run=True, payload=payload)
-        return (True, name, old, new_template)
+        return (True, name, old, effective_new)
 
     cs = client.get_service("CampaignService")
     op = client.get_type("CampaignOperation")
     op.update.resource_name = cs.campaign_path(cid, campaign_id)
-    op.update.tracking_url_template = new_template
+    if not clear:
+        op.update.tracking_url_template = new_template
     op.update_mask.paths.append("tracking_url_template")
     try:
         cs.mutate_campaigns(customer_id=cid, operations=[op])
     except GoogleAdsException as e:
-        _handle_ads_exception(e)
-        return (False, name, old, new_template)
+        click.echo(f"  FAIL campaign {campaign_id} {name!r}: {e.failure.errors[0].message}", err=True)
+        payload["error"] = e.failure.errors[0].message
+        _audit("set-tracking-template", dry_run=False, payload=payload)
+        return (False, name, old, effective_new)
     _audit("set-tracking-template", dry_run=False, payload=payload)
-    return (True, name, old, new_template)
+    return (True, name, old, effective_new)
 
 
-def _set_tracking_template_ad_group(client, cid, ad_group_id, new_template, confirm):
+def _set_tracking_template_ad_group(client, cid, ad_group_id, new_template, confirm, clear=False):
     """Update one ad_group's tracking_url_template. Returns (ok, name, old, new)."""
     ga = client.get_service("GoogleAdsService")
     query = (
@@ -646,36 +655,41 @@ def _set_tracking_template_ad_group(client, cid, ad_group_id, new_template, conf
     _check_protected(camp_name)
     _check_protected(ag_name)
 
+    effective_new = "" if clear else new_template
     payload = {
         "level": "ad_group",
         "ad_group_id": ad_group_id,
         "ad_group_name": ag_name,
         "campaign_name": camp_name,
         "old_template": old,
-        "new_template": new_template,
+        "new_template": effective_new,
+        "clear": clear,
     }
 
-    if old == new_template:
+    if old == effective_new:
         click.echo(f"  NO-OP ad group {ad_group_id} {ag_name!r} already at target.")
         _audit("set-tracking-template", dry_run=True, payload=payload)
-        return (True, f"{camp_name} / {ag_name}", old, new_template)
+        return (True, f"{camp_name} / {ag_name}", old, effective_new)
 
     if not confirm:
         _audit("set-tracking-template", dry_run=True, payload=payload)
-        return (True, f"{camp_name} / {ag_name}", old, new_template)
+        return (True, f"{camp_name} / {ag_name}", old, effective_new)
 
     ags = client.get_service("AdGroupService")
     op = client.get_type("AdGroupOperation")
     op.update.resource_name = ags.ad_group_path(cid, ad_group_id)
-    op.update.tracking_url_template = new_template
+    if not clear:
+        op.update.tracking_url_template = new_template
     op.update_mask.paths.append("tracking_url_template")
     try:
         ags.mutate_ad_groups(customer_id=cid, operations=[op])
     except GoogleAdsException as e:
-        _handle_ads_exception(e)
-        return (False, f"{camp_name} / {ag_name}", old, new_template)
+        click.echo(f"  FAIL ad_group {ad_group_id} {ag_name!r}: {e.failure.errors[0].message}", err=True)
+        payload["error"] = e.failure.errors[0].message
+        _audit("set-tracking-template", dry_run=False, payload=payload)
+        return (False, f"{camp_name} / {ag_name}", old, effective_new)
     _audit("set-tracking-template", dry_run=False, payload=payload)
-    return (True, f"{camp_name} / {ag_name}", old, new_template)
+    return (True, f"{camp_name} / {ag_name}", old, effective_new)
 
 
 @cli.command("set-tracking-template")
@@ -688,13 +702,21 @@ def _set_tracking_template_ad_group(client, cid, ad_group_id, new_template, conf
     type=click.Path(exists=True, dir_okay=False),
     help="Bulk: TSV file with columns level/status/campaign/ad_group/current_template/campaign_id/ad_group_id (header required).",
 )
-@click.option("--template", "template", required=True, help="New tracking_url_template value (literal string).")
+@click.option("--template", "template", default=None, help="New tracking_url_template value (literal string). Required unless --clear is set.")
+@click.option("--clear", is_flag=True, help="Clear the tracking_url_template (sets it back to unset/inherit from parent level).")
 @click.option("--confirm", is_flag=True, help="Skip dry-run and execute.")
-def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, confirm):
-    """Set tracking_url_template on a campaign, ad group, or bulk-from-TSV. Dry-run by default."""
+def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, clear, confirm):
+    """Set tracking_url_template on a campaign, ad group, or bulk-from-TSV. Dry-run by default.
+
+    Use --clear to remove the override (lets the resource inherit from the parent level).
+    """
     targets = [t for t in (campaign_id, ad_group_id, from_tsv) if t]
     if len(targets) != 1:
         sys.exit("REFUSE: pass exactly one of --campaign-id, --ad-group-id, --from-tsv.")
+    if clear and template is not None:
+        sys.exit("REFUSE: --clear and --template are mutually exclusive.")
+    if not clear and template is None:
+        sys.exit("REFUSE: pass --template TEXT or --clear.")
 
     client = _build_client()
     cid = _customer_id()
@@ -731,7 +753,8 @@ def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, confirm)
         sys.exit("REFUSE: empty worklist.")
 
     mode = "EXECUTE" if confirm else "DRY-RUN"
-    click.echo(f"{mode} — {len(worklist)} target(s). Target template: {template!r}")
+    action_desc = "CLEAR (inherit from parent)" if clear else f"set to {template!r}"
+    click.echo(f"{mode} — {len(worklist)} target(s). Action: {action_desc}")
     click.echo("─" * 80)
 
     ok = 0
@@ -739,9 +762,9 @@ def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, confirm)
     diffs: list[tuple[str, str, str, str]] = []  # (kind, name, old, new)
     for kind, rid in worklist:
         if kind == "campaign":
-            success, name, old, new = _set_tracking_template_campaign(client, cid, rid, template, confirm)
+            success, name, old, new = _set_tracking_template_campaign(client, cid, rid, template or "", confirm, clear=clear)
         else:
-            success, name, old, new = _set_tracking_template_ad_group(client, cid, rid, template, confirm)
+            success, name, old, new = _set_tracking_template_ad_group(client, cid, rid, template or "", confirm, clear=clear)
         if success and name is not None and old != new:
             diffs.append((kind, name, old, new))
             ok += 1
@@ -762,6 +785,81 @@ def set_tracking_template(campaign_id, ad_group_id, from_tsv, template, confirm)
     click.echo(f"{mode}: {ok} succeeded, {fail} failed, {len(diffs)} would-change.")
     if not confirm:
         click.echo("Re-run with --confirm to apply.")
+
+
+# ────────── set-account-tracking-template ──────────
+
+@cli.command("set-account-tracking-template")
+@click.option("--template", "template", required=True, help="New account-level tracking_url_template (literal string).")
+@click.option("--confirm", is_flag=True, help="Skip dry-run and execute.")
+def set_account_tracking_template(template, confirm):
+    """Set the account/customer-level tracking_url_template. Highest-blast-radius mutation. Dry-run by default.
+
+    This template applies to every ad in the account UNLESS overridden at the
+    campaign or ad-group level. Per Google's cascade rule, lower-level templates
+    REPLACE this one entirely for ads under them — so always clear lower-level
+    overrides if you want this template to take effect everywhere.
+    """
+    client = _build_client()
+    cid = _customer_id()
+    ga = client.get_service("GoogleAdsService")
+
+    # Read current account template via GAQL on the customer resource.
+    query = "SELECT customer.id, customer.descriptive_name, customer.tracking_url_template FROM customer"
+    try:
+        rows = list(ga.search(customer_id=cid, query=query))
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+    if not rows:
+        sys.exit("REFUSE: customer not found (bad customer_id?)")
+
+    row = rows[0]
+    name = row.customer.descriptive_name
+    old = row.customer.tracking_url_template or ""
+
+    payload = {
+        "level": "customer",
+        "customer_id": cid,
+        "name": name,
+        "old_template": old,
+        "new_template": template,
+        "old_len": len(old),
+        "new_len": len(template),
+    }
+
+    if old == template:
+        click.echo(f"NO-OP — account template already at target.")
+        _audit("set-account-tracking-template", dry_run=True, payload=payload)
+        return
+
+    mode = "EXECUTE" if confirm else "DRY-RUN"
+    click.echo(f"{mode} — ACCOUNT-LEVEL tracking template update on {name} (cid={cid}).")
+    click.echo("─" * 80)
+    click.echo(f"OLD ({len(old)} chars):")
+    click.echo(f"  {old!r}")
+    click.echo(f"NEW ({len(template)} chars):")
+    click.echo(f"  {template!r}")
+    click.echo("─" * 80)
+
+    if not confirm:
+        _audit("set-account-tracking-template", dry_run=True, payload=payload)
+        click.echo("Re-run with --confirm to apply.")
+        return
+
+    cs = client.get_service("CustomerService")
+    op = client.get_type("CustomerOperation")
+    op.update.resource_name = cs.customer_path(cid)
+    op.update.tracking_url_template = template
+    op.update_mask.paths.append("tracking_url_template")
+    try:
+        cs.mutate_customer(customer_id=cid, operation=op)
+    except GoogleAdsException as e:
+        _handle_ads_exception(e)
+        return
+
+    _audit("set-account-tracking-template", dry_run=False, payload=payload)
+    click.echo(f"OK — account tracking template updated on {name}.")
 
 
 # ────────── create-campaign (stub) ──────────

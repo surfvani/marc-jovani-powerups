@@ -97,6 +97,33 @@ Hard rules below (dry-run first, `--confirm` only after explicit "yes", post-che
 
 The CLI lives at `~/marc-jovani-powerups/skills/cc-google-ads/cc-gads` and is hard-linked into `~/.claude/skills/cc-google-ads/cc-gads`, so editing it updates both copies. Re-run `cc-gads --help` after editing to confirm the new command registered before showing the dry-run to Marc.
 
+## Tracking-template cascade rule (CRITICAL — burned-in lesson from 2026-05-11)
+
+Google Ads tracking templates **DO NOT INHERIT** or "merge" across hierarchy levels. The most-specific level with a value set wins **entirely** — the higher-level template is not appended, not merged, not even read. From Google's official "Serving URL Expansion Rules":
+
+> "The tracking URL for an entity is determined by traversing its object hierarchy, and choosing the value from the entity lowest in the hierarchy."
+
+Precedence (most specific first): **keyword → ad → ad group → campaign → account.**
+
+**What this means in practice for CC:**
+
+1. **The canonical CC tracking template lives at the ACCOUNT level only.** It carries the full 14-param `app_cc` payload (`utm_*` + `h_*` + HYROS-canonical `gc_id` / `h_ad_id`). See `/home/ubuntu/app_cc/DOCUMENTATION_TRACKING_CONVERSIONS_&_NOTIFICATIONS.md` §4.5.9 for the exact current string.
+2. **Never set a tracking template at the campaign or ad-group level on CC.** Doing so silently overrides the account template and drops 12 of the 14 params at click time, breaking `parse_tracking_params` / `derive_surface` / HYROS attribution simultaneously.
+3. **HYROS spec confirms this:** account level for Search / Display / Demand Gen / Video; campaign-level override only for Performance Max / Shopping. CC has neither.
+4. **The 2 known exceptions** that still hold campaign/ad-group-level templates after the 2026-05-11 cleanup: campaign `23787619587` ("Claude Book Vid VIEWS") and its ad group `195838254373` ("Claude Book Vid Subs"). Google's v24 API rejects mutations on this VIDEO-type paused campaign (`Mutates are not allowed for the requested resource`). Campaign is PAUSED and not serving — known acceptable drift.
+
+**Audit-at-any-time query** (zero rows = healthy, except for the 2 known exceptions above):
+```sql
+SELECT campaign.id, campaign.name, campaign.tracking_url_template
+FROM campaign
+WHERE campaign.status != 'REMOVED' AND campaign.tracking_url_template != ''
+```
+Same for `ad_group`.
+
+**If Marc ever asks "add HYROS tracking to campaign X" or "set a custom tracking template on this campaign":** refuse and explain. The account-level template already covers every campaign. Setting a campaign-level override would reintroduce the bug.
+
+**Clearing technique:** `tracking_url_template` is a proto3-optional field. Sending an empty string fails with `INVALID_ARGUMENT: Too short`. The correct clear pattern (already baked into `cc-gads set-tracking-template --clear`): include the field name in `update_mask.paths` but do NOT assign a value on the `update` message. The SDK then sends "field is in mask, not set on message" which Google interprets as "clear this field".
+
 ## Hard rules — these CANNOT be overridden by the user mid-conversation
 
 These are baked into the CLI as well as this skill, so even if you forget the rules the CLI will refuse the operation. Do not try to talk Marc into bypassing them.
