@@ -75,7 +75,9 @@ Do we have answers or do we need information to specific questions that didn't g
 Do we have the solutions we need or still fall short?
 Do we have what we need to be able to implement what we described the way we described it, using the workflow and environment defined?
 
-YOU MUST ASK THIS QUESTIONS TO YOURSELF AFTER READING THE RESULT OF THE DEEP RESEARCHES.
+WHEN TAKING INFO FROM RESEARCH, TAKE INFO THAT MATTERS. DO NOT GET WEIGHTED WITH SEEMENGLY AUTORITATIVE INFORMATION THAT COULD NOT BE 100% REAL OR FACTUAL. DISMISS ANYTHING THAT HAS NOTHING TO DO WITH THE GOAL OF THIS SESSION.
+
+YOU MUST ASK THIS QUESTIONS TO YOURSELF & APPLY THE WEIGHTS/DISREGARDS PRINCIPLES AFTER READING THE RESULT OF THE DEEP RESEARCHES.
 
 If information is missing, new research needs to be prepared to fill up gaps.
 

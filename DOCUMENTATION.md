@@ -162,7 +162,7 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-resss.txt`
 - **Trigger description:** see frontmatter `description:` field in `skills/research-prompt-instructions/SKILL.md`
 - **Purpose:** Loads the instruction set for writing a high-quality deep-research prompt (paradigm-shifting framing, no-abandoned-tech filter, parallel-prompt splitting, mandatory contextualization checklist, post-result validation questions). Invoked by user during a `plan-build` session when it's time to draft research prompts. Replaces the former `resss` TextExpander snippet — `plan-build` references this skill explicitly (see edit applied to `-plania.txt` line 63).
-- **Last updated:** 2026-04-29 (created)
+- **Last updated:** 2026-05-23 v1.1 (added Weights/Disregards Principle to the post-research MANDATORY block: when reading Deep Research results, take only info that matters, dismiss seemingly-authoritative information that may not be 100% real/factual, and discard anything unrelated to the session's goal — and updated the closing self-check line to "ask these questions to yourself & apply the weights/disregards principles". Source `-resss.txt` edited first per the verbatim-port rule, then ported.). Prior: 2026-04-29 (created)
 
 ### `hook-creator`
 
