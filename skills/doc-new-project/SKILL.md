@@ -22,6 +22,33 @@ The new document should contain all the necessary information.
 
 ====
 
+SIZE TARGET — ASK FIRST
+
+Before writing the doc, propose a target line count and ask for approval.
+
+DEFAULT ANCHOR: an initial documentation typically starts at ~500-700 lines. This is the baseline — adjust up or down based on what you actually see:
+
+1. CODEBASE SCOPE — look at the actual codebase (tree, file types, what's in the files).
+   How much surface area does the next agent need to navigate?
+
+2. SESSION WORK SCOPE — look at this chat's context.
+   What was actually built / touched / decided this session?
+   Is this doc covering the WHOLE app, or just the slice from this session inside a larger app?
+   How dense is the hard-won knowledge — many gotchas, or straightforward work?
+
+Then ask:
+
+"Codebase: [1-line summary of what you see].
+This session: [1-line summary of what was built / decided].
+Hard-won knowledge density: [low / medium / high — say why].
+Proposed doc target: ~[N] lines (default ~500-700, adjusted because [reasoning]).
+Approve, override with a different number, or give guidance?"
+
+Whatever the user approves is the HARD CEILING. If you blow past it while writing, stop and re-tighten before finishing.
+
+
+====
+
 VERY IMPORTANT - FIRST SECTION
 
 ## ⚠️ CRITICAL FILE STRUCTURE & ARCHITECTURE REFERENCE
@@ -37,11 +64,26 @@ Some times we refactored big files into a group of smaller files. AI gets confus
 Make sure to include clear and detailed documentation regarding file structure and how it inter relates, paying close attention to modularized groups.
 Understand the app and provide clear file structure and how each file interacts with each other
 
-For this step, do not assume. Obviously, leave the same structure that you see in the documentation that I've given you at the beginning of the chat. But update if needed anything that we've updated during this session. Important: If you need to see any additional task, let me know. 
+For this step, do not assume. Run `tree -L 3` (filtered for noise: node_modules, .git, *.wav, *.WAV, *.mid, *.MID, *.midi, *.MIDI, checkpoints, build artifacts) to see the actual current file structure. Use what you find. If our chat conversation already documented file structure, preserve that and update with anything we modified this session. Important: if you need to see any additional file or directory, ask.
 
 
 ========
 
+ANTI-VERBOSITY RULES (apply at every section, regardless of target):
+
+- Use tables and bullet lists where they fit. Don't write 3 paragraphs when a 4-row table does the same job.
+- Never duplicate info across sections — cross-reference instead ("see § Architecture").
+- Each section as tight as it can be while staying complete. "Complete" does NOT mean "verbose."
+- If a section is naturally short (e.g., a 4-file project's structure), keep it short. Don't pad to "look thorough."
+- After writing, scan for repeated explanations of the same concept and consolidate to one place.
+- Maximalist instructions ("entire, in depth, complete, no omissions") mean COVERAGE, not WORD COUNT. Cover everything. Tightly.
+
+=========
+
 FINAL IMPORTANT NOTES
 DON NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
 THE FILE HAS BEEN VERY CAREFULLY DESIGNED AS IT IS. DO NOT ELIMINATE, OMIT, SKIP IMPORTANT INFORMATION. MOST INFORMATION IS IMPORTANT AND CUCIAL AND SHOULD NOT BE ELIMINATED, OMITED, SKIPED, OR MODIFYIED UNLESS YOU JUST RECENTLY MODIFIED SOMETHING SPECIFIC IN THE APP AND NEEDS TO BE DOCUMENTED
+
+NEXT STEPS SECTION: Include a Next Steps section ONLY if there is no separate build plan / handoff doc owning the project roadmap. If a build plan exists, it owns "what's next" — this doc captures what the system IS, not what's planned. Don't duplicate the roadmap here.
+
+HARD-WON KNOWLEDGE: As the project evolves, you'll add a "Hard-Won Knowledge & Solved Problems" section. Once entries land there, they STAY FOREVER — they're the irreplaceable distillation of debugging time. Never remove them in future updates.

@@ -21,13 +21,11 @@ re read entire conversation (session) and if you missed anything include it in t
 
 Now let's update the documentation
 
-FIND the document in your CONTEXT. in your MEMORY.
-
-READ it. Don’t read it AGAIN from the source (don’t load it again into your memory… since you already have it). Read it from your memory to avoid wating context tokens.
+FIND the document. READ IT FRESH FROM DISK before updating — even if you think you already have it in memory. In long sessions the in-memory version may be summarized or stale, and you're about to overwrite the real file. Always re-read from disk first to get the current state.
 
 UPDATE IT: The file should contain the exact same documentation that you just read... but you have to update it with all the new additions, implementations and upgrades we've done
 
-Entire, in depth, complete, no omissions. The new document should contain the same information, while being about 1% shorter
+Entire, in depth, complete, no omissions. The new document should contain the same information plus updates, while being about 1% shorter. If you can't hit 1%, that's fine — getting close means you applied a real tightening pass, which is the point.
 
 At the end of the day.... think about this, when I start working on this app again, I'll give the AI the doc file to prime it with context, and then I'll prompt the AI to ask me for the documents that the AI needs to see in order to have a clear idea about the app. Meaning, the Documentation doesn't have to have EVERYTHING. It has to have whatever it is important, so the AI can gain context and ask informed questions to gain further knowledge (whatever it needs to start working on the app)
 
@@ -39,9 +37,9 @@ AT THE SAME TIME, DO NOT BE TOO SCHEMATIC THAT WE'RE LOOSING CONTEXT.
 
 Write in Markdown
 
-The new document should contain the same information, plus updates, while being about 1% shorter. 
+The new document should contain the same information plus updates, while being about 1% shorter. If you can't hit exactly 1%, getting close is fine — the goal of the target is to force a real optimization pass, not to hit a specific number.
 
-How to make it 1% shorter - eliminate just things that are completely obsolete at this point in development or summarize areas that don’t need as much detail inthis point in development. 
+How to make it 1% shorter — eliminate just things that are completely obsolete at this point in development (resolved issues that left no useful learning, deprecated code that no longer exists, abandoned approaches) or summarize areas that don't need as much detail at this point in development. Do NOT remove hard-won knowledge or solved-problem entries — those stay forever.
 
 ====
 
@@ -56,30 +54,30 @@ UPDATE IT, DO NOT CREATE A NEW FILE
 
 ========
 
-Make sure to incorporate a clear explanation of what we are goin to be doing (the plan).
+ONLY IF this session produced a clear roadmap for what's coming next AND there is no separate build plan / handoff doc owning that roadmap: add or update a brief Next Steps section. Otherwise, skip it — Next Steps belongs in the build plan or the handoff prompt, not in this reference doc. This doc captures what the system IS, not what's next.
 
-Make sure to explain the plan and the process very well.
-make sure to explain that in great detail because you now have the right context. After this I'll move to a new chat session and I don't want to be reexplaining things or the new chat having a lack of context.
-And i don't want to be repeating things or you breaking things because lack of context
-
-Create updated version of documentation with learnings and (most importantly) clear plan for next steps when we start in new blank chat with no context
-
-Make sure to add that the next steps are going to be doing 
-
-Any questios?
-Maybe before starting it would be save to make a final investigation of filestructure.
-make sure to tree L- (filtering wav WAV midi MIDI mid MID as well as checkpoints files, to be token efficcient)
-and whatever you need to do to make sure that the documentation matches the actual status
+Before finishing, do a final investigation of file structure if anything in the architecture has changed this session. Run tree -L 3 filtered for noise (node_modules, .git, *.wav, *.WAV, *.mid, *.MID, *.midi, *.MIDI, checkpoints, build artifacts) to confirm the documentation matches the actual status.
 
 SUMMARY
 Your job is to create a comprehensive updated documentation that includes:
 - Complete current state
-- Clear next steps
+- All hard-won knowledge and solved-problem entries (these stay forever)
 - All context needed for a fresh AI session
+- Next steps ONLY if no build plan / handoff doc owns the roadmap (see conditional rule above)
 
 Make sure to include all needed information so next AI chat has all necessary context to operate at it's best
 
 ===================
+
+ANTI-VERBOSITY RULES (apply at every section, regardless of length):
+
+- Use tables and bullet lists where they fit. Don't write 3 paragraphs when a 4-row table does the same job.
+- Never duplicate info across sections — cross-reference instead ("see § Architecture").
+- Each section as tight as it can be while staying complete. "Complete" does NOT mean "verbose."
+- After updating, scan for repeated explanations of the same concept and consolidate to one place.
+- Maximalist instructions ("entire, in depth, complete, no omissions") mean COVERAGE, not WORD COUNT. Cover everything. Tightly.
+
+=========
 
 FINAL IMPORTANT NOTES
 DON NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
@@ -114,17 +112,18 @@ Think deeply. Think a lot before executing these steps. Think deeply between ste
 
 START BY CREATING A TODO ... for example:
 
-     ☐ Read current DOCUMENTATION file from memory 
+     ☐ Read current DOCUMENTATION file FRESH FROM DISK (do not trust in-memory copy)
      ☐ Read conversation carefully to understand all changes done
      ☐ Make targetted update #1
      ☐ Make targetted update #2
      ☐ Make targetted update #3
      etc
-     ☐ Think if Clear Next Steps section needs to be added or updated
+     ☐ Think if Next Steps section should be added/updated (ONLY if no build plan / handoff doc owns the roadmap)
      ☐ Think if Directory Structure needs to be updated
      ☐ Think if Initial context needs to be updated
-     ☐ Analyze entire Documentation to see if there any parts that need to be optimized, reduced, or eleminiated BECAUSE OF the implementation we just did, to help mantain the documentation contained and potentially reducing lenght by 1%
+     ☐ Analyze entire Documentation to see if there any parts that need to be optimized, reduced, or eliminated BECAUSE OF the implementation we just did, to help maintain the documentation contained and potentially reducing length by 1% (falling short of 1% is fine — the point is the optimization pass)
      ☐ Think before reducing if these reductions will generate lack of context
+     ☐ Never remove hard-won knowledge or solved-problem entries
      ☐ Run verification steps
 
 
