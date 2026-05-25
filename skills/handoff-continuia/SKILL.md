@@ -17,6 +17,25 @@ You are wrapping up a coding session on a project that was set up with `/plan-bu
 6. **The skill produces a recommendation but the user picks the scope.** Three-option scoping (relaxed / realistic / pushing it) for the next session is mandatory. You propose, user picks.
 7. **English (US) for everything written into the doc and into the handoff prompt.**
 
+## START BY CREATING A TODO LIST
+
+Use TodoWrite to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
+
+     ☐ Step 1 — Detect mode (LEAN vs DEEP) — assess session work, state recommendation, wait for user override
+     ☐ Step 2 — Targeted read of plan doc (Status banner, Active State, Milestone Tracker, Cross-Session Continuity Protocol, latest Session Log entry, 🚨/🔬 markers; + architecture sections if DEEP mode)
+     ☐ Step 3 — Gather session memory (git status, git log -15, git diff --stat, TodoWrite review)
+     ☐ Step 4 — Propose 3 scoping options for next session (relaxed / realistic / pushing it) with recommendation — WAIT for user pick
+     ☐ Step 5 — Write the Session Log entry into the plan doc (strict template, append-only)
+     ☐ Step 6 — Mark completed milestones in the Milestone Tracker (match the project's existing convention — ✅ / DONE / checkbox)
+     ☐ Step 7 — Invoke /doc-update-project if DOCUMENTATION.md exists at project root
+     ☐ Step 8 — Commit (plan-doc updates + DOCUMENTATION.md updates as ONE commit, match project commit style)
+     ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
+     ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
+
+This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
+
+Update the list as you go — mark items completed in real-time so the user can see progress. Do not skip the TodoWrite step; the 9-step workflow has known failure modes (forgetting to mark milestones, conflating Session Log entry with handoff prompt) that the visible checklist prevents.
+
 ## The 9-step workflow
 
 Execute in order. Do not skip steps. Do not run them in parallel.
