@@ -186,6 +186,20 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 Follow the project's existing commit message style (read recent `git log` to match). Do not skip hooks. Do not force-push. Do not `--allow-empty` unless the session genuinely produced no code commits and the doc updates ARE the work.
 
+### Step 8.5 — Push to origin (MANDATORY ASK, then act on user's answer)
+
+After the commit lands locally, ask the user (in chat, as a yes/no decision):
+
+> "Push `<branch-name>` to origin now? This backs up the work off-machine. It may trigger CI on push. It will make the branch visible to anyone with repo access. **Recommended: yes** unless you have a specific reason to keep it local."
+
+If the user says yes → run `git push origin HEAD` (or `git push -u origin <branch>` if the branch isn't yet tracking a remote). Confirm in chat with the resulting commit-range output ("Pushed `abc123..def456` to `origin/<branch>`").
+
+If the user says no → state "Skipped push. Branch `<name>` remains local-only on this machine. [N] commits not backed up to origin." in the final chat output. The user can push manually later.
+
+**Do NOT skip this step.** Asking is mandatory even if the branch is already up-to-date with origin (in which case the user will just say no and the skill continues). The point is to surface the push decision IN this session, at the right moment, with the right agent — not defer it to the next session.
+
+**Why this is mandatory:** the alternative (the next session's agent asking at start) creates a 24-hour-or-more window where N commits sit unpushed on a single machine = real risk of work loss. Push decisions belong at session end, not session start.
+
 ### Step 9 — Print the handoff prompt in chat (strict template)
 
 Print this in chat as a single fenced code block so Marc can copy-paste cleanly. **DO NOT write this into the plan doc.** It lives in chat only.
@@ -256,12 +270,18 @@ QUESTIONS TO ASK MARC AT SESSION START (before any code):
 If anything in the plan doc contradicts what you see in the code or your context, STOP and ask Marc before improvising. The plan doc is authoritative.
 ````
 
-After printing: state in one final chat line what you did and end your response. Example: "Session N entry added to plan doc. Milestone Tracker updated. Committed as [hash]. Handoff prompt above — paste into a fresh Claude Code session at the project root."
+**Guardrails when filling in this template:**
+
+- **DO NOT include a "should I push to origin at session end?" question in QUESTIONS TO ASK MARC AT SESSION START.** The push decision was already made in THIS session at Step 8.5 — asking again creates redundant decision overhead. The handoff prompt should only ask scope/clarification questions, not re-litigate operational decisions already settled.
+- **BRANCH STATE "Pushed to origin: yes/no" reflects the state AFTER Step 8.5.** If you pushed at 8.5, write "yes". If user declined, write "no — local-only, X commits unbacked".
+- **Confirmation question in QUESTIONS TO ASK MARC** should always include the canonical "Last session ended at [state]. Today I'll [task]. Sound right?" with a WAIT. Plus any genuinely open scope-clarification questions specific to the next session's task. Push is NOT one of them.
+
+After printing: state in one final chat line what you did and end your response. Example: "Session N entry added to plan doc. Milestone Tracker updated. Committed as [hash]. [Pushed to origin / Skipped push.] Handoff prompt above — paste into a fresh Claude Code session at the project root."
 
 ## What this skill does NOT do
 
 - Does NOT do exhaustive doc reading (use DEEP mode only if architectural). LEAN mode is the default and the whole point of this skill's existence — it's cheaper than Marc's manual workflow.
-- Does NOT push to origin (push is the user's call — they may want to back up off-machine, or not).
+- Does NOT push to origin WITHOUT asking — but DOES ask in Step 8.5 and pushes if the user says yes. (Push decisions belong at session end, in this agent, not deferred to the next session.)
 - Does NOT auto-start the next session (handoff prompt is for Marc to paste into a fresh session at his own pace).
 - Does NOT modify CLAUDE.md (that's a separate concern handled by the user manually).
 - Does NOT do the next-session task itself. This is purely a session boundary skill.
