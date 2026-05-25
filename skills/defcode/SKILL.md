@@ -5,222 +5,318 @@ description: "Use when Marc is about to apply a fix, update, or new implementati
 
 =========
 
-You are working in a live production app. You’re making changes in a live app. The app is being used. There are hundreds of users. There are payments being processed inside this app.
+⚠️ LIVE PRODUCTION. STAKES ARE REAL.
 
-ultrathink   
+You are working in a live production app. Real users are using it right now. Payments are being processed. A broken edit doesn't just fail a test — it costs money, locks users out, or corrupts records. Treat every change with that weight.
 
-Think a lot before executing these steps. Think deeply between steps. 
+ultrathink. Think hard before executing. Think deeply between steps. Think with max effort.
 
-=============
+=========
 
-FINAL CONTEXT CHECK 
-After everything discussed, 
-- do you need to see any other files for extra context? 
-- are you sure that the solution you’re going to apply is NOT a DUPLICATE of a system that already exists?
-If yes
-  1. Make a list of all documents you need to see in order to apply a fix to that doesn’t break anythig or reinvents the wheel of something that’s already built in the app
-  2. Read all files.
+CONTINUITY FROM /whatdocs
 
-If after reading this files you discovered you need to see more files:
-  1. Make a list of all documents you need to see in order to apply a fix to that doesn’t break anything
-  2. Read all files. 
+If you arrived here from a /whatdocs research phase (same agent, same context), you already have an APPROVED PROPOSED SOLUTION from that phase. THAT is your spec for this phase. Do not re-research. Do not deviate. Apply exactly what was approved.
+
+If you reached /defcode without a prior /whatdocs phase, STOP and ask the user: "We skipped the research phase. Do you want me to run /whatdocs first, or proceed with the context I have?" Do not improvise.
+
+=========
+
+FINAL CONTEXT CHECK
+
+Before touching code, verify one more time:
+- Do I need to see any additional files? (If your APPROVED PROPOSAL names files you haven't read entirely, read them now.)
+- Am I sure this is NOT a DUPLICATE of an existing system in the codebase? (The /whatdocs phase already checked this — but if any doubt remains, reconfirm now.)
+
+If you need more files:
+  1. List every file still needed.
+  2. Read each one ENTIRELY (no skipping).
+  3. Reassess. Loop until you have a complete picture.
+
+If you do NOT need more files — proceed to execution.
 
 =====
 
-If you don’t need to read any other file… GET STARTED
+COMPLETENESS + INTEGRATION
 
-Include all the files that need to be updated or created. 
-Do not skip any file or part of file that needs to be updated.
-If any new directory or files need to be created, create it. 
+Once you've passed the FINAL CONTEXT CHECK and you've internalized the HARD RULES, execute the change. These are the rules for HOW the change must be complete.
 
-If you need to create new files that get referenced from other files, you must add these references, path directories, or routes to other files that reference these other files. 
-(an example:. Creating a JS and then adding route in index.html). 
+—
 
-If functions need to be called, you must update relevant documents. 
+COMPLETENESS — touch every file the change requires.
+
+- Include EVERY file that needs updating. Skip nothing.
+- Do not leave half-finished implementations. If the change requires updating 4 files, update all 4.
+- If new files must be created, create them.
+- If new files are referenced from other files, ADD those references at every site that needs them. Example: created a new JS file → add the `<script>` tag in `index.html`. Added a new model → register it in the import file. Added a new route → register it in the router.
+- If you've added a new function, find every caller that needs to use it and wire it up.
+
+The rule: at the end of execution, the system must be in a working, integrated state. Not "almost done." Not "the user will finish wiring it up." DONE.
+
+—
+
+INTEGRATION — no route mismatches, no broken contracts.
+
+If the change touches BOTH client and server (web app), or BOTH a public interface and its consumers (any stack), verify the contract matches on both ends BEFORE declaring done.
+
+The classic failure (web example):
+- The JavaScript expects: `/resource/api/content_buckets/search`
+- The API is registered as: `/api/content_buckets/search`
+- Result: silent 404, broken feature in production.
+
+Match the route. Match the function signature. Match the event name. Match the data shape. Match every contract that crosses a boundary.
+
+For non-web stacks (C++ / JUCE / Rust / etc.):
+- Match the function signatures across declaration and definition.
+- Match the message/event names across producer and consumer.
+- Match the data structures across serialization and deserialization.
+- Match parameter names across hierarchical APIVTS layers (or equivalent).
+
+Same principle. Different surface.
+
+—
+
+MIGRATIONS — create them AND run them yourself.
+
+If your change requires a database migration, schema change, or data backfill:
+1. Create the migration script.
+2. Activate the venv / load the env if applicable.
+3. Run the script yourself, in this session.
+4. Read the output. Verify it succeeded.
+5. Confirm the migration applied (query the DB to see the change took effect).
+
+DO NOT hand the migration script back to the user with "please run this." You have a terminal. Use it.
+
+For non-DB equivalents: rebuilds, config regeneration, asset compilation, codegen — same rule. If your change requires it, you run it.
+
+—
+
+NO INCOMPLETE FIXES. If you find yourself thinking "I'll leave the rest for later" — STOP. Either finish the integration in this session, or BLOCK with a clear note about what's missing and why. Never hand the user a half-wired change and claim done.
 
 ====
 
-SOLUTION TYPE
-Strategically speaking: The solution you’re applied must have been discussed with user before you apply it. It must be clean, scalable, long term. Not a hack, patch, bandaid, or a solution that creates another problem somewhere else. It has to be a clean and logical solution that is coherent with the whole app architecture and logic.
+HARD RULES FOR HOW YOU EDIT
 
-Tactically speaking: the solution must be targeted and applied safely. Use the file editing tool. The fix must be applied the simplest, most secure, way, and it has to be reliable, assured to work, bulletproof.
+These rules are non-negotiable. Breaking any one of them on a live production app is how you cost the user money. Read them carefully, internalize them, then execute.
 
-You are working in a live production app. You’re making changes in a live app. The app is being used. There are hundreds of users. There are payments being processed inside this app.
+—
 
-It is forviden to make changes that can break the system or compromise functionalities of the app.
+RULE 1 — NEVER MODIFY A FILE YOU HAVEN'T READ ENTIRELY.
+
+If you have to modify a file and you haven't seen it (or saw only parts), STOP. Read it entirely first. If you can't find it or aren't sure you found the right one, ASK the user. Do not assume. Do not guess.
+
+If the file is already in your context multiple times (from earlier iterations), use the LAST instance — that's the current version.
+
+—
+
+RULE 2 — BACKUP BEFORE EVERY EDIT.
+
+Before modifying any existing file, copy it to a backup with a DESCRIPTIVE suffix so future-you can identify it:
+- ✅ `auth.py.bak_pre_login_redirect_fix`
+- ✅ `index.html.bak_pre_navbar_refactor`
+- ❌ `auth.py.bak` (uninformative — what was this about?)
+
+No backup = no edit. Period.
+
+—
+
+RULE 3 — USE THE `Edit` / `MultiEdit` TOOL ONLY. NO NINJA INJECTION.
+
+FORVIDEN:
+- ❌ sed / awk / perl-in-place code injection
+- ❌ echo / cat heredoc to overwrite or splice files
+- ❌ Shell scripts that mutate file contents
+- ❌ Any "clever" terminal command that edits code
+
+REQUIRED:
+- ✅ `Edit` tool for targeted single-string replacements
+- ✅ `MultiEdit` tool for multiple changes in one file in one call
+- ✅ `Write` tool ONLY for genuinely new files (never to "rewrite" an existing one)
+
+Ninja injection is how files break silently. Use the right tool by name. Every time.
+
+—
+
+RULE 4 — NEVER REWRITE THE WHOLE FILE.
+
+Do not "show your work" by writing out the entire file to demonstrate you understood it. Do not default to a "complete solution" dump. The correct pattern:
+1. `Bash` copy the file to a backup (Rule 2).
+2. `Edit` or `MultiEdit` for the specific changes.
+3. Leave everything else untouched.
+
+If you find yourself about to use `Write` on an existing file — STOP. That's the anti-pattern. Use `Edit` / `MultiEdit`.
+
+—
+
+RULE 5 — NO DUPLICATE-NAMED FILES.
+
+FORVIDEN:
+- ❌ `auth_final.py`
+- ❌ `audio_processing_definitive_fix.py`
+- ❌ `routes_v2.js`
+- ❌ Any "new version" file with a similar name
+
+This creates junk in the filesystem and confuses everyone (including future-you). If a file needs to change, edit the real file (after backup). The backup is the only acceptable "second copy."
+
+—
+
+RULE 6 — STAY IN SCOPE.
+
+Do not update, implement, or change anything outside the APPROVED PROPOSED SOLUTION. No scope creep. No "while I'm here, let me also..." No bonus refactors. No drive-by improvements.
+
+If you spot something genuinely broken outside scope — note it for the user, do NOT fix it in this session.
+
+—
+
+RULE 7 — NO ASSUMPTIONS.
+
+ASSUMING IS FORVIDEN. If you don't have the context you need (a file, a value, a behavior, a decision), do not wing it. Stop and ask the user. The cost of asking is seconds. The cost of assuming wrong, on a live production app, can be hours of cleanup and lost user trust.
 
 =====
 
-ROUTES
-You must not create any route mismatch (ie. route mismatch that causes end point to not exist)
-
-For example: make sure you're making the API route match what the JavaScript expects
-
-A more specific example:
-The JavaScript is looking for: /resource/api/content_buckets/search
-But the API endpoint is registered as: /api/content_buckets/search
-
-These were just examples
-
-====
-
-If migration scripts need to be created, create and execute them. Do not make the user execute them.
-
-
-====
-
-ASSUMING IS FORVIDEN
-When providing solutions, you MUST NOT ASSUME. Always review 
-- codebase, 
-- database content and moderls 
-- Logs
-- or anything else needed) 
-in order to gain necessary context to execute the fix confidently. Working from assumptions is FORVIDEN. Do NOT assume.
-
-If you need to update, implement, or changes something and you don't have the requiered context, don’t wing it. Do NOT ASSUME. You MUST not apply the fix if you don’t have enough context
-
-=====
-
-FOCUS ON THE TASK AT HAND
-
-Do not update, implement, or change things that don't need to be updated, implemented, or changed.
-Do not update, implement, or change things I haven't asked you to update, implement, or change.
-
-======
-
-IMPORTANT: DO **NOT** EXECUTE IF YOU STILL NEED TO SEE MORE FILES
-REVIEW CODEBASE, MODELS, DATABASE, LOGS, ETC
-YOU MUST BE SURE AND FEEL CERTAIN THAT YOU HAVE A COMPLETE PICTURE TO APPLY FIX WITH CONFIDENCE THAT THE FIX WON’T BREAK ANYTHING
-DO NOT ASSUME
-
-=======
-
-REMEMBER: there may be files you don't need to see because you already gerenated them and they are in the chat memory. If you have the file several times in your chat, it's because we've been modifying it. Use the last instance of the file, since it's going to be the updated one. The older ones might be versions that didn't work or needed changes.
-
-=====
-
-NEVER
-❌ Ignore Existing Content - instead ✅ always preserve the part of the code that works, and just update the parts that need to be updated
-
-NEVER
-❌ Overwrite the entire file. Instead of ✅ Update: Make updates inside the file. 
-
-Never replace the entire file instead of updating.
-Find the file. Read the file. Create a backup. Add descriptive ending to the backup file name. Make updates to the original file. 
-❌  Do NOT rewrite and recreate an entire new document with a new name. That’s a NONO. ❌
-
-=====
-
-
-**MANDATORY: DO NOT MODIFY ANY FILE THAT YOU HAVEN'T SEEN YET** If you have to modify a file and you haven't seen it, ask me to give it to you first so you can see its content
-
-**ULTRA IMPORTANT: Do NOT provide INCOMPLETE fixes. Think of everything that needs to happen for the fix to be complete. 
-
-======
-
-### FOR CODE UPDATES
-
-
-For code updates (files that already exist), first create a backup and then (and only then) perform updates to the file
-
-When creating backup, the end of the backed up filename should be descriptive so we remember what this file was about
-
-For old files (code update) do a backup of the file first. Then READ THE ENTIRE FILE. Then update the file itself. Do NOT create a new file with similar name. (Ie app_final.py, audio_processing_deffinitive_fix.py. This creates confusion and junk in the filesystem.  
-
-Never update the file without doing the backup of the file first. Otherwhiese we would loose the old version.
-
-For code update (that implies updating old files (one or multiple):
-- **DO NOT** rewrite complete code files
-- instead, **DO** make a backup of the file or files.
-- **DO** read entire file
-- **DO** make specific targeted updates
-
-
-
-## Things to AVOID when updating files
-
-DO NOT DO ninja stuff (like commands to inject code, etc). Instead, just make specific targeted updates. Most likely you'll have the old file in your chat memory. And if you don’t have it in memory, just ask me for the file. I’ll give the file code to you so you can see it and provide changes without assuming. 
-
-
-**Use the tool to update documents.** DO NOT DO ninja stuff like injecting code with a terminal command. Do not create scripts to inject code in the middle of files. Most of the times this breaks things.
-
-
-Instead, make specific targeted update.
-
-
-Update a document only if:
-- You have read it ENTIRELY already
-- You read it in the past, it's part of your context, and you know for sure you're using the last updated version of that file
-
-If you have the file in your context multiple times, make sure to use the last instance of the file as reference to do the updates.
-
-**If you have any doubt, do not proceed with the update.** Instead, ask me (the user) for the file or find it in the server.
-
-If you don't find the file, or if you don't know if you found the right file, **DO NOT ASSUME!** Ask me for verification.
-
-
----
-===========
 
 ## For Front-end Design
 
 for front end design invoke frontend-design plugin skill
 
-===========
+=========
 
-IMPORTANT:
+VERIFICATION PROTOCOL — the change isn't done until you've proven it works.
 
-Do not fall into a bad pattern of trying to "show your work" by writing out the entire
-file to demonstrate you understood it, rather than following the simpler, safer approach we agreed on.
+STEP 1 — Restart the service (if applicable).
 
-Do not defaulted to showing the "complete solution" rather than focusing on the minimal changes we discussed.
+After your edits land, restart whatever runs the code so the change is actually live:
+- Web app with PM2: `pm2 restart <name>` (or full sequence if the change spans frontend build, server, reverse proxy)
+- Web app with systemd / Docker / cloud: restart the appropriate service
+- JUCE / native app: rebuild and relaunch the host (DAW for plugins, standalone exe otherwise)
+- Node service: restart the process
+- Skip this step if the runtime auto-reloads (hot reload, file watcher) — but verify the reload actually happened
 
-If you do this, this will be a mistake on your part - You should:
-1. Use Bash to copy the file
-2. Used Edit or MultiEdit to make the specific changes
-3. Left everything else untouched
+If the change spans multiple layers (frontend bundle + backend server + nginx config), restart ALL of them in the right order. Don't assume one layer "doesn't need" a restart.
 
-==========
+—
 
-Before creating the test script (below) - restart the pm2 service
+STEP 2 — Write a SAFE test script.
 
-Then… 
+The test must safely VALIDATE the fix actually works — not just verify the file changes were saved.
 
-🚨 WHEN DONE CREATE A TEST SCRIPT AND RUN IT TO VERIFY THE FIXES WORK PROPERLY 🚨
+Examples of SAFE tests:
+- ✅ Dry-run against a single record / a test user / a sandbox endpoint
+- ✅ Test in read-only mode where possible (query, don't write)
+- ✅ Test with a flag that prevents external side effects (no real emails, no real charges, no real SMS)
+- ✅ Hit a staging endpoint, not production
+- ✅ Use a known test record that you can verify before/after
 
-The secript has to safely TEST the fix or new implementation, not just verify that the changes where applied correctly.
+Examples of UNSAFE tests (NEVER do these):
+- ❌ Send an email to the entire database to "test the email fix"
+- ❌ Charge a real card to "test the payment integration"
+- ❌ Mass-update production records to "verify the migration"
+- ❌ Hit a live webhook that triggers downstream side effects
+- ❌ Anything that touches more than 1-3 real records
 
-When testing, test safely. For example, if a new email implementation was done, a test should NOT be sending an email to the entire database. Do not to LIVE tests. Always run dray.
+Default to DRY-RUN. Default to safe. If you can't think of a safe test, ASK the user how they want to verify.
 
-Run the script
-Read the script results entirely
-Assess if your fix or implementation worked or faild
-If it failed, make adjustments and run the script again untill the fix or implementation is successful
+—
+
+STEP 3 — Run the script. Read the output. Assess.
+
+1. Run the test script yourself.
+2. Read the ENTIRE output (not just the last line, not just "exit 0").
+3. Assess: did the fix actually do what it was supposed to do? Did the user-visible behavior change as expected? Did the affected records / data / files reach the expected state?
+4. If the test passed: proceed to STEP 4.
+5. If the test failed: diagnose the failure, adjust the fix, re-run. Repeat until passing.
+
+After 3 failed attempts at the same fix: STOP. Escalate to the user with what you've tried, what failed, and what evidence you have. Don't keep retrying the same approach.
+
+—
+
+STEP 4 — Report DONE only after verified.
+
+Banned claims when you have NOT just verified with a passing test:
+- ❌ "should work"
+- ❌ "probably works"
+- ❌ "the change looks correct"
+- ❌ "done" / "fixed" / "complete"
+
+Only acceptable claim of done = "I ran the test, the output showed X, here's the evidence."
+
+Evidence before assertions. Always.
 
 =========
 
-You are working in a live production app. You’re making changes in a live app. The app is being used. There are hundreds of users. There are payments being processed inside this app.
+START BY CREATING A TODO LIST
 
-ultrathink   
+Use TodoWrite to lay out your execution plan before touching code. Build it from the APPROVED PROPOSED SOLUTION (from the /whatdocs phase) — not from scratch. Example shape:
 
-Think a lot before executing these steps. Think deeply between steps. Think with max effort.
+     ☐ Confirm I have the APPROVED PROPOSAL in context (problem, approach, files to touch, files NOT to touch)
+     ☐ Final context check — any file in the proposal I haven't read entirely yet?
+     ☐ Ask user any remaining INTENT/SCOPE questions (no lazy questions)
+     ☐ Backup [specific file path] → [file].bak_pre_[descriptive_suffix]
+     ☐ Edit [specific file path] — [specific change per proposal]
+     ☐ Backup [specific file path] → [file].bak_pre_[descriptive_suffix]
+     ☐ Edit [specific file path] — [specific change per proposal]
+     ☐ Create [new file path] — [purpose] + register it in [where it's referenced]
+     ☐ Create + run migration script (if applicable) — verify output
+     ☐ Verify route/contract matches across all boundaries
+     ☐ Restart service(s) — [list which ones]
+     ☐ Write SAFE test script — dry-run, no live side effects
+     ☐ Run test — read output entirely — assess pass/fail
+     ☐ If fail: diagnose, adjust, re-run (max 3 attempts before escalating)
+     ☐ Report DONE with structured execution report (see below)
 
-=============
+Adapt to your specific change. But every execution todo list MUST include: backups, edits, integration wiring, service restart, and SAFE test with assessment.
 
-START BY CREATING A TODO ... for example:
+=========
 
-     ☐ Decide if I need to see more files, models, read logs, idenfity integration points, analyze or identify anything else
-     ☐ If needed… Reading extra files, logs, bla bla bla
-     ☐ Ask questions to user if I need clarification
-     ☐ Explain plan to user
-     ☐ List all files that will need to be updated. Incorporate list in ToDo
-     ☐ Think deeply before executing next steps
-     ☐ Document all integration points and dependencies
-     ☐ Execute task #1 without making assumptions. Back up before modifying
-     ☐ Execute task #2 without making assumptions. Back up before modifying
-     etc
+WHEN YOU FINISH — required output structure
 
-this todo is just an example. Create your own based on specifications.
+End your execution phase with a structured EXECUTION REPORT in this exact shape. This is what the controller (or user) will use to verify your work without re-reading every file:
+
+```
+=== EXECUTION REPORT ===
+
+STATUS: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+
+WHAT I DID:
+[1-2 sentences — what change landed, mapped back to the APPROVED PROPOSAL]
+
+FILES MODIFIED:
+- [path] — [what changed] — backup: [backup file name]
+- [path] — [what changed] — backup: [backup file name]
+
+FILES CREATED:
+- [path] — [purpose] — registered in: [referencing file(s)]
+
+MIGRATIONS / SCRIPTS RUN:
+- [migration name] — executed at [timestamp/HEAD] — output: [success/result summary]
+
+SERVICES RESTARTED:
+- [service name] — restarted, confirmed healthy
+
+INTEGRATION POINTS VERIFIED:
+- [boundary X] ↔ [boundary Y] — match confirmed via [how you verified]
+
+TEST SCRIPT:
+- Location: [path to test script]
+- Result: PASSED | FAILED (with details)
+- Output excerpt (last 10-20 lines or the relevant assertion lines):
+  [paste]
+- Why this proves the fix works: [1 sentence]
+
+CONCERNS (if any):
+- [anything you'd flag — files near 1000-line threshold, related-but-out-of-scope issues you noticed, edge cases you couldn't test, etc.]
+
+WHAT I DID NOT TOUCH (and why):
+- [files in the proposal marked NOT to touch, confirming you respected scope]
+
+OPEN QUESTIONS / NEXT STEPS FOR USER:
+- [anything that needs user follow-up after this session]
+
+=========
+```
+
+Use DONE_WITH_CONCERNS if you completed the work but have doubts. Use BLOCKED if you couldn't complete (3-attempts rule hit, or a step impossible without more user input). Use NEEDS_CONTEXT if you discovered mid-execution that a file you hadn't seen is required.
+
+Never silently report DONE on work you're unsure about.
 
 
 
