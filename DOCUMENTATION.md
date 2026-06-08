@@ -26,6 +26,7 @@ marc-jovani-powerups/
     ├── sowhatstheplan/SKILL.md
     ├── whatdocs/SKILL.md                   ← research-first protocol before any fix (read all relevant files, propose generic non-duplicate solution)
     ├── defcode/SKILL.md                    ← live-prod execution discipline (backup-before-edit, no ninja injection, route matching, restart pm2, safe test script)
+    ├── grammar-polish/SKILL.md             ← two-pass manuscript editor (grammar/spelling first, clarity second) preserving the author's casual voice
     ├── handoff-continuia/SKILL.md          ← end-of-session boundary skill — targeted-read of /plan-build doc, writes strict-template Session Log entry + prints copy-pasteable handoff prompt in chat for next agent (companion to sowhatstheplan which handles start-of-session)
     ├── subagentic-workflow/                ← improved variant of /superpowers:subagent-driven-development — same-subagent /whatdocs+/defcode flow with user-approval gate, always Opus 4.7, single-source-of-truth (no duplicates of /whatdocs or /defcode content)
     │   ├── SKILL.md
@@ -238,6 +239,13 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/subagentic-workflow/SKILL.md`
 - **Purpose:** Same-session subagent execution of a multi-task plan with Marc's full discipline baked in. For each task: dispatch ONE named subagent that performs BOTH `/whatdocs` research (Phase A — produces structured PROPOSED SOLUTION block, no code touched) and `/defcode` execution (Phase C — backup, edit, integrate, restart, SAFE test, produces structured EXECUTION REPORT). Between A and C: Phase B is a MANDATORY user-approval gate where Marc approves the proposal before any code lands. Same subagent across both phases via SendMessage — never dispatch a second subagent for the execute phase (the research mental model would be lost). Always Opus 4.7 (cheap-model-for-mechanical-tasks logic from the original is REJECTED — live prod code where the failure modes cheaper models miss cost money). After execution: two-stage review — spec compliance reviewer (verifies execution matches the APPROVED PROPOSAL) then code quality reviewer (verifies /defcode discipline: backups present, no ninja injection, no duplicate-named files, routes match, SAFE test, no assumptions). 4 files: SKILL.md + 3 prompt templates (implementer / spec-reviewer / code-quality-reviewer). Single-source-of-truth — the prompt templates POINT to /whatdocs and /defcode SKILL.md sections rather than duplicating content, so a change to the source skills propagates automatically. Pairs with `/plan-build` (which produces the plan being executed) and `/handoff-continuia` (which wraps each session boundary).
 - **Last updated:** 2026-05-25 (added)
+
+### `grammar-polish`
+
+- **Source:** pasted in chat 2026-06-08
+- **Trigger description:** see frontmatter `description:` field in `skills/grammar-polish/SKILL.md`
+- **Purpose:** Two-pass manuscript editing skill. Pass 1 fixes only grammar, spelling, duplicate words, and broken markdown — surgical, minimal edits preserving the author's casual/conversational voice. Non-grammar issues (clarity, ambiguity, awkward phrasing) are listed as suggestions only, not applied. Pass 2 (clarity) runs only if the author approves — tightens nested clauses, mixed verb forms, dangling phrases, buried subjects, and unnecessary words while preserving the author's register. Rules: propose each change with explanation before applying, rewrite the minimum, never add ideas the author didn't write, don't make it "proper" — make it clear.
+- **Last updated:** 2026-06-08 (added)
 
 ---
 
