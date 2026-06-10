@@ -31,12 +31,13 @@ Use TodoWrite to lay out your handoff plan before reading anything. Example shap
      ☐ Step 8 — Commit (plan-doc updates + DOCUMENTATION.md updates as ONE commit, match project commit style)
      ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
      ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
+     ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do — WAIT for approval before ending
 
 This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
 
-Update the list as you go — mark items completed in real-time so the user can see progress. Do not skip the TodoWrite step; the 9-step workflow has known failure modes (forgetting to mark milestones, conflating Session Log entry with handoff prompt) that the visible checklist prevents.
+Update the list as you go — mark items completed in real-time so the user can see progress. Do not skip the TodoWrite step; the 10-step workflow has known failure modes (forgetting to mark milestones, conflating Session Log entry with handoff prompt) that the visible checklist prevents.
 
-## The 9-step workflow
+## The 10-step workflow
 
 Execute in order. Do not skip steps. Do not run them in parallel.
 
@@ -295,7 +296,11 @@ If anything in the plan doc contradicts what you see in the code or your context
 - **BRANCH STATE "Pushed to origin: yes/no" reflects the state AFTER Step 8.5.** If you pushed at 8.5, write "yes". If user declined, write "no — local-only, X commits unbacked".
 - **Confirmation question in QUESTIONS TO ASK MARC** should always include the canonical "Last session ended at [state]. Today I'll [task]. Sound right?" with a WAIT. Plus any genuinely open scope-clarification questions specific to the next session's task. Push is NOT one of them.
 
-After printing: state in one final chat line what you did and end your response. Example: "Session N entry added to plan doc. Milestone Tracker updated. Committed as [hash]. [Pushed to origin / Skipped push.] Handoff prompt above — paste into a fresh Claude Code session at the project root."
+### Step 9.5 — Plain-English sanity check
+
+After printing the handoff prompt, re-read it and explain in 3-5 plain-English bullet points what it will make the next agent do. If anything doesn't match the user's chosen scoping option from Step 4, flag it and offer to rewrite before the user copies it. **WAIT for Marc's approval before ending the session.**
+
+After approval: state in one final chat line what you did and end your response.
 
 ## What this skill does NOT do
 
