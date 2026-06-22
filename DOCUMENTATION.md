@@ -28,6 +28,7 @@ marc-jovani-powerups/
     ├── defcode/SKILL.md                    ← live-prod execution discipline (backup-before-edit, no ninja injection, route matching, restart pm2, safe test script)
     ├── grammar-polish/SKILL.md             ← two-pass manuscript editor (grammar/spelling first, clarity second) preserving the author's casual voice
     ├── handoff-continuia/SKILL.md          ← end-of-session boundary skill — targeted-read of /plan-build doc, writes strict-template Session Log entry + prints copy-pasteable handoff prompt in chat for next agent (companion to sowhatstheplan which handles start-of-session)
+    ├── how-marc-works-w-claude-code/SKILL.md ← Marc's builder profile (identity, workflow, pain points, architectural principles, technical context, CC-Sampler case study) — background context skill (user-invocable: false), auto-loaded during plan-build/brainstorming/architecture decisions
     ├── subagentic-workflow/                ← improved variant of /superpowers:subagent-driven-development — same-subagent /whatdocs+/defcode flow with user-approval gate, always Opus 4.7, single-source-of-truth (no duplicates of /whatdocs or /defcode content)
     │   ├── SKILL.md
     │   ├── implementer-prompt.md           ← dispatch template for the implementer subagent (handoff-continuia structure + Phase A research / Phase B approval gate / Phase C execute via SendMessage)
@@ -161,8 +162,8 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 
 - **Source file:** `/home/ubuntu/anthropic_text_processor/prompts/-plania.txt`
 - **Trigger description:** see frontmatter `description:` field in `skills/plan-build/SKILL.md`
-- **Purpose:** Marc's planning-agent workflow. Triggered when starting a new build/feature/app/refactor. Discusses concept with Marc, generates deep-research prompts, captures the Active State (live spend, deployed systems, anything bleeding per day of inaction), then produces a build plan document containing all downstream instructions (TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with `DOCUMENTATION.md` maintenance, Deep Research 10x Multiplier Rule, Active State Protocol). Designed so the next agent can execute with just `"read this doc, start"` — no execution-phase or doc-phase skill needed.
-- **Last updated:** 2026-05-07 (Active State Protocol added: mandatory "what's running in production today, and what's broken or untracked about it?" question in the discussion phase + required Active State section in plan output, so urgency outranks dependency-shape sequencing)
+- **Purpose:** Marc's planning-agent workflow. Triggered when starting a new build/feature/app/refactor. Process: (1) user describes project, (2) load `/brainstorming` for collaborative back-and-forth with deep research detours interleaved during brainstorming whenever community knowledge would change the answer, (3) after brainstorming concludes, assess what additional deep researches are needed for the execution phase and create prompts, (4) craft build plan document. Captures the Active State (live spend, deployed systems, anything bleeding per day of inaction). Build plan contains all downstream instructions (TODO list spec, 🔬 research checkpoints, Cross-Session Continuity Protocol, Session Log, Documentation Protocol with `DOCUMENTATION.md` maintenance, Deep Research 10x Multiplier Rule, Active State Protocol). Designed so the next agent can execute with just `"read this doc, start"` — no execution-phase or doc-phase skill needed.
+- **Last updated:** 2026-06-22 (embedded `/brainstorming` as Step 2 of the process — brainstorming and deep research are now interleaved, not sequential; Active State question folded into brainstorming phase as mandatory early question; post-brainstorming research separated as distinct step for execution-phase concerns). Prior: 2026-05-07 (Active State Protocol added)
 
 ### `research-prompt-instructions`
 
@@ -225,6 +226,13 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/defcode/SKILL.md`
 - **Purpose:** Marc's live-production execution discipline — invoked when about to apply a fix, update, or new implementation to a live production app with real users and live payments. Enforces: a final context check before any file is touched, no modifying files Claude hasn't seen, per-file backup with descriptive suffix before edits, no "ninja" sed/awk/echo injection (Edit/MultiEdit only), route/endpoint matching across JS↔API (no `/resource/api/...` vs `/api/...` mismatches), auto-create-and-execute any migration scripts (don't make user run them), focus strictly on the task at hand (no scope creep), then after the work is done restart pm2 and write a SAFE test script (dry-run, no live emails or mass sends) that validates the fix actually works — not just that files changed. Pairs with `whatdocs` (the pre-implementation companion).
 - **Last updated:** 2026-05-15 (added)
+
+### `how-marc-works-w-claude-code`
+
+- **Source file:** `/Users/marcjovani/Downloads/how-marc-works-w-claude-code.md`
+- **Trigger description:** Background context skill (`user-invocable: false`) — Claude loads it automatically during planning, brainstorming, or architecture decisions. Not invokable as a `/` command.
+- **Purpose:** Marc's builder profile for architecture decisions. Covers: identity (vibe coder, not traditional programmer), the gold-standard web dev workflow (SSH → Claude Code → instant feedback), pain points that kill momentum (slow feedback loops, cross-platform friction, opaque toolchains, manual repetitive work), non-negotiable architectural principles (tight loop, text-native AI-first structure, automation over manual process, own the infrastructure, build for expansion / ship the minimum, team transferability), full technical context (stacks, servers, existing platform), and the CC-Sampler case study showing how the right infrastructure made C++ vibe-codeable (JUCE Docs MCP, clangd LSP, Pamplejuce CI/CD, CMake+Ninja+sccache 2-5s builds, naming-convention pipelines). Gives planning/executing agents the context to design for how Marc actually works instead of assuming a traditional developer workflow.
+- **Last updated:** 2026-06-22 (added)
 
 ### `handoff-continuia`
 
