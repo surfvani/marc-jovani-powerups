@@ -8,26 +8,35 @@ above I GAVE YOU WHAT I  – THE USER WITH MY KNOWLEDGE, PLUS UNDERSTNADING WHER
 ========= THE CONCEPT - YOU'RE NOT GOING TO DO THE FINAL ANALYSIS OF THE DEEP RESEARCH RESULTS - YOU'RE GOING TO PLAN FOR ANOTHER IA AGANE TO DO THE ANNALYSIS ======
 
 Process
-1. Understand first idea
-2. Discuss with user concept (back and fort questions)
-3. Prepare prompt/s for user to run deep research/es and wait for information to come back to you (this gives you extra intellgence, current information, or proven solutions)
-4. Based on understanding, clarity of concept, newly gain skill, Create full prompt for next agent to execute the analysis
+1. User describes the project to the best of their ability
+2. Load /brainstorming — run the full brainstorming process with the user. Deep research detours during brainstorming are encouraged (see below). When brainstorming concludes (design approved), return to plan-build mode.
+3. Decide what deep researches are still necessary for the execution phase, get user approval, create the research prompts. User runs them with satellite agents.
+4. When deep research results are back, craft the build plan document based on plan-build principles.
 
 =============
 
-  start by investigating, reading the documents that I gave you.... gather all information needed
+STEP 1: User describes the project. Start by investigating, reading any documents they gave you. Gather all information needed.
 
-  then ask questions if you need clarification with user
+STEP 2: BRAINSTORMING PHASE
+Load the /brainstorming skill and follow its process:
+  - Explore project context (files, docs, recent commits)
+  - Ask clarifying questions one at a time (multiple choice preferred)
+  - Propose 2-3 approaches with trade-offs and your recommendation
+  - Present design in sections, get user approval after each section
 
-  ALWAYS ask one specific question early in the discussion: "What's already running in production today, and what's broken or untracked about it?" — this captures the project's Active State (live spend, deployed systems, ongoing campaigns, paused integrations, anything where every day of inaction has a measurable cost). Capture the answers verbatim — they become the seed of a mandatory Active State section in the build plan document. Without this question, urgent bleeding states (e.g., live ad spend without conversion tracking) get buried as sub-bullets and the next agent reads the plan and starts on the wrong thing.
+  MANDATORY EARLY QUESTION (during brainstorming): "What's already running in production today, and what's broken or untracked about it?" — this captures the project's Active State (live spend, deployed systems, ongoing campaigns, paused integrations, anything where every day of inaction has a measurable cost). Capture the answers verbatim — they become the seed of a mandatory Active State section in the build plan document. Without this question, urgent bleeding states (e.g., live ad spend without conversion tracking) get buried as sub-bullets and the next agent reads the plan and starts on the wrong thing.
 
-  When you have clarity, explain your understanding to user
+  DEEP RESEARCH DURING BRAINSTORMING — INTERLEAVED, NOT SEQUENTIAL:
+  Whenever a brainstorming question hits a domain where you're about to make an assumption that community/hard-won knowledge could invalidate — framework choice, architecture pattern, integration approach, training config, infrastructure decision, etc. — PAUSE the brainstorming, flag it to the user, and propose a research detour. If user agrees, write the research prompt right there (remind user to invoke /research-prompt-instructions for prompt-writing discipline). User runs the research with a satellite agent, brings results back, and brainstorming resumes with that knowledge baked in. This means brainstorming and research are interleaved — you don't wait until brainstorming is over to start researching. The earlier hard-won knowledge enters the conversation, the better the design decisions.
 
-  Then purpose needed resarches to user.
+  When brainstorming concludes and the user approves the design, transition back to plan-build mode.
+
+STEP 3: POST-BRAINSTORMING RESEARCH
+After brainstorming is done, assess what additional deep researches are still needed for the EXECUTION phase. These are different from brainstorming-phase research — they're about implementation details, optimization, configuration, tooling choices that the executing agent will face. Decide what's needed, present the list to user for approval, then create the research prompts.
 
 WHEN USER APPROVES, ASK USER FOR INSTRUCTIONS TO REDACT THE RESEARCH PROMPTS. USER WILL GIVE YOU SPECIFIC INSTRUCTIONS
 
-WAIT FOR RESEARCHES RESULTS. USER WILL GIVE THEM BACK TO YOU WHEN THEY ARE DON
+WAIT FOR RESEARCHES RESULTS. USER WILL GIVE THEM BACK TO YOU WHEN THEY ARE DONE
 
 ======
 
@@ -172,10 +181,10 @@ REMINDER: Remind user to use "resss" snippet to get the research prompt INSTRUCT
 
 TO SUMARIZE
 Process
-1. Understand first idea
-2. Discuss with user concept (back and fort questions)
-3. Optional - prepare prompt for user to run deep research and wait for information to come back to you (this gives you extra intellgence, current information, or proven solutions)
-4. Based on understanding, clarity of concept, newly gain skill, Create full prompt for next agent to execute (this prompt MUST BE WRITTEN IN THE CHAT CONVERSATION, NOT IN THE BUILD PLAN DOCUMENT, so the USER can easily copy and paste it to the next agent, without having to go find the file, open, scroll to bottom and find the prompt to copy paste... too many steps!)
+1. User describes the project to the best of their ability
+2. Load /brainstorming — full collaborative back-and-forth to refine concept into a clear design. Deep research detours are encouraged DURING brainstorming whenever a question hits a domain where community knowledge would change the answer. Brainstorming and research are interleaved, not sequential.
+3. After brainstorming concludes (design approved), decide what additional deep researches are needed for the execution phase. Get user approval, create research prompts. User runs them with satellite agents and brings results back.
+4. With brainstorming-validated design + research results in hand, craft the build plan document. The kickoff prompt for the next agent MUST BE WRITTEN IN THE CHAT CONVERSATION, NOT IN THE BUILD PLAN DOCUMENT, so the USER can easily copy and paste it to the next agent, without having to go find the file, open, scroll to bottom and find the prompt to copy paste... too many steps!
 
 
 
