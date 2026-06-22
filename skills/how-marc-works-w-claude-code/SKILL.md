@@ -1,5 +1,5 @@
 ---
-name: how-marc-works-w-claude-code
+name: how-marc-works
 description: "Marc's builder profile — identity, workflow, pain points, architectural principles, technical context, and the CC-Sampler case study. Load this as context during plan-build, brainstorming, or any architecture/infrastructure decision so the agent designs for how Marc actually works (vibe coder, tight feedback loops, text-native, AI-first) instead of assuming a traditional developer workflow."
 user-invocable: false
 ---
