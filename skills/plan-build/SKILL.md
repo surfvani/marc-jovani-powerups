@@ -15,7 +15,7 @@ Process
 
 =============
 
-STEP 1: User describes the project. Start by investigating, reading any documents they gave you. Gather all information needed.
+STEP 1: User describes the project. Start by investigating, reading any documents they gave you. Gather all information needed. If the /how-marc-works skill is available, load it now — it contains Marc's builder profile (workflow, pain points, architectural principles, technical context) and must inform every architecture and infrastructure decision from this point forward.
 
 STEP 2: BRAINSTORMING PHASE
 Load the /brainstorming skill and follow its process:
