@@ -289,15 +289,21 @@ After printing the handoff prompt, re-read it and explain in 3-5 plain-English b
 
 Explain in plain english to a non-developer which has a lot of experience vibe coding (has released comercial software used by hunddreds of thousands of people). But make it plain english, short and easy to understand.
 
-**WAIT for Marc's approval before ending the session.**
-
-After approval: state in one final chat line what you did and end your response.
-
 ### Step 9.6 — Copy prompt to user's clipboard
 
 If you're running localy (from Macbook Air, Macbook Pro, Mac Studio), copy the prompt to clipboard and let user know you did.
 
 If you're running inside a server and user is SSHd into server, skip this step and let user know. 
+
+Copy prompt to user's clipboard at this poing, even if you haven't received handoff aproval (that way while user is reading you're working on the process of copying to clipboard)
+
+### Step 9.7 — **WAIT for Marc's approval before ending the session.**
+
+**WAIT for Marc's approval before ending the session.**
+
+After approval: state in one final chat line what you did and end your response.
+
+
 
 ## What this skill does NOT do
 
@@ -335,8 +341,9 @@ Use TodoWrite to lay out your handoff plan before reading anything. Example shap
      ☐ Step 8 — Commit (plan-doc updates + DOCUMENTATION.md updates as ONE commit, match project commit style)
      ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
      ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
-     ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do — WAIT for approval before ending
-     ☐ Step 9.6 — If working locally, copy prompt to user's clipboard
+     ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do
+     ☐ Step 9.6 — If working locally, copy prompt to user's clipboard (even if you haven't received handoff aproval, that way while user is reading you're working on the process of copying to clipboard)
+     ☐ Step 9.7 - WAIT for approval before ending
 
 This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
 
