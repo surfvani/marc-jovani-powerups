@@ -13,50 +13,40 @@ You are wrapping up a coding session on a project that was set up with `/plan-bu
 2. **Handoff prompt MUST be printed in chat, never buried in the plan doc.** Plan-build's own rule: "user can easily copy and paste it... without having to go find the file, open, scroll to bottom and find the prompt." Honor this.
 3. **You MUST update the Milestone Tracker** to mark phases/tasks completed by this session. Two of Marc's past handoff-failure modes came from skipping this.
 4. **Templates are strict.** Do not omit sections. Do not improvise the shape. The templates below are the spec.
-5. **Reading is TARGETED, not exhaustive.** Read only the sections enumerated below for your selected mode. Do not read the whole plan doc unless DEEP mode is selected.
-6. **The skill produces a recommendation but the user picks the scope.** Three-option scoping (relaxed / realistic / pushing it) for the next session is mandatory. You propose, user picks.
+5. **Reading (in LEAN mode) is TARGETED, not exhaustive.** When in LEAN mode, read only the sections enumerated below for your selected mode. Do not read the whole plan doc unless DEEP mode is selected.
+6. **For following session, the skill produces a recommendation but the user picks the scope.** Three-option scoping (relaxed / realistic / pushing it) for the next session is mandatory. You propose, user picks.
 7. **English (US) for everything written into the doc and into the handoff prompt.**
-
-## START BY CREATING A TODO LIST
-
-Use TodoWrite to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
-
-     ☐ Step 1 — Detect mode (LEAN vs DEEP) — assess session work, state recommendation, wait for user override
-     ☐ Step 2 — Targeted read of plan doc (Status banner, Active State, Milestone Tracker, Cross-Session Continuity Protocol, latest Session Log entry, 🚨/🔬 markers; + architecture sections if DEEP mode)
-     ☐ Step 3 — Gather session memory (git status, git log -15, git diff --stat, TodoWrite review)
-     ☐ Step 4 — Propose 3 scoping options for next session (relaxed / realistic / pushing it) with recommendation — WAIT for user pick
-     ☐ Step 5 — Write the Session Log entry into the plan doc (strict template, append-only)
-     ☐ Step 6 — Mark completed milestones in the Milestone Tracker (match the project's existing convention — ✅ / DONE / checkbox)
-     ☐ Step 7 — Invoke /doc-update-project if DOCUMENTATION.md exists at project root
-     ☐ Step 8 — Commit (plan-doc updates + DOCUMENTATION.md updates as ONE commit, match project commit style)
-     ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
-     ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
-     ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do — WAIT for approval before ending
-
-This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
-
-Update the list as you go — mark items completed in real-time so the user can see progress. Do not skip the TodoWrite step; the 10-step workflow has known failure modes (forgetting to mark milestones, conflating Session Log entry with handoff prompt) that the visible checklist prevents.
 
 ## The 10-step workflow
 
-Execute in order. Do not skip steps. Do not run them in parallel.
+- Execute in order. 
+- Do not skip steps. 
+- Do not run them in parallel.
 
-### Step 1 — Detect mode (LEAN vs DEEP)
+### Step 1 — Decide mode (LEAN vs DEEP)
 
-Look at what this session actually did:
+Lean vs Deep defines how much of the Build Plan document will be read
 
-- **LEAN mode (default):** session was tactical — wrote code, ran tests, fixed bugs, did cherry-picks, ran builds, did regression testing. Did NOT rewrite architectural sections of the plan doc. DID work primarily inside source code + tests.
-- **DEEP mode:** session was architectural — rewrote major sections of the plan doc, simplified/changed the architecture spec, added SUPERSEDED markers or equivalent, or otherwise touched the plan doc's locked architecture decisions (whatever the project calls them).
+Lean = parts
 
-State your assessment + the recommended mode in one sentence to the user. If unsure, default to LEAN. Allow user to override.
+Deep = entire read
 
-### Step 2 — Targeted read of the plan doc
+How to choose:
+
+- **LEAN mode:** If nex session is very targeted, very clear, and a very logical continuation of this session. This version will be choosen only if current agent (current session) has all context needed (and does not need more) to provide clear instrucions for next agent.
+- **DEEP mode:** Deeper context is needed to trully guide next agent to do their task. Current agent has deep technical knowledge of what got built, but has no context of the overall project nor what the next steps are. Other pros of going Deep mode
+  - Deep mode is also practical for better current agent Plan Document update. By reading (or re-reading) entire plan document, when it comes to making updates the agent avoids creating conflicts or info duplication within the same document. Partial reads many time cause edits that contradict un-read sections of the document.
+  - Deep mode is also good to better indicate next agent what parts the document to read at the beginning of the next session 
+
+
+Most of the times Deep mode is best
+
+### Step 2 — Targeted/entire read of the plan doc
 
 Identify the build plan document (typically `*-BUILD_PLAN.md`, `*-IMPLEMENTATION.md`, or whatever the project named it during `/plan-build`). If not obvious, run `ls *.md` at project root and ask the user which one is the build plan.
 
-Then read ONLY:
+If LEAN - read ONLY:
 
-**Always read (both modes):**
 - The Status banner at the top of the doc (typically the first 20-50 lines after the title)
 - The **Active State** section (use grep/search if needed — title contains "Active State")
 - The **Milestone Tracker** (the TODO source — title typically contains "Milestone Tracker" or "TODO" or "Phase")
@@ -64,14 +54,16 @@ Then read ONLY:
 - The **most recent Session Log entry** (it's your template reference for shape + voice)
 - All rows/items marked 🚨 (bleeding) or 🔬 (research checkpoint) anywhere in the doc
 
-**Also in DEEP mode:**
+Optional in LEAN if more context needed, also read:
 - The architecture decisions section (whatever it's called — typically "Architecture decisions (locked)" or similar)
 - Any sections with SUPERSEDED / CRITICAL / WARNING markers
 - The full Session Log (not just the latest entry) — so you understand the project's full evolution
 
-**Cost target:** LEAN ~30-60K tokens. DEEP ~120-180K tokens.
+**If DEEP:** read entirely. The whole plan document. Complete. 
 
-DO NOT read the whole plan doc just to be safe. Targeted reading is the whole point of this skill.
+- Do not skim
+- Do not do partial reads
+- Do not take shortcuts
 
 ### Step 3 — Gather session memory + working tree state
 
@@ -100,17 +92,18 @@ Before writing anything, propose three scoping options for what the next session
 ```
 **SCOPING OPTIONS for next session:**
 
-1. **Relaxed** — [scope description in 1-2 sentences]
+1. **Relaxed** — [scope description in 1-2 sentences in plain english]
    Accomplishes: [what concretely gets done]
-   Risk: low. Token estimate: ~Xk.
+   Pros/cons: asdlfjads. Token estimate: ~Xk.
 
-2. **Realistic** (RECOMMENDED) — [scope description in 1-2 sentences]
+2. **Realistic** (RECOMMENDED) — [scope description in 1-2 sentences in plain eng]
    Accomplishes: [what concretely gets done]
-   Risk: low-moderate. Token estimate: ~Xk.
+   Pros/cons: asdlfjhalsdfh. Token estimate: ~Xk.
 
-3. **Pushing it** — [scope description in 1-2 sentences]
+3. **Pushing it** — [scope description in 1-2 sentences in plain eng]
    Accomplishes: [what concretely gets done]
-   Risk: may compromise quality / may not fit in a single session (180k token budget). Token estimate: ~Xk+.
+   Pros/cons: lajsdfhkasdjfh (180k token budget). Token estimate: ~Xk+.
+   Risks?
 
 Which one for next session?
 ```
@@ -119,9 +112,13 @@ Recommend whichever fits the most logical next milestone given the plan's depend
 
 **WAIT for the user's choice before proceeding.** Their pick determines the "Your task this session" line in the handoff prompt.
 
+Explain what gets done, pros/cons, risks in plain english to a non-developer which has a lot of experience vibe coding (has released comercial software used by hunddreds of thousands of people). But make it plain english, short and easy to understand.
+
 ### Step 5 — Generate the Session Log entry (strict template)
 
-Write a new Session Log entry into the plan doc using EXACTLY this template. Use Edit tool (not Write). Insert the entry at the bottom of the Session Log section, BEFORE any "End of document" marker or trailing sections (Conflict Registry, Cherry-Pick Registry, etc.).
+Keep it super short and to the point. Most of this will be developed in the DOCUMENTATION document. This is just a super brief Session Log.
+
+Indicate
 
 ```markdown
 ### Session N — YYYY-MM-DD — [topic in ≤10 words]
@@ -167,6 +164,8 @@ Use `N` matching the next session number (if last entry was Session 03, this is 
 
 Do NOT delete or rewrite prior Session entries. Session Log is append-only.
 
+Keep it super short and to the point. Most of this will be developed in the DOCUMENTATION document. This is just a super brief Session Log.
+
 ### Step 6 — Mark completed milestones in the Milestone Tracker
 
 The Milestone Tracker's exact format varies per project (could be a table with checkboxes, a numbered list, nested phases, etc.). Read it from Step 2's targeted read. Then:
@@ -185,6 +184,8 @@ Check if `DOCUMENTATION.md` exists at project root. If yes:
 - Do NOT bypass `/doc-update-project` and edit DOCUMENTATION.md directly. That skill exists for a reason.
 
 If `DOCUMENTATION.md` does NOT exist at project root: skip this step. (Plan-build says DOCUMENTATION.md is created "after the first meaningful implementation work" — some projects haven't reached that point yet. Don't force-create it here.)
+
+Some times the USER may have instructed you to update documentation before starting the /handoff-continuia. If that's the case, skip Step 7.
 
 ### Step 8 — Commit
 
@@ -227,15 +228,15 @@ Print this in chat as a single fenced code block so Marc can copy-paste cleanly.
 ````
 SESSION [N+1] HANDOFF — [date]
 
-YOU ARE: [one-sentence framing — who this agent is, what project, what they're picking up]
+PERSONA: load CLAUDEDEV persona
 
-REQUIRED READING (in this exact order — do not skip):
+WHAT WE'RE WORKING ON: REQUIRED READING (in this exact order — do not skip):
 
 1. [primary doc + specific sections to read]
    - [sub-bullet per section if needed]
 2. [secondary doc if applicable]
 3. [CLAUDE.md sections]
-4. SKIP [list of sections marked SUPERSEDED or otherwise obsolete — name them so the agent doesn't waste tokens]
+4. ANYTHING TO SKIP? [list of sections marked SUPERSEDED or otherwise obsolete — name them so the agent doesn't waste tokens]
 
 BRANCH STATE:
 - Branch: [name]
@@ -249,31 +250,9 @@ WHAT LAST SESSION DID (1 short paragraph):
 YOUR TASK THIS SESSION (1-2 sentences):
 [what + why — derived from Step 4's user-chosen scoping option]
 
-TODO LIST TO CREATE AT SESSION START (use TodoWrite tool with these items):
-- [Task 1 — specific, with file/section refs]
-- [Task 2]
-- [Task 3]
-...
-
-FIRST COMMAND TO RUN (after reading + confirming with Marc):
-```bash
-[command]
-```
-
 GOTCHAS THAT WILL BITE YOU (top 5 — be specific):
 - [gotcha + how to handle]
 - ...
-
-HARD RULES (always include, copy these verbatim):
-- No allocations on audio thread / no apvts.getRawParameterValue in audio code (or whatever the project's equivalent constraints are)
-- Read every file before editing it. Use Edit tool, not Write.
-- Backups (`_backup_YYYYMMDD` suffix) before significant edits.
-- English (US) for all code/comments/commits.
-- No sed/awk to inject code.
-- No --no-verify, no force-push, no --allow-empty without explicit permission.
-- After 3 failed attempts at the same fix: STOP. Tell Marc.
-- Push only the development branch, never to main.
-- [Project-specific hard rules from plan-build's hard-rules section]
 
 STOP SIGNAL: [when in the session should the agent pause for Marc's check-in? — typically at the next audible-test moment, or at a 🔬 research checkpoint, or after a single phase completes]
 
@@ -288,6 +267,14 @@ QUESTIONS TO ASK MARC AT SESSION START (before any code):
 2. [Any other clarification questions the next agent should ask based on open decisions from this session]
 
 If anything in the plan doc contradicts what you see in the code or your context, STOP and ask Marc before improvising. The plan doc is authoritative.
+
+LOAD /whatdocs AND GET STARTED
+
+WHEN YOU'RE DONE WITH /whatdocs YOU'LL PROCEED WITH /defcode
+
+YOU'LL CLOSE THE SESSION WITH /handoff-continuia
+
+LOAD /whatdocs AND GET STARTED NOW
 ````
 
 **Guardrails when filling in this template:**
@@ -298,16 +285,25 @@ If anything in the plan doc contradicts what you see in the code or your context
 
 ### Step 9.5 — Plain-English sanity check
 
-After printing the handoff prompt, re-read it and explain in 3-5 plain-English bullet points what it will make the next agent do. If anything doesn't match the user's chosen scoping option from Step 4, flag it and offer to rewrite before the user copies it. **WAIT for Marc's approval before ending the session.**
+After printing the handoff prompt, re-read it and explain in 3-5 plain-English bullet points what it will make the next agent do. 
+
+Explain in plain english to a non-developer which has a lot of experience vibe coding (has released comercial software used by hunddreds of thousands of people). But make it plain english, short and easy to understand.
+
+**WAIT for Marc's approval before ending the session.**
 
 After approval: state in one final chat line what you did and end your response.
 
+### Step 9.6 — Copy prompt to user's clipboard
+
+If you're running localy (from Macbook Air, Macbook Pro, Mac Studio), copy the prompt to clipboard and let user know you did.
+
+If you're running inside a server and user is SSHd into server, skip this step and let user know. 
+
 ## What this skill does NOT do
 
-- Does NOT do exhaustive doc reading (use DEEP mode only if architectural). LEAN mode is the default and the whole point of this skill's existence — it's cheaper than Marc's manual workflow.
 - Does NOT push to origin WITHOUT asking — but DOES ask in Step 8.5 and pushes if the user says yes. (Push decisions belong at session end, in this agent, not deferred to the next session.)
 - Does NOT auto-start the next session (handoff prompt is for Marc to paste into a fresh session at his own pace).
-- Does NOT modify CLAUDE.md (that's a separate concern handled by the user manually).
+- Does NOT modify CLAUDE.md without asking (if agent considers CLAUDE.md needs updated, agent must recommend to user).
 - Does NOT do the next-session task itself. This is purely a session boundary skill.
 - Does NOT rewrite prior Session Log entries (append-only).
 - Does NOT delete the Milestone Tracker or any other plan-doc section. Only adds/updates.
@@ -319,14 +315,31 @@ After approval: state in one final chat line what you did and end your response.
 | Can't find a build plan doc | Project may not have been set up with `/plan-build` | Ask the user where the plan doc is, or whether this is a non-plan-build project (in which case skip this skill — it doesn't apply) |
 | Plan doc has no Session Log section | Doc is older than `/plan-build`'s current spec, or wasn't created by `/plan-build` | Ask the user — either add a Session Log section per `/plan-build` template, or skip the doc-update steps and just print the chat handoff |
 | Milestone Tracker has an unfamiliar format | Format varies per project | Ask the user how their tracker marks completion (✅, "DONE", checkbox, etc.) before updating |
-| `/doc-update-project` skill is not available | Project doesn't have it installed | Skip Step 7. Update DOCUMENTATION.md directly with light additions only (don't rewrite). |
+| `/doc-update-project` skill is not available | Project doesn't have it installed | Ask user. User will give you exact prompt. |
 | Working tree has unexpected uncommitted changes | Another session may have left them | STOP. Surface the diff to the user. Don't commit, don't stash unilaterally — ask. |
 | User chose a scoping option that requires research (a 🔬 checkpoint is in the path) | Plan-build's Deep Research Protocol applies | Build the handoff prompt to include the 🔬 reminder + the `/research-prompt-instructions` invocation cue. Mark the research as the first task. |
 
-## Why this skill exists (so future iterations don't lose the design intent)
 
-Marc's manual end-of-session process was: read CLAUDE.md + DOCUMENTATION.md + plan doc ENTIRELY → summarize each section → write handoff. Cost: ~200K tokens + ~20 min per session boundary. Reason for the heavy lift: agents at session end have deep tactical context but shallow architectural/structural context, so without forced reload they wrote bad handoffs (didn't know where the Session Log goes, didn't update the Milestone Tracker, conflated "Session Log entry" with "handoff prompt").
 
-This skill does targeted reading instead of full reading (~60-80K tokens + ~10 min) by relying on `/plan-build`'s guaranteed structural conventions (Active State, Session Log, Cross-Session Continuity Protocol, Milestone Tracker, 🚨/🔬/🟢 markers). Strict templates enforce consistency across agents and sessions. The 3-option scoping preserves the most valuable part of Marc's manual process (forcing scope decisions before handoff).
+## START BY CREATING A TODO LIST
 
-Coherence rule for future skill maintainers: when `/plan-build` adds or changes a guaranteed structural convention, update this skill's Step 2 reading list to match. When `/plan-build` deprecates one, remove the dependency here. Do not add references to project-specific conventions (SUPERSEDED markers, specific section numbers, specific phase names) — those don't generalize. Stay within `/plan-build`'s guaranteed vocabulary only.
+Use TodoWrite to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
+
+     ☐ Step 1 — Detect mode (LEAN vs DEEP) — assess session work, state recommendation, wait for user override
+     ☐ Step 2 — Targeted read of plan doc if LEAN, entire of DEEP...
+     ☐ Step 3 — Gather session memory (git status, git log -15, git diff --stat, TodoWrite review)
+     ☐ Step 4 — Propose 3 scoping options for next session (relaxed / realistic / pushing it) with recommendation — WAIT for user pick
+     ☐ Step 5 — Write the Session Log entry into the plan doc (strict template, append-only)
+     ☐ Step 6 — Mark completed milestones in the Milestone Tracker (match the project's existing convention — ✅ / DONE / checkbox)
+     ☐ Step 7 — Invoke /doc-update-project if DOCUMENTATION.md exists at project root and still hasn't been updated. If it's been updated mention to user and skip this step.
+     ☐ Step 8 — Commit (plan-doc updates + DOCUMENTATION.md updates as ONE commit, match project commit style)
+     ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
+     ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
+     ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do — WAIT for approval before ending
+     ☐ Step 9.6 — If working locally, copy prompt to user's clipboard
+
+This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
+
+Update the list as you go — mark items completed in real-time so the user can see progress. 
+
+Do not skip the TodoWrite step; 
