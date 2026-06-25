@@ -230,9 +230,12 @@ SESSION [N+1] HANDOFF — [date]
 
 PERSONA: load CLAUDEDEV persona
 
-WHAT WE'RE WORKING ON: REQUIRED READING (in this exact order — do not skip):
+PROJECT ROOT: [absolute path to project root — e.g. /Users/marcjovani/Documents/COMPOSING/COMPOSING ASSISTANT/]
 
-1. [primary doc + specific sections to read]
+WHAT WE'RE WORKING ON: REQUIRED READING (in this exact order — do not skip):
+(ALL paths below are ABSOLUTE — do not search for files, go directly to these paths)
+
+1. [absolute path to primary doc + specific sections to read]
    - [sub-bullet per section if needed]
 2. [secondary doc if applicable]
 3. [CLAUDE.md sections]
@@ -279,6 +282,7 @@ LOAD /whatdocs AND GET STARTED NOW
 
 **Guardrails when filling in this template:**
 
+- **ALL file paths in the handoff prompt MUST be ABSOLUTE PATHS.** The next agent starts in `~` (home directory), not in the project root. If the prompt says "read `DOCUMENTATION.md`", the agent wastes 5 minutes searching for it. Always write the full path: `/Users/marcjovani/Documents/COMPOSING/COMPOSING ASSISTANT/DOCUMENTATION.md`. This applies to every file reference in REQUIRED READING, GOTCHAS, and anywhere else a file is named. No exceptions. Also include the project root path explicitly at the top of the handoff prompt so the agent can `cd` immediately.
 - **DO NOT include a "should I push to origin at session end?" question in QUESTIONS TO ASK MARC AT SESSION START.** The push decision was already made in THIS session at Step 8.5 — asking again creates redundant decision overhead. The handoff prompt should only ask scope/clarification questions, not re-litigate operational decisions already settled.
 - **BRANCH STATE "Pushed to origin: yes/no" reflects the state AFTER Step 8.5.** If you pushed at 8.5, write "yes". If user declined, write "no — local-only, X commits unbacked".
 - **Confirmation question in QUESTIONS TO ASK MARC** should always include the canonical "Last session ended at [state]. Today I'll [task]. Sound right?" with a WAIT. Plus any genuinely open scope-clarification questions specific to the next session's task. Push is NOT one of them.
