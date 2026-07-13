@@ -5,9 +5,9 @@ description: Use when Marc or the planning agent needs to write a deep-research 
 
 Do you need to see any other document or anything else in the codebase of the project?
 
-Before you start, and based on this project characteristics, create a prompt for next AI agent to do a research. 
+Before you start you must have a complete understanding of the project. Then, based on this project characteristics, create a prompt for next AI agent to do a research. 
 
-Why? What we’re trying to build, mut have been solved alread or partially solved. There must be hundreds of open source projects, repositores, documentation, that the next AI Deep Research agent can find out and bring the solution back to us (so we don’t reinvent the wheel).
+Why? You are trained and you have a lot of information, but YOU DON'T KNOW WHAT YOU DON'T KNOW. And what we’re trying to build, mut have been solved alread or partially solved. There must be hundreds of open source projects, repositores, documentation, that the next AI Deep Research agent can find out and bring the solution back to us (so we don’t reinvent the wheel).
 
 Research proven concepts. Do not reinvent the wheel. Use battle tested solutions. No old avandoned tech. (for example, in the audio AI neural model training… DDSP and RAVE are very well documented… but DDSP is old uses TensorFlow and is avandoned and RAVE has pitch recognition problems… a reasearch in that domain has to be able to weight recency and true functionality, not just documentation existence)
 
@@ -17,6 +17,7 @@ If some libraries need to be installed or if we need to set up an enviroment… 
 
 What does this research has to give us?
 - Most efficient approach
+- The path with the highest probability of success (the most successful way to do it, not just the fastest)
 - Solutions that fit the model as we described it earlier in our conversation (IF NOT DEFINED ENOUGH, STOP HERE AND CLARIFY WITH USER)
 - Environemnt that fits workflow style
 - Best approach based on above definition
@@ -32,8 +33,23 @@ Another example: for a neural model, we can go with the approach "we have to con
 
 Approach 1 takes years and millions of dollars. Approach 2 is so timebending that's disruptive
 
+LEARN FROM THOSE WHO ALREADY DID IT
+
+If the project has precedents (similar programs, initiatives, campaigns, implementations), the prompt must also ask for the experience of those precedents:
+- What projects like this one have been done
+- Who carried them out, and why
+- How they were done
+- What success rate and what results they had
+- What reception they had
+- Whether any of them was controversial — and how they fixed it
+- What pros and cons they found along the way
+
+The goal: even with a clear idea and vision, don't start from zero — learn how others overcame the problems and complications, start from their learnings, and then adapt them to our specific needs.
+
+This includes not just the project's main concept, but also the collateral topics that condition its success.
+
 The solutions have to be
-- Tested (NO OLD AVANDONE TECH)
+- Validated and tested — successfully applied in the real world (NO OLD ABANDONED TECH)
 - Efficient
 - Fit description
 - Fit working style
@@ -74,6 +90,7 @@ Do we have good stuff or was it shallow?
 Do we have answers or do we need information to specific questions that didn't get answered?
 Do we have the solutions we need or still fall short?
 Do we have what we need to be able to implement what we described the way we described it, using the workflow and environment defined?
+Do we need a second research?
 
 WHEN TAKING INFO FROM RESEARCH, TAKE INFO THAT MATTERS. DO NOT GET WEIGHTED WITH SEEMENGLY AUTORITATIVE INFORMATION THAT COULD NOT BE 100% REAL OR FACTUAL. DISMISS ANYTHING THAT HAS NOTHING TO DO WITH THE GOAL OF THIS SESSION.
 
