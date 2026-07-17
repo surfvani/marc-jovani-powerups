@@ -47,7 +47,7 @@ challenged it yet. Every proposal goes through the gate.
 1. One question per message. A bigger topic = multiple turns, not a wall of questions.
 2. Multiple choice preferred; open-ended fine when options aren't enumerable.
 3. Decision questions only — intent, scope, trade-offs, priorities. Questions the
-   codebase can answer are still FORVIDEN (that was /whatdocs' job).
+   codebase can answer are still FORBIDDEN (that was /whatdocs' job).
 4. At any fork: 2-3 approaches, plain-English trade-offs, lead with your
    recommendation and why.
 5. After every user answer, state what just changed in your understanding or the
@@ -95,5 +95,5 @@ your job was making the skip conscious instead of tired.
 
 ## NEVER PRODUCE
 - A spec document. This gate outputs shared understanding, not paperwork.
-- Code, file edits, or TodoWrite ceremony.
+- Code, file edits, or task-list ceremony.
 - A delta restatement longer than ~10 lines — past that you're writing a spec. Stop.

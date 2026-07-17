@@ -6,8 +6,7 @@ Dispatch a fresh subagent (NOT the implementer) AFTER the spec compliance review
 
 ```
 Agent(
-  subagent_type: "general-purpose",
-  model: "opus-4-7",                 # ALWAYS the most capable available
+  subagent_type: "general-purpose",   # model param OMITTED on purpose — inherits the session's model (never pin)
   description: "Code quality review — Task N",
   prompt: |
     <fill in THE PROMPT BODY below>
@@ -155,6 +154,6 @@ VERDICT REASONING:
 
 If VERDICT is ❌, the controller will SendMessage findings to the implementer to fix. Be precise — file paths, line numbers, the rule violated.
 
-If VERDICT is ✅, the controller marks the task DONE in TodoWrite.
+If VERDICT is ✅, the controller marks the task DONE in the task list (TaskUpdate).
 
 END OF PROMPT BODY.

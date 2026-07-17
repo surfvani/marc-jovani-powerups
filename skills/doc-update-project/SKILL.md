@@ -1,15 +1,15 @@
 ---
 name: doc-update-project
-description: Use when Marc wants to update an existing DOCUMENTATION.md after a coding session, implementation, bug fix, or upgrade — preserves all critical information, adds new learnings and roadblocks/solutions, removes only fully obsolete content, and stays ~1% shorter while including a clear next-steps plan so a fresh AI session can resume without context loss. Skip for creating documentation from scratch (use doc-new-project instead).
+description: Use when Marc wants to update an existing DOCUMENTATION.md after a coding session, implementation, bug fix, or upgrade — preserves all critical information, adds new learnings and roadblocks/solutions, removes only fully obsolete content, and stays ~1% shorter while keeping everything a fresh AI session needs to resume without context loss (Next Steps section only when no build plan / handoff doc owns the roadmap). Skip for creating documentation from scratch (use doc-new-project instead).
 ---
 
-good low let's move to documentation
+good, now let's move to documentation
 
 first
 
 list everything we've done in this session first
 
-then organize where each things we'vde done should go
+then organize where each thing we've done should go
 
 then validate
 
@@ -31,9 +31,9 @@ At the end of the day.... think about this, when I start working on this app aga
 
 Also, things you can get rid of are parts of the information that's now obsolete for whatever reason. Or maybe issues that were opened that are now solved. Still leave the issue we had and how we solved it, but if there's any opened loop that doesn't need to be there (in terms of issues) you can get rid of that part. 
 
-Again, think of the main objective, a file that give AI ENOUGH context to get started.
+Again, think of the main objective, a file that gives AI ENOUGH context to get started.
 
-AT THE SAME TIME, DO NOT BE TOO SCHEMATIC THAT WE'RE LOOSING CONTEXT.
+AT THE SAME TIME, DO NOT BE TOO SCHEMATIC THAT WE'RE LOSING CONTEXT.
 
 Write in Markdown
 
@@ -43,7 +43,7 @@ How to make it 1% shorter — eliminate just things that are completely obsolete
 
 ====
 
-You've seen how useful is to have the challenges and roadblocks that we've overcomed documented. These solutions come very handy in the future when we encounter them again and you don't have context. It saves so much trial and error. Make sure to document them
+You've seen how useful it is to have the challenges and roadblocks that we've overcome documented. These solutions come very handy in the future when we encounter them again and you don't have context. It saves so much trial and error. Make sure to document them
 
 
 ===========
@@ -65,7 +65,7 @@ Your job is to create a comprehensive updated documentation that includes:
 - All context needed for a fresh AI session
 - Next steps ONLY if no build plan / handoff doc owns the roadmap (see conditional rule above)
 
-Make sure to include all needed information so next AI chat has all necessary context to operate at it's best
+Make sure to include all needed information so next AI chat has all necessary context to operate at its best
 
 ===================
 
@@ -80,8 +80,8 @@ ANTI-VERBOSITY RULES (apply at every section, regardless of length):
 =========
 
 FINAL IMPORTANT NOTES
-DON NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
-THE FILE HAS BEEN VERY CAREFULLY DESIGNED AS IT IS. DO NOT ELIMINATE, OMIT, SKIP IMPORTANT INFORMATION. MOST INFORMATION IS IMPORTANT AND CUCIAL AND SHOULD NOT BE ELIMINATED, OMITED, SKIPED, OR MODIFYIED UNLESS YOU JUST RECENTLY MODIFIED SOMETHING SPECIFIC IN THE APP AND NEEDS TO BE DOCUMENTED
+DO NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
+THE FILE HAS BEEN VERY CAREFULLY DESIGNED AS IT IS. DO NOT ELIMINATE, OMIT, SKIP IMPORTANT INFORMATION. MOST INFORMATION IS IMPORTANT AND CRUCIAL AND SHOULD NOT BE ELIMINATED, OMITTED, SKIPPED, OR MODIFIED UNLESS YOU JUST RECENTLY MODIFIED SOMETHING SPECIFIC IN THE APP AND NEEDS TO BE DOCUMENTED
 
 =============
 
@@ -114,9 +114,9 @@ START BY CREATING A TODO ... for example:
 
      ☐ Read current DOCUMENTATION file FRESH FROM DISK (do not trust in-memory copy)
      ☐ Read conversation carefully to understand all changes done
-     ☐ Make targetted update #1
-     ☐ Make targetted update #2
-     ☐ Make targetted update #3
+     ☐ Make targeted update #1
+     ☐ Make targeted update #2
+     ☐ Make targeted update #3
      etc
      ☐ Think if Next Steps section should be added/updated (ONLY if no build plan / handoff doc owns the roadmap)
      ☐ Think if Directory Structure needs to be updated
@@ -127,7 +127,7 @@ START BY CREATING A TODO ... for example:
      ☐ Run verification steps
 
 
-  don't bloat the document with fluf and fat. keep it tight and tocken efficient
+  don't bloat the document with fluff and fat. keep it tight and token efficient
 
 
 ====
@@ -136,6 +136,6 @@ when done
 
 
 
-are all the items from the list been included either in the documentation or plan document (approariate place)
+have all the items from the list been included either in the documentation or plan document (appropriate place)
 
-list each item from list again (entire list), inticate where should it go, then tell mi if it has been included (yes/no)
+list each item from list again (entire list), indicate where it should go, then tell me if it has been included (yes/no)

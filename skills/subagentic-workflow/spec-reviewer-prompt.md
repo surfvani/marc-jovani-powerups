@@ -6,8 +6,7 @@ Dispatch a fresh subagent (NOT the implementer — reviewers are stateless) to v
 
 ```
 Agent(
-  subagent_type: "general-purpose",
-  model: "opus-4-7",                 # ALWAYS the most capable available
+  subagent_type: "general-purpose",   # model param OMITTED on purpose — inherits the session's model (never pin)
   description: "Spec review — Task N",
   prompt: |
     <fill in THE PROMPT BODY below>

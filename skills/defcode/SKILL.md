@@ -15,7 +15,7 @@ ultrathink. Think hard before executing. Think deeply between steps. Think with 
 
 CONTINUITY FROM /whatdocs
 
-If you arrived here from a /whatdocs research phase (same agent, same context), you already have an APPROVED PROPOSED SOLUTION from that phase. THAT is your spec for this phase. Do not re-research. Do not deviate. Apply exactly what was approved.
+If you arrived here from a /whatdocs research phase (same agent, same context), you already have an APPROVED PROPOSED SOLUTION from that phase — approved means the samepage-brainstorming gate closed with an explicit GO. If the gate never ran (no simplll explanation, no alignment conversation, no explicit GO), STOP — run samepage-brainstorming now, before touching any file. THAT is your spec for this phase — the PROPOSED SOLUTION as amended by the gate conversation. Do not re-research. Do not deviate. Apply exactly what was approved.
 
 If you reached /defcode without a prior /whatdocs phase, STOP and ask the user: "We skipped the research phase. Do you want me to run /whatdocs first, or proceed with the context I have?" Do not improvise.
 
@@ -121,7 +121,7 @@ No backup = no edit. Period.
 
 RULE 3 — USE THE `Edit` / `MultiEdit` TOOL ONLY. NO NINJA INJECTION.
 
-FORVIDEN:
+FORBIDDEN:
 - ❌ sed / awk / perl-in-place code injection
 - ❌ echo / cat heredoc to overwrite or splice files
 - ❌ Shell scripts that mutate file contents
@@ -129,7 +129,7 @@ FORVIDEN:
 
 REQUIRED:
 - ✅ `Edit` tool for targeted single-string replacements
-- ✅ `MultiEdit` tool for multiple changes in one file in one call
+- ✅ `MultiEdit` tool for multiple changes in one file in one call (where available — newer Claude Code versions dropped MultiEdit; repeated `Edit` calls are the same thing)
 - ✅ `Write` tool ONLY for genuinely new files (never to "rewrite" an existing one)
 
 Ninja injection is how files break silently. Use the right tool by name. Every time.
@@ -149,7 +149,7 @@ If you find yourself about to use `Write` on an existing file — STOP. That's t
 
 RULE 5 — NO DUPLICATE-NAMED FILES.
 
-FORVIDEN:
+FORBIDDEN:
 - ❌ `auth_final.py`
 - ❌ `audio_processing_definitive_fix.py`
 - ❌ `routes_v2.js`
@@ -169,7 +169,7 @@ If you spot something genuinely broken outside scope — note it for the user, d
 
 RULE 7 — NO ASSUMPTIONS.
 
-ASSUMING IS FORVIDEN. If you don't have the context you need (a file, a value, a behavior, a decision), do not wing it. Stop and ask the user. The cost of asking is seconds. The cost of assuming wrong, on a live production app, can be hours of cleanup and lost user trust.
+ASSUMING IS FORBIDDEN. If you don't have the context you need (a file, a value, a behavior, a decision), do not wing it. Stop and ask the user. The cost of asking is seconds. The cost of assuming wrong, on a live production app, can be hours of cleanup and lost user trust.
 
 =====
 
@@ -245,7 +245,7 @@ Evidence before assertions. Always.
 
 START BY CREATING A TODO LIST
 
-Use TodoWrite to lay out your execution plan before touching code. Build it from the APPROVED PROPOSED SOLUTION (from the /whatdocs phase) — not from scratch. Example shape:
+Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your execution plan before touching code. Build it from the APPROVED PROPOSED SOLUTION (from the /whatdocs phase) — not from scratch. Example shape:
 
      ☐ Confirm I have the APPROVED PROPOSAL in context (problem, approach, files to touch, files NOT to touch)
      ☐ Final context check — any file in the proposal I haven't read entirely yet?

@@ -1,6 +1,6 @@
 ---
 name: whatdocs
-description: Use when Marc asks for any fix, update, refactor, or new implementation in an existing codebase and the right move is to fully understand the system BEFORE touching code — not apply anything yet. Forces a research-first protocol — confirm what's actually being asked, request app structure if missing (or run targeted TREE commands on specific directories, never the whole app), list every document needed for a perfect fix (database/models, routes/forms, templates, JS, HTML, content examples), read each file ENTIRELY (skipping files or parts of files is FORVIDEN), reassess after the first pass and read more if needed, then propose the best solution (or multiple options) that is generic, clean, scalable, long-term, coherent with the existing architecture, and crucially NOT a duplicate of a system that already exists. Outputs a TODO list as the first move and ultrathinks between steps. Skip for trivial typo or indentation fixes that don't require codebase understanding, or when Marc explicitly says 'just do it' or 'execute this'.
+description: Use when Marc asks for any fix, update, refactor, or new implementation in an existing codebase and the right move is to fully understand the system BEFORE touching code — not apply anything yet. Forces a research-first protocol — confirm what's actually being asked, request app structure if missing (or run targeted TREE commands on specific directories, never the whole app), list every document needed for a perfect fix (database/models, routes/forms, templates, JS, HTML, content examples), read each file ENTIRELY (skipping files or parts of files is FORBIDDEN), reassess after the first pass and read more if needed, then propose the best solution (or multiple options) that is generic, clean, scalable, long-term, coherent with the existing architecture, and crucially NOT a duplicate of a system that already exists. Outputs a TODO list as the first move and ultrathinks between steps. Skip for trivial typo or indentation fixes that don't require codebase understanding, or when Marc explicitly says 'just do it' or 'execute this'.
 ---
 
 🛑 RESEARCH-ONLY PHASE. DO NOT TOUCH CODE.
@@ -26,7 +26,7 @@ ONLY ask about INTENT or SCOPE — things only I can answer:
 ✅ "Do you want this to apply retroactively to existing records, or only new ones going forward?"
 ✅ "Is the goal to fix the symptom users see, or the root cause even if users won't notice the difference?"
 
-DO NOT ask about anything the codebase can answer. These are FORVIDEN at this stage:
+DO NOT ask about anything the codebase can answer. These are FORBIDDEN at this stage:
 ❌ "Where is X?" → use tree / grep / find
 ❌ "What does Y do?" → read the file
 ❌ "How does Z work?" → read the code
@@ -45,7 +45,7 @@ The Discovery Loop — execute in order, then loop if needed:
 
   3. **List every document you need.** Be specific. Database models, routes, forms, templates, JS, HTML, config files, content examples — name the actual files. Don't write "the relevant files." Write paths.
 
-  4. **Read every file ENTIRELY.** Not snippets. Not "the relevant sections." The whole file. Skipping files or skipping parts of files is FORVIDEN.
+  4. **Read every file ENTIRELY.** Not snippets. Not "the relevant sections." The whole file. Skipping files or skipping parts of files is FORBIDDEN.
 
   5. **Reassess.** After reading, ask yourself: "Do I now understand enough to propose a clean solution, or do I need to see more?" If more — loop back to step 3 with the new list. Keep looping until you genuinely understand the system. No shortcuts.
 
@@ -58,7 +58,7 @@ MANDATORY:
 - Read every relevant file, entirely.
 - Gain as much context as needed. The more, the better. Don't assume — review.
 
-FORVIDEN:
+FORBIDDEN:
 - Skipping files.
 - Omitting parts of files.
 - Assuming behavior you haven't verified by reading.
@@ -119,7 +119,7 @@ THE OVERRIDING RULE — coherent with architecture:
 The solution MUST be a clean and logical fit with the whole app's architecture and logic. If it doesn't feel native to the codebase, it isn't the right solution — go back and look harder.
 
 THE NON-NEGOTIABLE — no duplicates:
-You MUST verify the solution is NOT a DUPLICATE of a system that already exists in the codebase. Reinventing a wheel that's already built is bad architecture and is FORVIDEN.
+You MUST verify the solution is NOT a DUPLICATE of a system that already exists in the codebase. Reinventing a wheel that's already built is bad architecture and is FORBIDDEN.
 
 Before proposing, ask yourself: "Is there already a service / module / helper / pattern in this codebase that solves this category of problem?" If yes, USE IT (or extend it). Don't build a parallel system.
 
@@ -127,7 +127,7 @@ ultrathink and give me the best solution (or multiple options if there are genui
 
 START BY CREATING A TODO LIST
 
-Use TodoWrite to lay out your discovery plan before reading anything. Example shape:
+Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your discovery plan before reading anything. Example shape:
 
      ☐ Restate the task back to user — confirm I understand
      ☐ Run targeted tree on [specific directory] to see structure
@@ -188,14 +188,23 @@ OPEN QUESTIONS FOR USER:
 
 MANDATORY ENDING SEQUENCE — all in the same turn, no waiting, no asking:
 
-1. Deliver the === PROPOSED SOLUTION === block (above).
-2. IMMEDIATELY invoke the simplll skill and produce its plain-English explanation
-   right there in the same message. Loading the skill is NOT the job — the
-   delivered explanation is. An agent that loads simplll without delivering the
-   explanation has NOT finished /whatdocs.
-3. IMMEDIATELY invoke the samepage-brainstorming skill: announce the gate, expose
-   your shakiest assumptions, ask your first question. Then STOP and wait for the
-   user.
+1. Invoke the simplll skill and the samepage-brainstorming skill (tool calls
+   first — loading them is setup, not delivery).
+2. THEN write ONE final message — with NO tool calls after it — containing, in
+   this exact order:
+   a. The === PROPOSED SOLUTION === block.
+   b. The simplll plain-English explanation of it. Loading the skill is NOT the
+      job — the delivered explanation is.
+   c. The samepage-brainstorming gate opening: announce the gate, expose your
+      shakiest assumptions, ask your first question.
+3. Then STOP and wait for the user.
+
+⚠️ DELIVERY RULE — a real agent failed exactly here. Text written between tool
+calls may not render for the user, and thinking is never shown. Mid-turn text
+does NOT count as delivering. All three pieces (a + b + c) must appear together
+in the single final tool-free message. If any piece is missing from that
+message, /whatdocs is NOT finished — no matter what was "written" earlier in
+the turn.
 
 /defcode is LOCKED until the samepage-brainstorming gate closes with an explicit
 GO. When it does, the same agent (you) continues into /defcode — no fresh agent,

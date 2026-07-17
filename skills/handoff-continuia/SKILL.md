@@ -33,13 +33,13 @@ Deep = entire read
 
 How to choose:
 
-- **LEAN mode:** If nex session is very targeted, very clear, and a very logical continuation of this session. This version will be choosen only if current agent (current session) has all context needed (and does not need more) to provide clear instrucions for next agent.
-- **DEEP mode:** Deeper context is needed to trully guide next agent to do their task. Current agent has deep technical knowledge of what got built, but has no context of the overall project nor what the next steps are. Other pros of going Deep mode
-  - Deep mode is also practical for better current agent Plan Document update. By reading (or re-reading) entire plan document, when it comes to making updates the agent avoids creating conflicts or info duplication within the same document. Partial reads many time cause edits that contradict un-read sections of the document.
+- **LEAN mode:** If next session is very targeted, very clear, and a very logical continuation of this session. This version will be chosen only if current agent (current session) has all context needed (and does not need more) to provide clear instructions for next agent.
+- **DEEP mode:** Deeper context is needed to truly guide next agent to do their task. Current agent has deep technical knowledge of what got built, but has no context of the overall project nor what the next steps are. Other pros of going Deep mode
+  - Deep mode is also practical for better current agent Plan Document update. By reading (or re-reading) entire plan document, when it comes to making updates the agent avoids creating conflicts or info duplication within the same document. Partial reads many times cause edits that contradict un-read sections of the document.
   - Deep mode is also good to better indicate next agent what parts the document to read at the beginning of the next session 
 
 
-Most of the times Deep mode is best
+Most of the time Deep mode is best
 
 ### Step 2 — Targeted/entire read of the plan doc
 
@@ -75,13 +75,13 @@ git log -15 --oneline
 git diff --stat HEAD~10..HEAD 2>/dev/null
 ```
 
-Review your own TodoWrite list from this session (if you have one).
+Review your own task list from this session (TaskList — if you have one).
 
 Identify:
 - What commits landed this session (by hash + subject)
 - What files were touched (NEW vs MODIFIED vs DELETED)
 - What's uncommitted (and whether that's expected vs needs handling)
-- What's in the TodoWrite list (completed vs pending)
+- What's in the task list (completed vs pending)
 
 If `DOCUMENTATION.md` exists at project root, briefly check its QUICK REFERENCE + NEXT STEPS + CHALLENGES sections to know if updates are needed.
 
@@ -94,15 +94,15 @@ Before writing anything, propose three scoping options for what the next session
 
 1. **Relaxed** — [scope description in 1-2 sentences in plain english]
    Accomplishes: [what concretely gets done]
-   Pros/cons: asdlfjads. Token estimate: ~Xk.
+   Pros/cons: [one line]. Token estimate: ~Xk.
 
 2. **Realistic** (RECOMMENDED) — [scope description in 1-2 sentences in plain eng]
    Accomplishes: [what concretely gets done]
-   Pros/cons: asdlfjhalsdfh. Token estimate: ~Xk.
+   Pros/cons: [one line]. Token estimate: ~Xk.
 
 3. **Pushing it** — [scope description in 1-2 sentences in plain eng]
    Accomplishes: [what concretely gets done]
-   Pros/cons: lajsdfhkasdjfh (180k token budget). Token estimate: ~Xk+.
+   Pros/cons: [one line — call out if it strains the ~180k token budget]. Token estimate: ~Xk+.
    Risks?
 
 Which one for next session?
@@ -112,7 +112,7 @@ Recommend whichever fits the most logical next milestone given the plan's depend
 
 **WAIT for the user's choice before proceeding.** Their pick determines the "Your task this session" line in the handoff prompt.
 
-Explain what gets done, pros/cons, risks in plain english to a non-developer which has a lot of experience vibe coding (has released comercial software used by hunddreds of thousands of people). But make it plain english, short and easy to understand.
+Explain what gets done, pros/cons, risks in plain english to a non-developer which has a lot of experience vibe coding (has released commercial software used by hundreds of thousands of people). But make it plain english, short and easy to understand.
 
 ### Step 5 — Generate the Session Log entry (strict template)
 
@@ -185,7 +185,7 @@ Check if `DOCUMENTATION.md` exists at project root. If yes:
 
 If `DOCUMENTATION.md` does NOT exist at project root: skip this step. (Plan-build says DOCUMENTATION.md is created "after the first meaningful implementation work" — some projects haven't reached that point yet. Don't force-create it here.)
 
-Some times the USER may have instructed you to update documentation before starting the /handoff-continuia. If that's the case, skip Step 7.
+Sometimes the USER may have instructed you to update documentation before starting the /handoff-continuia. If that's the case, skip Step 7.
 
 ### Step 8 — Commit
 
@@ -273,7 +273,7 @@ If anything in the plan doc contradicts what you see in the code or your context
 
 LOAD /whatdocs AND GET STARTED
 
-WHEN YOU'RE DONE WITH /whatdocs YOU'LL PROCEED WITH /defcode
+/whatdocs ENDS with its mandatory gate: the simplll plain-English explanation + the samepage-brainstorming alignment conversation. /defcode ONLY after Marc's explicit GO closes that gate.
 
 YOU'LL CLOSE THE SESSION WITH /handoff-continuia
 
@@ -291,15 +291,15 @@ LOAD /whatdocs AND GET STARTED NOW
 
 After printing the handoff prompt, re-read it and explain in 3-5 plain-English bullet points what it will make the next agent do. 
 
-Explain in plain english to a non-developer which has a lot of experience vibe coding (has released comercial software used by hunddreds of thousands of people). But make it plain english, short and easy to understand.
+Explain in plain english to a non-developer which has a lot of experience vibe coding (has released commercial software used by hundreds of thousands of people). But make it plain english, short and easy to understand.
 
 ### Step 9.6 — Copy prompt to user's clipboard
 
-If you're running localy (from Macbook Air, Macbook Pro, Mac Studio), copy the prompt to clipboard and let user know you did.
+If you're running locally (from Macbook Air, Macbook Pro, Mac Studio), copy the prompt to clipboard and let user know you did.
 
 If you're running inside a server and user is SSHd into server, skip this step and let user know. 
 
-Copy prompt to user's clipboard at this poing, even if you haven't received handoff aproval (that way while user is reading you're working on the process of copying to clipboard)
+Copy prompt to user's clipboard at this point, even if you haven't received handoff approval (that way while user is reading you're working on the process of copying to clipboard)
 
 ### Step 9.7 — **WAIT for Marc's approval before ending the session.**
 
@@ -333,11 +333,11 @@ After approval: state in one final chat line what you did and end your response.
 
 ## START BY CREATING A TODO LIST
 
-Use TodoWrite to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
+Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
 
      ☐ Step 1 — Detect mode (LEAN vs DEEP) — assess session work, state recommendation, wait for user override
      ☐ Step 2 — Targeted read of plan doc if LEAN, entire of DEEP...
-     ☐ Step 3 — Gather session memory (git status, git log -15, git diff --stat, TodoWrite review)
+     ☐ Step 3 — Gather session memory (git status, git log -15, git diff --stat, task-list review)
      ☐ Step 4 — Propose 3 scoping options for next session (relaxed / realistic / pushing it) with recommendation — WAIT for user pick
      ☐ Step 5 — Write the Session Log entry into the plan doc (strict template, append-only)
      ☐ Step 6 — Mark completed milestones in the Milestone Tracker (match the project's existing convention — ✅ / DONE / checkbox)
@@ -346,11 +346,11 @@ Use TodoWrite to lay out your handoff plan before reading anything. Example shap
      ☐ Step 8.5 — Ask user about push to origin (mandatory ask, then act on user's answer)
      ☐ Step 9 — Print handoff prompt in chat (strict template, in a single fenced code block — NEVER write to the plan doc)
      ☐ Step 9.5 — Plain-English sanity check — explain to Marc what the handoff prompt will make the next agent do
-     ☐ Step 9.6 — If working locally, copy prompt to user's clipboard (even if you haven't received handoff aproval, that way while user is reading you're working on the process of copying to clipboard)
+     ☐ Step 9.6 — If working locally, copy prompt to user's clipboard (even if you haven't received handoff approval, that way while user is reading you're working on the process of copying to clipboard)
      ☐ Step 9.7 - WAIT for approval before ending
 
 This todo is just an example. Create your own based on the project's specifics — LEAN vs DEEP mode, whether DOCUMENTATION.md exists, what the project's milestone-tracker convention is, etc.
 
 Update the list as you go — mark items completed in real-time so the user can see progress. 
 
-Do not skip the TodoWrite step; 
+Do not skip the task-list step; 

@@ -9,8 +9,7 @@ Use this template when dispatching (or resuming) the implementer subagent for a 
 ```
 Agent(
   name: "task-N-implementer",        # REQUIRED — needed so you can SendMessage later
-  subagent_type: "general-purpose",
-  model: "opus-4-7",                 # ALWAYS the most capable available
+  subagent_type: "general-purpose",   # model param OMITTED on purpose — inherits the session's model (never pin)
   description: "Task N — research + execute: [short task name]",
   prompt: |
     <fill in THE PROMPT BODY below — Sections 2-5 of this file>
@@ -61,7 +60,7 @@ What follows is the prompt the subagent reads once at the start of Phase A and f
 YOU ARE the implementer subagent for Task [N] in a /subagentic-workflow execution. You will handle this task across TWO phases within this same conversation:
 
 - **Phase A (now):** /whatdocs research — produce a PROPOSED SOLUTION block. Do NOT touch code.
-- **Phase B:** Pause and wait. The controller relays your proposal to Marc for approval.
+- **Phase B:** Pause and wait. The controller relays your proposal to Marc and runs the simplll + samepage-brainstorming gate with him — you never participate in that conversation.
 - **Phase C (resumed via SendMessage):** /defcode execution — apply the approved fix, run a SAFE test, produce an EXECUTION REPORT.
 
 You stay alive across both phases. Do not exit / report DONE after Phase A — your work isn't finished until Phase C completes and reviews pass.
@@ -93,7 +92,7 @@ SKIP: the plan file in general (the controller already extracted the task text i
 **Active State / Live & Bleeding** (if this project has plan-build context):
 [ACTIVE_STATE — anything bleeding $X/day, live in production, untracked, urgent. If none, write "None."]
 
-## WHY YOU ARE OPUS 4.7
+## WHY YOU ARE ON THE SESSION'S MOST CAPABLE MODEL
 
 You're running on the most capable model available because Marc's work involves live production code where a wrong move costs money / locks users out / corrupts data. Don't take shortcuts that a cheaper model would take. Specifically:
 
@@ -111,15 +110,17 @@ You are now in research-only mode. Execute the /whatdocs protocol against this t
 
 All Phase A hard rules live in **/whatdocs SKILL.md** (you just read it in REQUIRED READING). The no-code banner, the no-skip-files rule, the no-lazy-questions rule — all there. Follow them.
 
-ONE rule that's unique to /subagentic-workflow (not in /whatdocs):
+TWO rules that are unique to /subagentic-workflow (not in /whatdocs):
 
 - 🛑 **DO NOT exit / report DONE yet.** You're staying alive for Phase C. Your Phase A deliverable is the PROPOSED SOLUTION block, not "done." If you exit after returning the proposal, the controller cannot SendMessage you for execution — you've broken the same-subagent rule.
+
+- 🛑 **SKIP /whatdocs' MANDATORY ENDING SEQUENCE** (the auto-invocation of simplll + samepage-brainstorming at the end of that skill). In /subagentic-workflow, that clarity + alignment gate runs at the controller↔Marc level — it IS Phase B. Do NOT invoke simplll or samepage-brainstorming, and do NOT open an alignment conversation with the controller. Your Phase A ends with the PROPOSED SOLUTION block, then you wait.
 
 ### What you do in Phase A — execute the /whatdocs Discovery Loop
 
 Follow /whatdocs SKILL.md exactly:
 
-1. **Create a TodoWrite list** for your research plan (per /whatdocs Section 5).
+1. **Create a task list (TaskCreate)** for your research plan (per /whatdocs Section 5).
 2. **Restate the task** back to the controller in chat (the controller will see it and surface to Marc if your understanding is wrong).
 3. **Discovery Loop** (per /whatdocs Section 2):
    - Get the lay of the land (targeted `tree -L 3` on specific directories, no whole-app trees).
@@ -164,11 +165,13 @@ You read /defcode at the start of Phase A. Phase C may be hours later (waiting f
 - **/defcode SKILL.md → Section 3 (COMPLETENESS + INTEGRATION)** — touch every file, match contracts, run migrations.
 - **/defcode SKILL.md → Section 4 (VERIFICATION PROTOCOL)** — restart services, SAFE test, evidence before assertions, 3-attempts max.
 
+- **/defcode's CONTINUITY gate-guard** (samepage-brainstorming GO requirement): satisfied. The gate ran at the controller↔Marc level in Phase B — the "Approved by Marc" SendMessage you received IS the explicit GO. Do not STOP to run samepage-brainstorming yourself.
+
 Do not proceed to step 1 below until you've re-skimmed those sections. The skill is the source of truth; this prompt is the dispatch shell.
 
 ### What you do in Phase C — execute the APPROVED PROPOSAL
 
-1. **Create/update your TodoWrite list** with the execution todos per /defcode Section 5 template. Build it from the APPROVED PROPOSAL (the FILES TOUCHED list becomes your edit todos, MIGRATIONS becomes a migration todo, etc.).
+1. **Create/update your task list (TaskCreate/TaskUpdate)** with the execution todos per /defcode Section 5 template. Build it from the APPROVED PROPOSAL (the FILES TOUCHED list becomes your edit todos, MIGRATIONS becomes a migration todo, etc.).
 2. **Final context check** (per /defcode Section 1): any file in the proposal you haven't read entirely? Read it now before editing.
 3. **For each file in FILES TOUCHED:**
    - Bash copy to backup with descriptive suffix.
@@ -228,7 +231,7 @@ When you pause, write a short status update in chat (1-3 sentences) explaining w
 
 ## LEGITIMATE QUESTIONS YOU CAN ASK MARC
 
-The whitelist (✅ INTENT/SCOPE questions only) and blacklist (❌ FORVIDEN codebase-answerable questions) live in **/whatdocs SKILL.md → Section 1 → "IMPORTANT — what counts as a legitimate question at this stage."**
+The whitelist (✅ INTENT/SCOPE questions only) and blacklist (❌ FORBIDDEN codebase-answerable questions) live in **/whatdocs SKILL.md → Section 1 → "IMPORTANT — what counts as a legitimate question at this stage."**
 
 If you have NO legitimate questions, just proceed. Don't manufacture questions to seem thorough.
 

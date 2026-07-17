@@ -10,9 +10,9 @@ Entire, in depth, complete, no omissions
 
 Think about this, when I start working on this app again, I'll give the AI the doc file and then I'll prompt the AI to ask me for the documents that the AI needs to see in order to have a clear idea about the app. Meaning, the Documentation doesn't have to have EVERYTHING. But it has to have whatever it is important, so the AI can gain context and ask informed questions to gain further knowledge (whatever it needs to start working on the server)
 
-Again, think of the main objective, a file that give AI all the needed context to get started
+Again, think of the main objective, a file that gives AI all the needed context to get started
 
-AT THE SAME TIME, DO NOT BE TOO SCHEMATIC THAT WE'RE LOOSING CONTEXT.
+AT THE SAME TIME, DO NOT BE TOO SCHEMATIC THAT WE'RE LOSING CONTEXT.
 
 Write in Markdown
 
@@ -60,8 +60,8 @@ This section should include clear and detailed structure of the file structure a
 Include brief description of each APP file (not flask and stuff) just main app.
 
 Include detailed description of modularized clusters
-Some times we refactored big files into a group of smaller files. AI gets confused about this because it sees the old large file and goes modify that file. 
-Make sure to include clear and detailed documentation regarding file structure and how it inter relates, paying close attention to modularized groups.
+Sometimes we refactored big files into a group of smaller files. AI gets confused about this because it sees the old large file and goes modify that file. 
+Make sure to include clear and detailed documentation regarding file structure and how it interrelates, paying close attention to modularized groups.
 Understand the app and provide clear file structure and how each file interacts with each other
 
 For this step, do not assume. Run `tree -L 3` (filtered for noise: node_modules, .git, *.wav, *.WAV, *.mid, *.MID, *.midi, *.MIDI, checkpoints, build artifacts) to see the actual current file structure. Use what you find. If our chat conversation already documented file structure, preserve that and update with anything we modified this session. Important: if you need to see any additional file or directory, ask.
@@ -81,8 +81,8 @@ ANTI-VERBOSITY RULES (apply at every section, regardless of target):
 =========
 
 FINAL IMPORTANT NOTES
-DON NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
-THE FILE HAS BEEN VERY CAREFULLY DESIGNED AS IT IS. DO NOT ELIMINATE, OMIT, SKIP IMPORTANT INFORMATION. MOST INFORMATION IS IMPORTANT AND CUCIAL AND SHOULD NOT BE ELIMINATED, OMITED, SKIPED, OR MODIFYIED UNLESS YOU JUST RECENTLY MODIFIED SOMETHING SPECIFIC IN THE APP AND NEEDS TO BE DOCUMENTED
+DO NOT SKIP OR OMIT THINGS THAT WILL CREATE LACK OF CONTEXT LATER ON
+THE FILE HAS BEEN VERY CAREFULLY DESIGNED AS IT IS. DO NOT ELIMINATE, OMIT, SKIP IMPORTANT INFORMATION. MOST INFORMATION IS IMPORTANT AND CRUCIAL AND SHOULD NOT BE ELIMINATED, OMITTED, SKIPPED, OR MODIFIED UNLESS YOU JUST RECENTLY MODIFIED SOMETHING SPECIFIC IN THE APP AND NEEDS TO BE DOCUMENTED
 
 NEXT STEPS SECTION: Include a Next Steps section ONLY if there is no separate build plan / handoff doc owning the project roadmap. If a build plan exists, it owns "what's next" — this doc captures what the system IS, not what's planned. Don't duplicate the roadmap here.
 

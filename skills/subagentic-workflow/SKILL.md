@@ -1,6 +1,6 @@
 ---
 name: subagentic-workflow
-description: Use when Marc has an implementation plan with mostly-independent tasks and wants to execute them via subagents (delegated, isolated context) — within the SAME session, with full /whatdocs + /defcode discipline baked into each subagent. The skill dispatches ONE subagent per task; that single subagent performs BOTH the /whatdocs research phase AND the /defcode execution phase (via SendMessage), with a user approval gate between them. Two-stage review after execution (spec compliance against the APPROVED PROPOSAL, then code quality with /defcode discipline checks). Always uses the most capable model available (Opus 4.7). Skip for trivial fixes Marc drives himself, parallel-session work (use /executing-plans instead), or tightly coupled tasks that can't be isolated.
+description: Use when Marc has an implementation plan with mostly-independent tasks and wants to execute them via subagents (delegated, isolated context) — within the SAME session, with full /whatdocs + /defcode discipline baked into each subagent. The skill dispatches ONE subagent per task; that single subagent performs BOTH the /whatdocs research phase AND the /defcode execution phase (via SendMessage), with the simplll + samepage-brainstorming clarity/alignment gate between them (run controller↔Marc, closed only by an explicit GO). Two-stage review after execution (spec compliance against the APPROVED PROPOSAL, then code quality with /defcode discipline checks). Subagents inherit the session's model — the model param is deliberately omitted so they always run on the most capable model available (never pinned, never downgraded). Skip for trivial fixes Marc drives himself, parallel-session work (use /executing-plans instead), or tightly coupled tasks that can't be isolated.
 ---
 
 # Subagentic Workflow
@@ -11,7 +11,7 @@ Execute a plan by dispatching a focused subagent per task, with **Marc's full /w
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed. They never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** ONE subagent per task. That subagent does /whatdocs research first, you (the controller) relay the proposal to Marc for approval, then the SAME subagent — resumed via SendMessage with full Stage 1 context intact — executes per /defcode. Two-stage review after. Always Opus 4.7.
+**Core principle:** ONE subagent per task. That subagent does /whatdocs research first, you (the controller) relay the proposal to Marc for approval, then the SAME subagent — resumed via SendMessage with full Stage 1 context intact — executes per /defcode. Two-stage review after. Subagents inherit the session model — never pass a pinned model.
 
 **The hard rule that distinguishes this skill from the original:** NEVER dispatch a second subagent for the execution phase. The subagent that built the mental model in /whatdocs is the one that applies the fix in /defcode. No context loss between stages. If you find yourself reaching for `Agent` a second time for the same task — STOP. You're breaking the skill. Use `SendMessage` instead.
 
@@ -43,7 +43,7 @@ Have an implementation plan?
 Use this skill (NOT the original) when:
 - Tasks involve fixing or modifying an existing live codebase (where /whatdocs + /defcode discipline matters)
 - You want Marc's per-task approval gate baked into the flow
-- You want the always-Opus-4.7 default
+- You want the never-downgrade model default (subagents inherit the session model)
 - You want the same-subagent-for-both-phases rule enforced
 
 Use the original `subagent-driven-development` (NOT this skill) when:
@@ -58,19 +58,19 @@ For each task in the plan:
 ### Phase A — Dispatch ONE implementer subagent (research mode)
 
 1. **Pick the next task** from the plan. Extract the full task text into your dispatch — never make the subagent read the plan file itself.
-2. **Dispatch the implementer subagent** using `Agent` (subagent_type: `general-purpose`, model: Opus 4.7) with the implementer-prompt template (`./implementer-prompt.md`).
+2. **Dispatch the implementer subagent** using `Agent` (subagent_type: `general-purpose` — OMIT the model param; the subagent inherits the session's model) with the implementer-prompt template (`./implementer-prompt.md`).
 3. **Give the subagent a NAME** so you can resume it later via SendMessage. Example: `name: "task-3-implementer"`.
 4. **The subagent's first job is /whatdocs research.** It reads files entirely, identifies integration points, checks for duplicate systems, and produces the structured PROPOSED SOLUTION block. NO CODE IS WRITTEN in this phase.
 5. **The subagent returns the PROPOSED SOLUTION** to you (the controller).
 
-### Phase B — Approval gate (mandatory)
+### Phase B — Approval gate (mandatory — the controller runs the simplll + samepage-brainstorming gate with Marc)
 
-6. **Relay the PROPOSED SOLUTION verbatim to Marc** in chat. Include the full block: problem, approach, files touched, files NOT touched, duplicate check, migrations, routes, alternatives, open questions.
-7. **WAIT for Marc's reply.** Options:
-   - **Approve** → proceed to Phase C
+6. **Relay the PROPOSED SOLUTION verbatim to Marc** in chat (full block: problem, approach, files touched, files NOT touched, duplicate check, migrations, routes, alternatives, open questions) — and in the same message run the clarity + alignment gate: invoke the simplll skill and deliver its plain-English explanation of the proposal, then invoke the samepage-brainstorming skill — announce the gate, expose the proposal's shakiest assumptions, ask the first question, and STOP. The gate's own rules govern from here (minimum exchanges, early-GO pushback, explicit-skip honored). The subagent stays paused throughout — it never participates in the gate.
+7. **WAIT — the gate closes only with Marc's explicit GO.** Options:
+   - **GO** → proceed to Phase C. The "Approved by Marc" SendMessage carries the GO; if the gate conversation amended the proposal, include the delta bullets in that message — the amended proposal is the spec.
    - **Redirect** → send Marc's redirect back to the SAME subagent via SendMessage, ask it to revise the proposal, loop back to step 6
    - **Block** → mark task BLOCKED, surface concern, move on (or stop) per Marc's instruction
-8. **Never proceed without explicit approval.** "Looks fine" or "sure" counts as approval. Silence does not.
+8. **Never proceed without the explicit GO.** A casual "looks fine" triggers the gate's early-GO rule (one pushback, then obey). Silence does not count.
 
 ### Phase C — Resume SAME subagent for execution (via SendMessage)
 
@@ -85,7 +85,7 @@ For each task in the plan:
 14. **If spec reviewer flags issues:** SendMessage to the original implementer subagent with the spec gap. Implementer fixes. Re-dispatch the spec reviewer to verify. Loop until ✅.
 15. **Dispatch the code quality reviewer** (fresh Agent) using `./code-quality-reviewer-prompt.md`. It runs /defcode discipline checks: backups exist with descriptive suffixes? Edits used Edit/MultiEdit (not ninja)? No duplicate-named files? Routes/contracts match? Test was SAFE? No assumptions?
 16. **If code quality reviewer flags issues:** same loop — SendMessage to original implementer to fix, re-review, until ✅.
-17. **Mark task complete in TodoWrite.** Move to the next task.
+17. **Mark task complete in the task list (TaskUpdate).** Move to the next task.
 
 ### Phase E — Final review (after all tasks)
 
@@ -98,7 +98,7 @@ For each task in the plan:
 Per task:
   Phase A: Dispatch implementer subagent (named) → /whatdocs research → PROPOSED SOLUTION
                                                                               ↓
-  Phase B: Relay to Marc → WAIT for approval ←── (redirect loops back to A via SendMessage)
+  Phase B: Relay + simplll + samepage-brainstorming gate (controller↔Marc) → explicit GO ←── (redirect loops back to A via SendMessage)
                                                                               ↓
                                                                           APPROVED
                                                                               ↓
@@ -118,7 +118,7 @@ After all tasks:
 
 ## Model Selection
 
-**ALWAYS use the most capable model available. As of this writing: Opus 4.7.**
+**ALWAYS use the most capable model available. The mechanic: OMIT the `model` parameter on every dispatch — subagents inherit the session's exact model, and Marc runs sessions on the best available.**
 
 Do NOT downgrade implementers or reviewers to faster/cheaper models for "mechanical" tasks. The original `subagent-driven-development` advises picking the cheapest model that fits the task — that advice is REJECTED here. Marc's work involves live production code where:
 
@@ -126,13 +126,13 @@ Do NOT downgrade implementers or reviewers to faster/cheaper models for "mechani
 - Subtle architectural mistakes (duplicate systems, route mismatches, broken integration points) are exactly the failures cheaper models miss.
 - Saving cents per task while introducing a bug that takes hours to debug is a bad trade.
 
-Use Opus 4.7 for:
+This never-downgrade rule applies to:
 - The implementer subagent (both phases — /whatdocs research AND /defcode execution)
 - The spec compliance reviewer subagent
 - The code quality reviewer subagent
 - The final cross-task reviewer
 
-If a newer / more capable Opus becomes available during a session, switch to that. The rule is "best available," not "Opus 4.7 specifically."
+Do NOT pass `model: "opus"` or any pinned model id — UI labels can lie about what actually runs, and a pin silently DOWNGRADES subagents the day the session runs something newer (documented learning, Jun 2026). Omitting the param is the only future-proof "best available."
 
 ## Same-Subagent Enforcement
 
@@ -152,7 +152,7 @@ If you dispatch a fresh subagent for the execution phase, all of that mental mod
 
 The Claude Code harness supports resuming a named subagent via `SendMessage`:
 
-- **First dispatch (Phase A):** `Agent(name: "task-N-implementer", subagent_type: "general-purpose", model: "opus-4-7", prompt: <implementer-prompt>)`
+- **First dispatch (Phase A):** `Agent(name: "task-N-implementer", subagent_type: "general-purpose", prompt: <implementer-prompt>)` — no `model` param: inherits the session model
 - **Resume after approval (Phase C):** `SendMessage(to: "task-N-implementer", message: "Approved by Marc. Now execute per /defcode using the approved approach. Report back with the structured EXECUTION REPORT.")`
 - **Resume to fix review issues (Phase D loops):** `SendMessage(to: "task-N-implementer", message: "<reviewer feedback>. Fix and re-run the verification.")`
 
@@ -186,7 +186,7 @@ Implementer subagents report one of four statuses in their EXECUTION REPORT (or 
 |---|---|---|---|
 | **DONE** | Proposal complete, awaiting your approval | Execution complete, test passed with evidence | Phase A: relay to Marc. Phase C: proceed to Phase D review. |
 | **DONE_WITH_CONCERNS** | Proposal complete but subagent flagged doubts | Executed but subagent flagged doubts (e.g., file approaching 1000 lines, edge case untested) | Read concerns. If material — SendMessage to address before moving on. If informational — note and proceed. |
-| **BLOCKED** | Subagent cannot produce a valid proposal | Subagent hit the 3-failed-attempts rule, or execution requires user input | Assess: more context needed? More capable model? (You're already on Opus 4.7 — escalate to Marc.) Task too big? Surface to Marc. |
+| **BLOCKED** | Subagent cannot produce a valid proposal | Subagent hit the 3-failed-attempts rule, or execution requires user input | Assess: more context needed? More capable model? (You're already on the session's top model — escalate to Marc.) Task too big? Surface to Marc. |
 | **NEEDS_CONTEXT** | Subagent realized it doesn't have enough info (e.g., a file it needs wasn't provided) | Same — discovered mid-execution a file is missing | Provide the missing context via SendMessage, then resume. |
 
 **Never** ignore a BLOCKED or NEEDS_CONTEXT status. Never silently retry with no changes. If the subagent said it's stuck, something needs to change before the next attempt.
@@ -197,9 +197,9 @@ Stop and reverse course immediately if any of these are happening:
 
 **Workflow violations:**
 - ❌ You're about to dispatch a fresh `Agent` for the execute phase → use `SendMessage` instead
-- ❌ You're about to skip Marc's approval gate ("the proposal looks good, I'll just have the subagent execute") → STOP. Approval is mandatory.
+- ❌ You're about to skip Marc's approval gate ("the proposal looks good, I'll just have the subagent execute") → STOP. Approval is mandatory — and the gate (simplll + samepage-brainstorming, run controller↔Marc) is part of Phase B; skipping it counts as skipping approval.
 - ❌ You're about to merge spec review and code quality review into one call → keep them separate, in order (spec first).
-- ❌ You're using a model other than Opus 4.7 (or latest best Opus) "to save cost" → switch back to Opus.
+- ❌ You passed a pinned or cheaper `model` on a dispatch "to save cost" → remove it; subagents inherit the session model.
 
 **Subagent-output violations:**
 - ❌ The subagent's PROPOSED SOLUTION is missing the "FILES NOT TOUCHED" or "WHY THIS ISN'T A DUPLICATE" sections → SendMessage to demand them. Don't relay an incomplete proposal to Marc.
@@ -209,13 +209,14 @@ Stop and reverse course immediately if any of these are happening:
 **Controller violations (you):**
 - ❌ You're paraphrasing the PROPOSED SOLUTION to Marc instead of relaying it verbatim → relay verbatim. Marc reads the structured block faster than your prose summary.
 - ❌ You're "just doing the task yourself" because you have the context → that defeats the purpose. The whole point is parallel-safe, context-isolated execution. Either use the skill or don't.
-- ❌ You're skipping TodoWrite tracking → mark each task at each phase transition. Future sessions / Marc / you all need to see progress state.
+- ❌ You're skipping task-list tracking (TaskCreate/TaskUpdate) → mark each task at each phase transition. Future sessions / Marc / you all need to see progress state.
 
 ## Integration
 
 **Related Marc-Jovani powerups:**
-- **`/whatdocs`** — the research-phase protocol baked into Phase A. The implementer subagent runs this verbatim.
-- **`/defcode`** — the execution-phase protocol baked into Phase C. The implementer subagent runs this verbatim after Marc's approval.
+- **`/whatdocs`** — the research-phase protocol baked into Phase A. The implementer subagent runs this verbatim — EXCEPT its MANDATORY ENDING SEQUENCE (simplll + samepage-brainstorming): that gate belongs to the controller↔Marc level (Phase B), never inside the subagent (see implementer-prompt.md).
+- **`/defcode`** — the execution-phase protocol baked into Phase C. The implementer subagent runs this verbatim after Marc's approval — the controller's "Approved by Marc" message counts as the explicit GO for /defcode's CONTINUITY gate-guard.
+- **`/simplll` + `/samepage-brainstorming`** — the clarity + alignment gate the controller runs with Marc in Phase B (never inside the subagent).
 - **`/plan-build`** — produces the plan this skill executes. If there's no plan, brainstorm + /plan-build first.
 - **`/handoff-continuia`** — if the work spans multiple sessions, use this to wrap each session boundary cleanly.
 - **`/sowhatstheplan`** — use this at the START of a new session on an existing plan-build project (sister skill to /handoff-continuia).

@@ -3,33 +3,33 @@ name: research-prompt-instructions
 description: Use when Marc or the planning agent needs to write a deep-research prompt to send to a satellite Deep Research agent — typically during a plan-build session before committing to a tech stack, architecture, training config, or any decision that conditions future work — the skill loads the full instruction set for writing a good research prompt (paradigm-shifting framing, no-abandoned-tech filter, splitting into multiple parallel prompts when needed, the mandatory contextualization checklist, and the validation questions to ask after results come back). Skip when running the research itself — this skill only loads instructions for writing the prompt.
 ---
 
-Do you need to see any other document or anything else in the codebase of the project?
+Do you need to see any other document or anything else in the codebase (or materials) of the project?
 
-Before you start you must have a complete understanding of the project. Then, based on this project characteristics, create a prompt for next AI agent to do a research. 
+Before you start you must have a complete understanding of the project. Then, based on this project's characteristics, create a prompt for next AI agent to do a research. 
 
-Why? You are trained and you have a lot of information, but YOU DON'T KNOW WHAT YOU DON'T KNOW. And what we’re trying to build, mut have been solved alread or partially solved. There must be hundreds of open source projects, repositores, documentation, that the next AI Deep Research agent can find out and bring the solution back to us (so we don’t reinvent the wheel).
+Why? You are trained and you have a lot of information, but YOU DON'T KNOW WHAT YOU DON'T KNOW. And what we’re trying to build, must have been solved already or partially solved. There must be hundreds of open source projects, repositories, documentation, that the next AI Deep Research agent can find out and bring the solution back to us (so we don’t reinvent the wheel).
 
-Research proven concepts. Do not reinvent the wheel. Use battle tested solutions. No old avandoned tech. (for example, in the audio AI neural model training… DDSP and RAVE are very well documented… but DDSP is old uses TensorFlow and is avandoned and RAVE has pitch recognition problems… a reasearch in that domain has to be able to weight recency and true functionality, not just documentation existence)
+Research proven concepts. Do not reinvent the wheel. Use battle tested solutions. No old abandoned tech. (for example, in the audio AI neural model training… DDSP and RAVE are very well documented… but DDSP is old uses TensorFlow and is abandoned and RAVE has pitch recognition problems… a research in that domain has to be able to weight recency and true functionality, not just documentation existence)
 
 Then come up with a safe implementation, that's simple and fast to execute. 
 
-If some libraries need to be installed or if we need to set up an enviroment… then we need environment set up correctly with all libraries etc. This step is importnat. But it’s even more important  if this research is being done at the begining (conception) of a new projects, where this crucial decision will conditions the entire future build. 
+If some libraries need to be installed or if we need to set up an environment… then we need environment set up correctly with all libraries etc. This step is important. But it’s even more important  if this research is being done at the beginning (conception) of a new project, where this crucial decision will condition the entire future build. 
 
-What does this research has to give us?
+What does this research have to give us?
 - Most efficient approach
 - The path with the highest probability of success (the most successful way to do it, not just the fastest)
 - Solutions that fit the model as we described it earlier in our conversation (IF NOT DEFINED ENOUGH, STOP HERE AND CLARIFY WITH USER)
-- Environemnt that fits workflow style
+- Environment that fits workflow style
 - Best approach based on above definition
 
 When I mean best approach what do I mean?
-Thnk "PARADIGM SHIFTING" concept: some times we plan on doing things... and we're actually planing to doing things the hard way. That's exactly what we're trying to avoid.
+Think "PARADIGM SHIFTING" concept: sometimes we plan on doing things... and we're actually planning to do things the hard way. That's exactly what we're trying to avoid.
 
 Example: It's like saying... "ok I'm going to develop a sampler with C++..." to later on discover JUCE existed and it would’ve taken a fraction of the time. 
 
-Same concept here: there must be a way to leverage tech that already exists to make this happens faster than we building the whole thing
+Same concept here: there must be a way to leverage tech that already exists to make this happen faster than us building the whole thing
 
-Another example: for a neural model, we can go with the approach "we have to condition the transforer with every single sound in the world urselves"... or maybe this is already done... maybe there already is a tech that does that.
+Another example: for a neural model, we can go with the approach "we have to condition the transformer with every single sound in the world ourselves"... or maybe this is already done... maybe there already is a tech that does that.
 
 Approach 1 takes years and millions of dollars. Approach 2 is so timebending that's disruptive
 
@@ -54,7 +54,7 @@ The solutions have to be
 - Fit description
 - Fit working style
 
-Deep researches with a ton of questions usually crash (never finish). If you think multiple DEEP RESEARCH PROMPTS are necssary, make sure to split it into multiple. User will run them in parallel. 
+Deep researches with a ton of questions usually crash (never finish). If you think multiple DEEP RESEARCH PROMPTS are necessary, make sure to split it into multiple. User will run them in parallel. 
 
 Think and work with high effort - ultrathink
 
@@ -71,10 +71,10 @@ Suggestion of what prompt should include (suggestions, but not limited to)
 - What we’re trying to build
 - Problem definition
 - What we’re looking for
-- Solutions we’re seaking
+- Solutions we’re seeking
 - What do we need
 - The type of solutions we seek
-- Erros to avoid and gotchas
+- Errors to avoid and gotchas
 - Type of information exclusions
 
 
@@ -92,9 +92,9 @@ Do we have the solutions we need or still fall short?
 Do we have what we need to be able to implement what we described the way we described it, using the workflow and environment defined?
 Do we need a second research?
 
-WHEN TAKING INFO FROM RESEARCH, TAKE INFO THAT MATTERS. DO NOT GET WEIGHTED WITH SEEMENGLY AUTORITATIVE INFORMATION THAT COULD NOT BE 100% REAL OR FACTUAL. DISMISS ANYTHING THAT HAS NOTHING TO DO WITH THE GOAL OF THIS SESSION.
+WHEN TAKING INFO FROM RESEARCH, TAKE INFO THAT MATTERS. DO NOT GET WEIGHTED WITH SEEMINGLY AUTHORITATIVE INFORMATION THAT COULD NOT BE 100% REAL OR FACTUAL. DISMISS ANYTHING THAT HAS NOTHING TO DO WITH THE GOAL OF THIS SESSION.
 
-YOU MUST ASK THIS QUESTIONS TO YOURSELF & APPLY THE WEIGHTS/DISREGARDS PRINCIPLES AFTER READING THE RESULT OF THE DEEP RESEARCHES.
+YOU MUST ASK THESE QUESTIONS TO YOURSELF & APPLY THE WEIGHTS/DISREGARDS PRINCIPLES AFTER READING THE RESULT OF THE DEEP RESEARCHES.
 
 If information is missing, new research needs to be prepared to fill up gaps.
 

@@ -98,7 +98,7 @@ Output is one tight Markdown block. Use the exact section headers below. Match M
 
 [OPTIONAL — only when useful: a 1-3 line ASCII timeline or stream progress bar block.]
 
-🚨 **URGENT (acting/bleeding right now)** *(only render this section if at least one urgent item was found)*
+🚨 **URGENT (active/bleeding right now)** *(only render this section if at least one urgent item was found)*
 - **<item — bold key term>** — <what's bleeding + cost of delay in 1 line>
 - **<item>** — <…>
 
@@ -141,6 +141,8 @@ Output is one tight Markdown block. Use the exact section headers below. Match M
 ```
 
 After the output block, **stop**. Don't start executing. Don't ask follow-up questions other than (optionally) "Which option?" or wait silently for Marc's direction.
+
+When Marc picks an option: if the chosen move touches an existing codebase, the cadence is /whatdocs → its mandatory simplll + samepage-brainstorming gate → explicit GO → /defcode. Do not jump straight to editing.
 
 ---
 

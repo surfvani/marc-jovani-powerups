@@ -41,7 +41,7 @@ Tell the author:
 
 1. Improving awkward phrasing
 2. Making it easier to read
-3. Making it slightly more tight, clear, honest, casual, easy to understand
+3. Making it slightly more tight, clear, honest, casual, easy to understand"
 
 
 ## Pass 2: Clarity (if author approved)
