@@ -186,7 +186,20 @@ OPEN QUESTIONS FOR USER:
 =========
 ```
 
-Wait for user approval before moving to execution. Do not touch code until approved. When approved, the same agent (you) continues in /defcode mode — no fresh agent, no context loss.
+MANDATORY ENDING SEQUENCE — all in the same turn, no waiting, no asking:
+
+1. Deliver the === PROPOSED SOLUTION === block (above).
+2. IMMEDIATELY invoke the simplll skill and produce its plain-English explanation
+   right there in the same message. Loading the skill is NOT the job — the
+   delivered explanation is. An agent that loads simplll without delivering the
+   explanation has NOT finished /whatdocs.
+3. IMMEDIATELY invoke the samepage-brainstorming skill: announce the gate, expose
+   your shakiest assumptions, ask your first question. Then STOP and wait for the
+   user.
+
+/defcode is LOCKED until the samepage-brainstorming gate closes with an explicit
+GO. When it does, the same agent (you) continues into /defcode — no fresh agent,
+no context loss.
 
 
 

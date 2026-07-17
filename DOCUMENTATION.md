@@ -26,6 +26,8 @@ marc-jovani-powerups/
     ├── sowhatstheplan/SKILL.md
     ├── whatdocs/SKILL.md                   ← research-first protocol before any fix (read all relevant files, propose generic non-duplicate solution)
     ├── defcode/SKILL.md                    ← live-prod execution discipline (backup-before-edit, no ninja injection, route matching, restart pm2, safe test script)
+    ├── simplll/SKILL.md                    ← plain-English decision-ready explainer (verbatim Marc prompt; auto-fired at the end of /whatdocs)
+    ├── samepage-brainstorming/SKILL.md     ← mandatory alignment gate between /whatdocs and /defcode (3-5 turn clarification + brainstorming, explicit GO required)
     ├── grammar-polish/SKILL.md             ← two-pass manuscript editor (grammar/spelling first, clarity second) preserving the author's casual voice
     ├── handoff-continuia/SKILL.md          ← end-of-session boundary skill — targeted-read of /plan-build doc, writes strict-template Session Log entry + prints copy-pasteable handoff prompt in chat for next agent (companion to sowhatstheplan which handles start-of-session)
     ├── how-marc-works-w-claude-code/SKILL.md ← Marc's builder profile (identity, workflow, pain points, architectural principles, technical context, CC-Sampler case study) — background context skill (user-invocable: false), auto-loaded during plan-build/brainstorming/architecture decisions
@@ -217,8 +219,8 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 
 - **Source file:** `/home/ubuntu/img/whatdocs.md`
 - **Trigger description:** see frontmatter `description:` field in `skills/whatdocs/SKILL.md`
-- **Purpose:** Marc's research-first protocol — invoked when Marc asks for a fix, update, refactor, or new implementation and the right move is to fully understand the system BEFORE touching code (not apply anything yet). Forces a TODO-first response: confirm what's actually being asked, request app structure if missing (or run targeted TREE commands on specific directories — never the whole app), list every document needed for a perfect fix (database/models, routes/forms, templates, JS, HTML, content examples), read each file ENTIRELY (skipping files or parts of files is FORVIDEN), reassess after the first pass and read more if needed, then propose the best solution (or multiple options) that is generic, clean, scalable, long-term, coherent with the existing architecture, and crucially NOT a duplicate of a system that already exists. Pairs with `defcode` — `whatdocs` handles the pre-implementation context-gathering, `defcode` handles the in-implementation execution discipline.
-- **Last updated:** 2026-05-15 (added)
+- **Purpose:** Marc's research-first protocol — invoked when Marc asks for a fix, update, refactor, or new implementation and the right move is to fully understand the system BEFORE touching code (not apply anything yet). Forces a TODO-first response: confirm what's actually being asked, request app structure if missing (or run targeted TREE commands on specific directories — never the whole app), list every document needed for a perfect fix (database/models, routes/forms, templates, JS, HTML, content examples), read each file ENTIRELY (skipping files or parts of files is FORVIDEN), reassess after the first pass and read more if needed, then propose the best solution (or multiple options) that is generic, clean, scalable, long-term, coherent with the existing architecture, and crucially NOT a duplicate of a system that already exists. Pairs with `defcode` — `whatdocs` handles the pre-implementation context-gathering, `defcode` handles the in-implementation execution discipline. Since v1.1, ends with the mandatory simplll → samepage-brainstorming gate.
+- **Last updated:** 2026-07-16 v1.1 (MANDATORY ENDING SEQUENCE added, replacing the old "wait for user approval" closing paragraph: (1) deliver the PROPOSED SOLUTION block, (2) auto-invoke `simplll` — the plain-English explanation must be delivered in the same message, loading the skill alone doesn't count, (3) auto-invoke `samepage-brainstorming` — announce the gate, expose shakiest assumptions, ask the first question, then stop. /defcode is LOCKED until the gate closes with an explicit GO; same-agent continuity into /defcode preserved. Incident-driven rationale: sessions run ~2h, human energy degrades, and the fresh-eyes discussion that saves an outcome must be structural, not optional. Designed with Fable 5.) Prior: 2026-05-15 (added)
 
 ### `defcode`
 
@@ -226,6 +228,20 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/defcode/SKILL.md`
 - **Purpose:** Marc's live-production execution discipline — invoked when about to apply a fix, update, or new implementation to a live production app with real users and live payments. Enforces: a final context check before any file is touched, no modifying files Claude hasn't seen, per-file backup with descriptive suffix before edits, no "ninja" sed/awk/echo injection (Edit/MultiEdit only), route/endpoint matching across JS↔API (no `/resource/api/...` vs `/api/...` mismatches), auto-create-and-execute any migration scripts (don't make user run them), focus strictly on the task at hand (no scope creep), then after the work is done restart pm2 and write a SAFE test script (dry-run, no live emails or mass sends) that validates the fix actually works — not just that files changed. Pairs with `whatdocs` (the pre-implementation companion).
 - **Last updated:** 2026-05-15 (added)
+
+### `simplll`
+
+- **Source:** pasted in chat 2026-07-16 (Marc's TextExpander clarity prompt — verbatim port, byte-verified via the cat + diff procedure)
+- **Trigger description:** see frontmatter `description:` field in `skills/simplll/SKILL.md`
+- **Purpose:** Plain-English, decision-ready explainer. Explains the What / How / Why CEO/Founder/Visionary-style — short lists, no dense engineer paragraphs, complete information — so Marc (juggling 3+ workstreams) can decide fast. Callable standalone on anything (a proposal, a system, a bug, a plan) AND auto-fired at the end of /whatdocs immediately after the PROPOSED SOLUTION block: loading the skill is not the job, the delivered explanation is.
+- **Last updated:** 2026-07-16 (created — first new skill of the Fable 5 improvement pass)
+
+### `samepage-brainstorming`
+
+- **Source:** fresh-authored 2026-07-16 (not a verbatim port). Designed with Fable 5 during the skill improvement pass. Conversation engine deliberately reused from superpowers:brainstorming (one question per message, multiple-choice preferred, 2-3 approaches with recommendation, incremental validation, YAGNI, HARD-GATE pattern, "too simple to need this" anti-pattern) while dropping its artifact pipeline (no project-context exploration step, no design-doc/spec writing, no spec review gates, no visual-companion browser server, no writing-plans terminal state).
+- **Trigger description:** see frontmatter `description:` field in `skills/samepage-brainstorming/SKILL.md`
+- **Purpose:** The mandatory alignment gate between /whatdocs and /defcode — «we are not going to move forward until there's crystal clear evidence that you and I are on the same page». Agent announces the gate, exposes its 2-3 shakiest assumptions, then runs a 3-5-exchange clarification + brainstorming conversation (tracked silently, no turn-count bureaucracy): one decision-question per message, recommendations before options, "what just changed" stated after every answer, YAGNI allowed to shrink the proposal. Closes only on explicit user GO — an early GO gets exactly one pushback, then obedience; an explicit "skip the gate" is obeyed after a one-sentence risk statement. Visual forks get an artifact via artifact-design (Marc is a visual thinker); falls back to local HTML / mermaid sketch when the Artifact tool is unavailable. Never produces a spec document or code. Also standalone for any pre-execution alignment moment (subagentic-workflow Phase B approvals, plan reviews). Incident-driven rationale: sessions run ~2h, human energy degrades, and the fresh-eyes discussion that saves an outcome must be structural, not lucky.
+- **Last updated:** 2026-07-16 (created)
 
 ### `how-marc-works-w-claude-code`
 
@@ -267,7 +283,7 @@ Operator playbooks Claude reads at session start. Pure Markdown, no runtime depe
 
 Examples: `distill-general-conversations`, `plan-build`, `sowhatstheplan`, `cc-google-ads`.
 
-This is the dominant category — all 12 skills in this repo include a `SKILL.md`. Most live entirely as Markdown (the verbatim-port ones plus `sowhatstheplan`); a few include reference sub-folders (`hook-creator/references/`, `scroll-stop-builder/references/`).
+This is the dominant category — all 20 skills in this repo include a `SKILL.md`. Most live entirely as Markdown (the verbatim-port ones plus `sowhatstheplan`); a few include reference sub-folders (`hook-creator/references/`, `scroll-stop-builder/references/`).
 
 ### 2. Skill-bundled tools (executable scripts, propagate via symlink)
 
@@ -463,6 +479,12 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
   - **`defcode`** (source: `/home/ubuntu/img/defcode.md`) — in-implementation live-prod execution discipline. Forces backup-before-edit, no-ninja-injection (Edit/MultiEdit only), route/endpoint matching, auto-execute migrations, focus on task at hand, restart pm2 + write SAFE test script (dry-run, no live mass-sends) after the fix is applied.
 - Catalog entries added; repository tree updated; both skills slugged using Marc's TextExpander-style filename shorthand (matches the `whatdocs.md` / `defcode.md` source filenames).
 - Operational note: this session also exposed an `install.sh` foot-gun — running it from a non-canonical clone (e.g. a `/tmp/marc-jovani-powerups` clone created for exploration) repoints every `~/.claude/skills/<slug>` symlink to that clone's location. Recovery is just re-running `install.sh` from the canonical `/home/ubuntu/marc-jovani-powerups`. No code change applied; documenting here so future cold agents know to always operate the install from the canonical clone.
+
+**As of 2026-07-16 (Fable 5 skill improvement pass — clarity + alignment gate):**
+- Two new skills: `simplll` (verbatim port of Marc's TextExpander clarity prompt, byte-verified) and `samepage-brainstorming` (fresh-authored alignment gate — reuses superpowers:brainstorming's conversation engine, drops its spec/artifact pipeline).
+- `whatdocs` v1.1: MANDATORY ENDING SEQUENCE — PROPOSED SOLUTION → auto-simplll (explanation delivered in the same message) → auto-samepage-brainstorming (first question asked, then stop). /defcode locked until explicit GO.
+- Fixed on this Mac: `grammar-polish` symlink was missing — re-ran `./install.sh` from the canonical clone.
+- Everything stays local until the pass completes (no `./update.sh` yet).
 
 **Next, when Marc resumes:**
 - Add more skills from Marc's prompt library as they get authored.
