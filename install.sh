@@ -11,6 +11,19 @@
 #      ~/.config/<skill-name>/venv/ does NOT, creates a venv there and
 #      pip-installs the requirements (one-time, per-server).
 #
+# Beyond skills, it also makes these repo-managed (symlinked, so every
+# ./pull.sh updates them automatically):
+#   - global/CLAUDE.md            → ~/.claude/CLAUDE.md   (loads in EVERY session)
+#   - personas/*.md               → ~/.claude/personas/   (portable personas only)
+#   - config/settings.json        → ~/.claude/settings.json
+#   - config/statusline-command.sh→ ~/.claude/statusline-command.sh
+#   - config/hooks/persona-picker.sh → ~/.claude/hooks/persona-picker.sh
+#
+# The repo WINS on everything it ships: a real file in the way is backed up as
+# <name>.bak_pre_powerups_YYYY-MM-DD and replaced by the symlink. Anything the
+# repo does NOT ship — server-specific personas, other hooks, settings.local.json
+# — is never read, moved, or deleted.
+#
 # Re-running on a server that's already set up: skill symlinks reconciled,
 # tool symlinks reconciled, venvs left alone (delete the venv to force a
 # rebuild). All output is human-friendly with OK / LINK / FIX prefixes.
@@ -22,6 +35,7 @@ SKILLS_SRC="$REPO_DIR/skills"
 SKILLS_DEST="$HOME/.claude/skills"
 BIN_DEST="$HOME/.local/bin"
 CONFIG_BASE="$HOME/.config"
+BACKUP_DIR="$HOME/.claude/_powerups_backups"
 
 if [[ ! -d "$SKILLS_SRC" ]]; then
   echo "ERROR: $SKILLS_SRC does not exist." >&2
@@ -51,28 +65,54 @@ link_bundled_tool() {
   local skill_name="$2"
   local base
   base="$(basename "$src")"
-  local target="$BIN_DEST/$base"
+  link_managed "$src" "$BIN_DEST/$base" "$skill_name/$base -> $BIN_DEST"
+}
+
+# ────────── helper: install a repo-managed file as a symlink ──────────
+# The repo WINS. If a real file is sitting at the target, it is backed up first
+# as <name>.bak_pre_powerups_YYYY-MM-DD and then replaced by the symlink.
+# Because it's a symlink, every future ./pull.sh updates it automatically.
+link_managed() {
+  local src="$1"
+  local target="$2"
+  local label="$3"
+
+  mkdir -p "$(dirname "$target")"
 
   if [[ -L "$target" ]]; then
     local current
     current="$(readlink "$target")"
     if [[ "$current" == "$src" ]]; then
-      echo "  OK     $skill_name/$base -> $BIN_DEST (symlink already correct)"
+      echo "  OK      $label (symlink already correct)"
       return 0
     fi
-    echo "  FIX    $skill_name/$base -> $BIN_DEST (was $current, repointing)"
+    echo "  FIX     $label (was $current, repointing)"
     rm "$target"
     ln -s "$src" "$target"
     return 0
   fi
 
   if [[ -e "$target" ]]; then
-    echo "  ERROR: $target exists and is NOT a symlink. Refusing to overwrite." >&2
-    exit 1
+    # Backups go to ONE dedicated folder, never next to the original. A skill
+    # backup left inside ~/.claude/skills/ would be picked up as a real skill;
+    # this keeps every backup out of anything Claude Code scans.
+    mkdir -p "$BACKUP_DIR"
+    local base
+    base="$(basename "$target")"
+    local backup="$BACKUP_DIR/$base.bak_pre_powerups_$(date +%Y-%m-%d)"
+    local n=1
+    while [[ -e "$backup" ]]; do
+      backup="$BACKUP_DIR/$base.bak_pre_powerups_$(date +%Y-%m-%d)-$n"
+      n=$((n + 1))
+    done
+    mv "$target" "$backup"
+    ln -s "$src" "$target"
+    echo "  REPLACE $label (backup: _powerups_backups/$(basename "$backup"))"
+    return 0
   fi
 
   ln -s "$src" "$target"
-  echo "  LINK   $skill_name/$base -> $BIN_DEST"
+  echo "  LINK    $label"
 }
 
 # ────────── helper: ensure per-skill venv ──────────
@@ -112,22 +152,7 @@ for skill_path in "$SKILLS_SRC"/*/; do
   echo "→ $skill_name"
 
   # 1. Symlink the skill folder into ~/.claude/skills/
-  if [[ -L "$target" ]]; then
-    current="$(readlink "$target")"
-    if [[ "$current" == "$skill_path_clean" ]]; then
-      echo "  OK     skill folder (symlink already correct)"
-    else
-      echo "  FIX    skill folder (was $current, repointing)"
-      rm "$target"
-      ln -s "$skill_path_clean" "$target"
-    fi
-  elif [[ -e "$target" ]]; then
-    echo "  ERROR: $target exists and is NOT a symlink. Refusing to overwrite." >&2
-    exit 1
-  else
-    ln -s "$skill_path_clean" "$target"
-    echo "  LINK   skill folder -> $SKILLS_DEST"
-  fi
+  link_managed "$skill_path_clean" "$target" "skill folder"
 
   # 2. Symlink any skill-bundled tools into ~/.local/bin/
   for f in "$skill_path"*; do
@@ -140,8 +165,50 @@ for skill_path in "$SKILLS_SRC"/*/; do
   ensure_skill_venv "$skill_path_clean" "$skill_name"
 done
 
+# ────────── global rules: global/CLAUDE.md → ~/.claude/CLAUDE.md ──────────
+# Loaded in EVERY session regardless of which persona is picked (or none).
+if [[ -f "$REPO_DIR/global/CLAUDE.md" ]]; then
+  echo "→ global rules"
+  link_managed "$REPO_DIR/global/CLAUDE.md" "$HOME/.claude/CLAUDE.md" "~/.claude/CLAUDE.md"
+fi
+
+# ────────── personas: personas/*.md → ~/.claude/personas/ ──────────
+# ONLY the personas shipped in this repo (the portable ones) are managed.
+# Server-specific personas — CLAUDEGADS, CLAUDEEMAILS, CLAUDEANALYSIS,
+# CLAUDEMARC, CLAUDEPLAN, CLAUDEMJYT, CLAUDECLARITY, CLAUDEEXPENSES,
+# CLAUDELAUNCH, CLAUDEHEALTH, CLAUDE — are NEVER read, moved, or deleted.
+if [[ -d "$REPO_DIR/personas" ]]; then
+  for persona_file in "$REPO_DIR"/personas/*.md; do
+    [[ -e "$persona_file" ]] || continue
+    persona_base="$(basename "$persona_file")"
+    echo "→ persona: $persona_base"
+    link_managed "$persona_file" "$HOME/.claude/personas/$persona_base" "persona $persona_base"
+  done
+fi
+
+# ────────── Claude Code config: config/ → ~/.claude/ ──────────
+# settings.json carries the SessionStart persona-picker hook and the statusline,
+# so all three travel together — shipping one without the others breaks it.
+# persona-picker.sh is dynamic: it lists whatever is in ~/.claude/personas/,
+# so a machine with only CLAUDEDEV + CLAUDEREG shows exactly those two.
+if [[ -d "$REPO_DIR/config" ]]; then
+  echo "→ Claude Code config"
+  if [[ -f "$REPO_DIR/config/settings.json" ]]; then
+    link_managed "$REPO_DIR/config/settings.json" "$HOME/.claude/settings.json" "settings.json"
+  fi
+  if [[ -f "$REPO_DIR/config/statusline-command.sh" ]]; then
+    link_managed "$REPO_DIR/config/statusline-command.sh" "$HOME/.claude/statusline-command.sh" "statusline-command.sh"
+  fi
+  if [[ -f "$REPO_DIR/config/hooks/persona-picker.sh" ]]; then
+    link_managed "$REPO_DIR/config/hooks/persona-picker.sh" "$HOME/.claude/hooks/persona-picker.sh" "hooks/persona-picker.sh"
+  fi
+fi
+
 echo
 echo "Done."
 echo "  Skills:        $SKILLS_DEST"
 echo "  Bundled tools: $BIN_DEST"
 echo "  Skill venvs:   $CONFIG_BASE/<skill-name>/venv (when requirements.txt present)"
+echo "  Global rules:  $HOME/.claude/CLAUDE.md"
+echo "  Personas:      $HOME/.claude/personas/ (only the ones shipped in this repo)"
+echo "  Config:        $HOME/.claude/settings.json + statusline + persona-picker hook"

@@ -9,9 +9,18 @@
 ```
 marc-jovani-powerups/
 ├── DOCUMENTATION.md            ← this file (the single user-facing doc)
-├── install.sh                  ← one-time setup on a new server: symlinks skill folders into ~/.claude/skills/, symlinks skill-bundled executables into ~/.local/bin/, creates per-skill venvs at ~/.config/<skill>/venv/ when requirements.txt is present
+├── install.sh                  ← setup on any server: symlinks skills into ~/.claude/skills/, skill-bundled executables into ~/.local/bin/, per-skill venvs at ~/.config/<skill>/venv/, PLUS the managed config surface below (global CLAUDE.md, portable personas, settings.json, statusline, persona-picker hook). Repo wins: a real file in the way is moved to ~/.claude/_powerups_backups/ and replaced by a symlink
 ├── update.sh                   ← from primary dev server: git add -A + commit + push
-├── pull.sh                     ← from any other server: git pull --ff-only, then auto-runs install.sh so new skills / bundled tools / venvs wire up immediately
+├── pull.sh                     ← from any other server: git pull --ff-only, then auto-runs install.sh so new skills / bundled tools / venvs / config wire up immediately
+├── global/
+│   └── CLAUDE.md               ← → ~/.claude/CLAUDE.md — global rules, loaded in EVERY session regardless of persona (or none)
+├── personas/                   ← → ~/.claude/personas/ — ONLY the portable personas; server-specific ones are never touched
+│   ├── CLAUDEDEV.md            ← the development persona
+│   └── CLAUDEREG.md            ← the "no special preferences" default persona
+├── config/                     ← → ~/.claude/ — Claude Code configuration; these three travel together
+│   ├── settings.json           ← → ~/.claude/settings.json (declares the SessionStart hook + statusline below)
+│   ├── statusline-command.sh   ← → ~/.claude/statusline-command.sh
+│   └── hooks/persona-picker.sh ← → ~/.claude/hooks/persona-picker.sh — dynamic: lists whatever .md files exist in ~/.claude/personas/, so each server shows its own menu
 ├── docs/
 │   ├── specs/                  ← design specs (workflow artifacts)
 │   └── plans/                  ← implementation plans (workflow artifacts)
@@ -29,6 +38,7 @@ marc-jovani-powerups/
     ├── simplll/SKILL.md                    ← plain-English decision-ready explainer (verbatim Marc prompt; auto-fired at the end of /whatdocs)
     ├── samepage-brainstorming/SKILL.md     ← mandatory alignment gate between /whatdocs and /defcode (3-5 turn clarification + brainstorming, explicit GO required)
     ├── grammar-polish/SKILL.md             ← two-pass manuscript editor (grammar/spelling first, clarity second) preserving the author's casual voice
+    ├── claudeclarity/SKILL.md              ← reader-first writing discipline (subject discipline, capability framing, cruft detection, one-screen budget) — brought under version control 2026-07-31; it had been a local-only skill since April
     ├── handoff-continuia/SKILL.md          ← end-of-session boundary skill — targeted-read of /plan-build doc, writes strict-template Session Log entry + prints copy-pasteable handoff prompt in chat for next agent (companion to sowhatstheplan which handles start-of-session)
     ├── how-marc-works-w-claude-code/SKILL.md ← Marc's builder profile (identity, workflow, pain points, architectural principles, technical context, CC-Sampler case study) — background context skill (user-invocable: false), auto-loaded during plan-build/brainstorming/architecture decisions
     ├── subagentic-workflow/                ← improved variant of /superpowers:subagent-driven-development — same-subagent /whatdocs+/defcode flow with user-approval gate, always Opus 4.7, single-source-of-truth (no duplicates of /whatdocs or /defcode content)
@@ -92,9 +102,43 @@ cd ~/marc-jovani-powerups
 ./install.sh
 ```
 
-`install.sh` iterates `skills/*` and creates a symlink in `~/.claude/skills/` for each. It is idempotent — safe to re-run any time. It will refuse to overwrite a non-symlink file at a target path (so it can't clobber an existing local skill of the same name).
-
 To receive future updates: `cd ~/marc-jovani-powerups && ./pull.sh` (or set up a cron — see CEO Update Workflow below).
+
+### What the repo manages, and what it never touches
+
+`install.sh` is idempotent — safe to re-run any time. Everything it ships is
+**symlinked**, so a `./pull.sh` updates it on every server automatically.
+
+**The repo WINS on its own surface.** If a real file is sitting at a target path,
+it is moved to `~/.claude/_powerups_backups/<name>.bak_pre_powerups_YYYY-MM-DD`
+and replaced by the symlink. (Backups go to that one folder and never next to the
+original — a skill backup left inside `~/.claude/skills/` would be picked up by
+Claude Code as a real, duplicate skill.)
+
+| Path | Managed? |
+|---|---|
+| `~/.claude/skills/<name>` for every skill in `skills/` | ✅ replaced |
+| `~/.claude/CLAUDE.md` | ✅ replaced |
+| `~/.claude/personas/CLAUDEDEV.md`, `CLAUDEREG.md` | ✅ replaced |
+| `~/.claude/settings.json` | ✅ replaced |
+| `~/.claude/statusline-command.sh` | ✅ replaced |
+| `~/.claude/hooks/persona-picker.sh` | ✅ replaced |
+| `~/.local/bin/<skill-bundled tool>` | ✅ replaced |
+| **Server-specific personas** — `CLAUDEGADS`, `CLAUDEEMAILS`, `CLAUDEANALYSIS`, `CLAUDEMARC`, `CLAUDEPLAN`, `CLAUDEMJYT`, `CLAUDECLARITY`, `CLAUDEEXPENSES`, `CLAUDELAUNCH`, `CLAUDEHEALTH`, `CLAUDE` | ❌ never read, moved, or deleted |
+| Any other hook, `settings.local.json`, anything else under `~/.claude/` | ❌ untouched |
+
+Only the two general-purpose personas travel. Everything else in
+`~/.claude/personas/` is specific to the server it lives on and stays there.
+
+**Because `settings.json` is a symlink into the repo**, changes made through
+`/config` write straight into `config/settings.json` — run `./update.sh` to push
+them to the other servers. If Claude Code ever replaces the symlink with a real
+file, the next `install.sh` says `REPLACE settings.json` and leaves the version it
+found in `_powerups_backups/`.
+
+**Portability note:** `config/settings.json` references the hook and statusline by
+absolute path (`/home/ubuntu/...`). Fine on the Ubuntu servers; it would need
+those two paths adjusted before use on a machine with a different home directory.
 
 ---
 
@@ -270,6 +314,16 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Trigger description:** see frontmatter `description:` field in `skills/grammar-polish/SKILL.md`
 - **Purpose:** Two-pass manuscript editing skill. Pass 1 fixes only grammar, spelling, duplicate words, and broken markdown — surgical, minimal edits preserving the author's casual/conversational voice. Non-grammar issues (clarity, ambiguity, awkward phrasing) are listed as suggestions only, not applied. Pass 2 (clarity) runs only if the author approves — tightens nested clauses, mixed verb forms, dangling phrases, buried subjects, and unnecessary words while preserving the author's register. Rules: propose each change with explanation before applying, rewrite the minimum, never add ideas the author didn't write, don't make it "proper" — make it clear.
 - **Last updated:** 2026-07-16 (one-character fix: the Pass-1 "Do you want me to do a pass on Clarity?" script block opened a quote that never closed — ironic for a skill whose job includes fixing mismatched formatting. Zero typos otherwise; cleanest skill of the Fable 5 pass alongside sowhatstheplan.) Prior: 2026-06-08 (added)
+
+---
+
+### `claudeclarity`
+
+- **Source:** created locally 2026-04-27; brought under version control 2026-07-31
+- **Trigger description:** see frontmatter `description:` field in `skills/claudeclarity/SKILL.md`
+- **Purpose:** Reader-first writing discipline for anything a cold reader has to understand — event/offer/product/audience definitions, hand-off briefs, and copy that downstream agents derive ads/hooks/titles from. Seven moves applied in order: subject discipline (is the doc about the subject, or drifting onto the speaker's credentials?), reader-first composition, capability framing over concept framing (verbs the reader will *do*, not nouns they'll *learn*), concept-name translation in the same sentence, verbatim preservation of the user's own words, cruft detection (metadata blocks, status banners, "how to update" sections), and a one-screen budget (~50 lines) as a forcing function. Closes with an acceptance test that must be all-yes before showing the user.
+- **Note:** this skill lived only in `~/.claude/skills/` for three months — it was never in the repo, so it wasn't backed up and wouldn't survive a fresh install. Moved in on 2026-07-31.
+- **Last updated:** 2026-07-31 (version-controlled)
 
 ---
 
