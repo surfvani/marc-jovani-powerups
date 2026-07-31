@@ -2,6 +2,10 @@
 
 This file loads at the top of every Claude Code session for the `ubuntu` user, regardless of project. Keep it short. Per-project context lives in the project's own CLAUDE.md or in `.claude/CLAUDE<TOPIC>.md` playbooks.
 
+## Deferred follow-ups
+
+If `~/.claude/CLAUDEFOLLOWUPS.md` exists and has open items, check it for work Marc deferred "for later." Surface relevant items when he references a follow-up or when you finish a task with spare context; strike items once done.
+
 ## Subagent Model Inheritance
 
 Omitting the `model` parameter on Agent tool calls is the safest way to inherit the session's exact model version. If you do pass `model: "opus"`, the UI label may show a different version — verify via transcript JSONL `message.model` field that the API actually used the correct one.
