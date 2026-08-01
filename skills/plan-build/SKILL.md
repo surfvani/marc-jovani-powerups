@@ -44,6 +44,23 @@ when everything is clear (discussion with user + research results received), the
 
 start by planning the document structure
 then print the list of topics/sections here in the chat —>  create a todo
+
+  ---
+  6.5 SELF-EVALUATION — MANDATORY GATE. Do NOT create the skeleton until this passes.
+
+  The goal is to create a build plan that retains ALL discussed info in an easy to read and
+  token efficient build plan.
+  The plan structure should not show signs of over-engineering and/or bloat.
+
+  - Is the structure that I designed too dense and/or over-engineered?
+  - Does the structure feel too complex?
+  - Does the last part of the conversation have too much weight, and has the first part of the
+    conversation been thinned out? That would be wrong.
+
+  Ultrathink. Then answer those questions. If any of these problems are detected, redo the
+  structure list.
+  ---
+
   then create document just with the basic structure and placeholders
   do not create instructions document all at once
   create first part of the document (replace first placeholder with content —> first item in todo list —> use the Edit tool)
