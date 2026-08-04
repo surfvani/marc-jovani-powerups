@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/ubuntu/.claude/hooks/persona-picker.sh"
+            "command": "bash \"$HOME/.claude/hooks/persona-picker.sh\""
           }
         ]
       }
@@ -22,7 +22,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash /home/ubuntu/.claude/statusline-command.sh"
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
   },
   "enabledPlugins": {
     "frontend-design@claude-code-plugins": true,

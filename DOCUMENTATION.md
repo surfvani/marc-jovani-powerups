@@ -9,7 +9,7 @@
 ```
 marc-jovani-powerups/
 ├── DOCUMENTATION.md            ← this file (the single user-facing doc)
-├── install.sh                  ← setup on any server: symlinks skills into ~/.claude/skills/, skill-bundled executables into ~/.local/bin/, per-skill venvs at ~/.config/<skill>/venv/, PLUS the managed config surface below (global CLAUDE.md, portable personas, settings.json, statusline, persona-picker hook). Repo wins: a real file in the way is moved to ~/.claude/_powerups_backups/ and replaced by a symlink
+├── install.sh                  ← setup on any server: symlinks skills into ~/.claude/skills/, skill-bundled executables into ~/.local/bin/, per-skill venvs at ~/.config/<skill>/venv/, PLUS the managed config surface below (global CLAUDE.md, portable personas, statusline, persona-picker hook). Repo wins: a real file in the way is moved to ~/.claude/_powerups_backups/ and replaced by a symlink. settings.json is the one exception — MERGED, not symlinked (repo wins on shared keys, machine keeps its own plugins/model/theme; see merge_settings)
 ├── update.sh                   ← from primary dev server: git add -A + commit + push
 ├── pull.sh                     ← from any other server: git pull --ff-only, then auto-runs install.sh so new skills / bundled tools / venvs / config wire up immediately
 ├── global/
@@ -18,7 +18,7 @@ marc-jovani-powerups/
 │   ├── CLAUDEDEV.md            ← the development persona
 │   └── CLAUDEREG.md            ← the "no special preferences" default persona
 ├── config/                     ← → ~/.claude/ — Claude Code configuration; these three travel together
-│   ├── settings.json           ← → ~/.claude/settings.json (declares the SessionStart hook + statusline below)
+│   ├── settings.json           ← MERGED into ~/.claude/settings.json, not symlinked (declares the SessionStart hook + statusline below, both via "$HOME/..." so one file works on Linux and macOS)
 │   ├── statusline-command.sh   ← → ~/.claude/statusline-command.sh
 │   └── hooks/persona-picker.sh ← → ~/.claude/hooks/persona-picker.sh — dynamic: lists whatever .md files exist in ~/.claude/personas/, so each server shows its own menu
 ├── docs/
@@ -120,7 +120,7 @@ Claude Code as a real, duplicate skill.)
 | `~/.claude/skills/<name>` for every skill in `skills/` | ✅ replaced |
 | `~/.claude/CLAUDE.md` | ✅ replaced |
 | `~/.claude/personas/CLAUDEDEV.md`, `CLAUDEREG.md` | ✅ replaced |
-| `~/.claude/settings.json` | ✅ replaced |
+| `~/.claude/settings.json` | ⚖️ **merged, not symlinked** — see below |
 | `~/.claude/statusline-command.sh` | ✅ replaced |
 | `~/.claude/hooks/persona-picker.sh` | ✅ replaced |
 | `~/.local/bin/<skill-bundled tool>` | ✅ replaced |
@@ -130,15 +130,49 @@ Claude Code as a real, duplicate skill.)
 Only the two general-purpose personas travel. Everything else in
 `~/.claude/personas/` is specific to the server it lives on and stays there.
 
-**Because `settings.json` is a symlink into the repo**, changes made through
-`/config` write straight into `config/settings.json` — run `./update.sh` to push
-them to the other servers. If Claude Code ever replaces the symlink with a real
-file, the next `install.sh` says `REPLACE settings.json` and leaves the version it
-found in `_powerups_backups/`.
+#### `settings.json` is the one exception: merged, never symlinked
 
-**Portability note:** `config/settings.json` references the hook and statusline by
-absolute path (`/home/ubuntu/...`). Fine on the Ubuntu servers; it would need
-those two paths adjusted before use on a machine with a different home directory.
+Every other managed path is a symlink. `settings.json` cannot be, because it mixes
+two kinds of content:
+
+- **Shared setup** — the SessionStart persona-picker hook, the statusline, `env`,
+  `permissions`, and the assorted behaviour flags. Should be identical everywhere.
+- **Machine-specific state** — `enabledPlugins` and `extraKnownMarketplaces` mirror
+  which marketplaces are *physically installed* on that machine, and
+  `model` / `theme` / `effortLevel` / `alwaysThinkingEnabled` / `voice` /
+  `agentPushNotifEnabled` are per-machine preferences.
+
+Symlinking would hand one machine's plugin list to every other machine. That is not
+cosmetic: the same plugin ships from different marketplaces (`superpowers` exists as
+both `superpowers@superpowers-marketplace` and `superpowers@claude-plugins-official`),
+and naming a marketplace the machine doesn't have **silently disables the plugin**.
+
+So `install.sh` merges instead:
+
+- the repo wins on every shared key,
+- the machine keeps every key in `MACHINE_LOCAL_KEYS` (defined at the top of
+  `install.sh`),
+- any extra key a machine added on its own is left alone,
+- the pre-merge file is backed up to `_powerups_backups/` and the merge is
+  idempotent — a second run reports `OK settings.json (shared keys already up to date)`.
+
+A machine that was previously *symlinked* is migrated automatically: the symlink's
+content is its live settings, so it is written out as a real file first, then merged.
+Nothing is lost. A brand-new machine with no `settings.json` gets the repo's file
+wholesale as a seed.
+
+**Consequence for the workflow:** `/config` changes no longer write through to
+`config/settings.json`. To change something for *every* machine, edit
+`config/settings.json` in the repo and `./update.sh`. To change one machine only,
+use `/config` as usual.
+
+**Portability:** `config/settings.json` references the hook and statusline as
+`bash "$HOME/.claude/..."`, not a hardcoded path, so the same file works on Linux and
+macOS. This is safe because Claude Code runs both hook and `statusLine` commands
+through a shell — the hooks docs state the command string is passed to `sh -c` and
+that "the shell tokenizes the string, expands variables", and the statusline docs'
+own example uses a `~/.claude/...` path. Verified on macOS: `sh -c 'bash "$HOME/..."'`
+resolves and both scripts run.
 
 ---
 
@@ -557,7 +591,17 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 - `plan-build` v1.5: new **STEP 6.5 SELF-EVALUATION — MANDATORY GATE** between printing the section list and creating the skeleton. Three ultrathink questions (over-engineered? too complex? did the late conversation crowd out the early conversation?) — any hit means redo the structure list. Fixes the failure mode where a plan doc comes out bloated and recency-weighted, with the first half of the discussion thinned to sub-bullets. Companion skills (`/handoff-continuia`, `/sowhatstheplan`) deliberately unchanged — the gate changes the planner's process, not the plan's structural conventions those skills read.
 - Both commits published to `origin/master` this session.
 
+**As of 2026-08-04 (first cross-machine install — the Mac; config surface made portable):**
+- **This was the cross-server propagation test** that the previous session left open, and it failed on first contact. The Mac (`/Users/marcjovani`, powerups last installed 2026-06-11) pulled the 2026-07-31 config surface and `install.sh` would have broken it three ways at once. Caught before running, fixed at the root rather than worked around.
+- **Root cause #1 — hardcoded home directory.** `config/settings.json` pointed at `/home/ubuntu/.claude/hooks/persona-picker.sh` and `/home/ubuntu/.claude/statusline-command.sh`. On macOS neither path exists, so the persona picker and the statusline would both have died silently. Fix: both now read `bash "$HOME/.claude/..."`. Safe because Claude Code passes hook commands to `sh -c` and runs `statusLine` through a shell too — the hooks docs say the shell "tokenizes the string, expands variables", and the statusline docs' own example uses a `~/.claude/...` path. Verified empirically on macOS before shipping.
+- **Root cause #2 — `settings.json` cannot be a symlink.** It mixes shared setup (hook, statusline, `env`, `permissions`) with machine-specific state. The Mac has `superpowers` + `frontend-design` installed from `claude-plugins-official`; the VPS has them from `superpowers-marketplace` / `claude-code-plugins`. Symlinking would have pointed the Mac at marketplaces it does not have installed — **silently disabling both plugins** — and `extraKnownMarketplaces` would have pulled in a *second* copy of superpowers from obra's marketplace alongside the official one. It would also have wiped the Mac's `model: opus[1m]`, `theme`, `effortLevel`, `voice`, `alwaysThinkingEnabled`. Fix: `install.sh` gained `merge_settings()` — repo wins on shared keys, machine keeps everything in the new `MACHINE_LOCAL_KEYS` list, extra machine keys are left alone, pre-merge file backed up, idempotent on re-run. A previously-symlinked machine migrates automatically (the symlink's content is seeded into the new real file first); a brand-new machine gets the repo file wholesale.
+- **Root cause #3 — the statusline script was wrong on both sides, in different places.** The Mac's copy read `.workspace.cwd`, which is not a field Claude Code sends, so it always fell through to `.workspace.project_dir` and displayed the *launch* directory instead of the current one. The repo's copy read `.cwd` (correct) but formatted millions with `bc` at `scale=1`, which truncates — 1,499,999 tokens rendered as `1.4M`. Merged version takes the correct half of each: `.workspace.current_dir // .cwd // empty` (documented-preferred field, documented fallback) and `bc -l`, which rounds. Both halves verified against synthetic payloads built from the documented JSON schema.
+- Net effect on the Mac: `claudeclarity` symlinked (it was missing), `plan-build` v1.5 live, `CLAUDE.md` + both personas now repo-managed symlinks (they were stale real files missing the *Default Register* block and the *Deferred follow-ups* rule), settings.json merged with every Mac-specific preference and all four plugins intact.
+- ⚠️ **The VPS has not pulled this yet.** On its next `./pull.sh`, `merge_settings()` will convert its symlinked `settings.json` into a real file seeded from that same content — so its plugin set and preferences survive — and only the two `$HOME` paths change. Expected output there: `UNLINK settings.json` followed by `MERGE settings.json`.
+- Workflow change worth knowing: `/config` no longer writes through to `config/settings.json` (it isn't a symlink anymore). Repo-wide changes are made by editing `config/settings.json` and running `./update.sh`; single-machine changes go through `/config` as before.
+
 **Next, when Marc resumes:**
+- Run `./pull.sh` on the Ubuntu VPS to complete the propagation test in the other direction, and confirm the `UNLINK` → `MERGE` migration path behaves as designed there.
 - Add more skills from Marc's prompt library as they get authored.
 - When the collection is stable, evaluate wrapping it as a plugin (`plugin.json` + `marketplace.json`) for `/plugin install`-style distribution to other servers.
-- Cross-server propagation test: after `./update.sh` from this dev VPS, `git pull` on a second machine and run `./install.sh` to verify the new bundled-tool + venv logic works on a fresh setup (the venv creation path hasn't been exercised on a cold server yet).
+- Cross-server propagation test: **done in the VPS → Mac direction on 2026-08-04** (see that session entry — it surfaced three real portability bugs). Still unexercised: the venv creation path on a genuinely cold machine, since the Mac already had the `cc-google-ads` venv from June.
