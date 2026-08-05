@@ -44,6 +44,12 @@ Not:
 
 ---
 
+## Documentation Routing
+
+**Before writing documentation ANYWHERE, find the project's own rule for where docs live.** Grep the project's build-plan family for `Documentation Protocol` and obey it. Some projects deliberately have NO `DOCUMENTATION.md` — for the CLAUDEMANAGER/board machinery, **the persona (`CLAUDEMANAGER.md`) IS the documentation** (build plan §7.2). Never default to "the nearest DOCUMENTATION.md": a repo's doc file covers THAT repo's own system only, not everything stored in it. No protocol found and placement unclear → ask, don't guess. (Learned 5 Aug 2026: manager docs landed in `marc-jovani-powerups/DOCUMENTATION.md`; wrong — "not the place. Not at all.")
+
+---
+
 ## Claim Discipline
 
 "Done / works / passes / fixed" requires evidence produced THIS turn. Run the proving command, read the output, then claim — citing it. Not "should pass," not "ran it earlier," not "looks correct."

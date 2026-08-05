@@ -1,6 +1,6 @@
 ---
 name: doc-new-project
-description: Use when Marc wants to create a new DOCUMENTATION.md from scratch for a new project, app, or build — the skill produces a comprehensive Markdown doc starting with the locked ⚠️ CRITICAL FILE STRUCTURE & ARCHITECTURE REFERENCE section, explaining file structure (including modularized clusters), and giving a future AI session enough context to ask informed questions. Skip for updates to an existing documentation file (use doc-update-project instead).
+description: Use when Marc wants to create a new DOCUMENTATION.md from scratch for a new project, app, or build — the skill produces a comprehensive Markdown doc starting with the locked ⚠️ CRITICAL FILE STRUCTURE & ARCHITECTURE REFERENCE section, explaining file structure (including modularized clusters), and giving a future AI session enough context to ask informed questions. STEP 0, before creating — route: grep the project's build-plan family for 'Documentation Protocol'; if the project already declares where its docs live (some deliberately have NO DOCUMENTATION.md — e.g. the CLAUDEMANAGER/board machinery documents itself in the persona, plan §7.2), follow that instead of creating a new file. Skip for updates to an existing documentation file (use doc-update-project instead).
 ---
 
 Create a documentation file.

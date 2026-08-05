@@ -1,6 +1,6 @@
 ---
 name: doc-update-project
-description: Use when Marc wants to update an existing DOCUMENTATION.md after a coding session, implementation, bug fix, or upgrade — preserves all critical information, adds new learnings and roadblocks/solutions, removes only fully obsolete content, and stays ~1% shorter while keeping everything a fresh AI session needs to resume without context loss (Next Steps section only when no build plan / handoff doc owns the roadmap). Skip for creating documentation from scratch (use doc-new-project instead).
+description: Use when Marc wants to update an existing DOCUMENTATION.md after a coding session, implementation, bug fix, or upgrade — preserves all critical information, adds new learnings and roadblocks/solutions, removes only fully obsolete content, and stays ~1% shorter while keeping everything a fresh AI session needs to resume without context loss (Next Steps section only when no build plan / handoff doc owns the roadmap). STEP 0, before anything — route: grep the project's build-plan family for 'Documentation Protocol' and obey it; some projects deliberately have NO DOCUMENTATION.md (the CLAUDEMANAGER/board machinery documents itself in the persona, plan §7.2 — updates go THERE, not to any repo's DOCUMENTATION.md). Also verify you're updating the doc that OWNS the system you touched, not the nearest doc file. Skip for creating documentation from scratch (use doc-new-project instead).
 ---
 
 good, now let's move to documentation

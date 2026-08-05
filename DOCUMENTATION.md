@@ -1,5 +1,7 @@
 # marc-jovani-powerups — Documentation
 
+> **⚠️ SCOPE — read before adding ANYTHING here.** This file documents the powerups repo's own system ONLY: skills, install/update/pull, managed config. **Content about systems merely STORED in this repo does not go here.** The CLAUDEMANAGER/board machinery (`server-specific/`) is documented in the persona itself — that project deliberately has no DOCUMENTATION.md (`NORTH_STAR/BOARDS/CLAUDEMANAGER-BUILD_PLAN.md` §7.2). Unsure where something goes → global CLAUDE.md § Documentation Routing.
+
 ## ⚠️ CRITICAL FILE STRUCTURE & ARCHITECTURE REFERENCE
 
 **📌 NOTE: This section must NOT be changed unless actual file structure modifications occur. Do NOT omit when updating documentation. Update ONLY if real changes are made to the codebase structure.**
