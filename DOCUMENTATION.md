@@ -21,6 +21,9 @@ marc-jovani-powerups/
 │   ├── settings.json           ← MERGED into ~/.claude/settings.json, not symlinked (declares the SessionStart hook + statusline below, both via "$HOME/..." so one file works on Linux and macOS)
 │   ├── statusline-command.sh   ← → ~/.claude/statusline-command.sh
 │   └── hooks/persona-picker.sh ← → ~/.claude/hooks/persona-picker.sh — dynamic: lists whatever .md files exist in ~/.claude/personas/, so each server shows its own menu
+├── server-specific/            ← versioned but NEVER deployed by install.sh — files that belong to THIS server only. Symlinked by hand, not by the installer. Here so they survive a disk loss, not so they travel
+│   ├── CLAUDEMANAGER.md        ← → ~/.claude/personas/CLAUDEMANAGER.md — the PROJECT HERO chief-of-staff persona. Server-specific because it names this box's board, paths and cron. Carries the Hard-Won Knowledge log, which is the manager's entire learning mechanism
+│   └── claudemanager           ← → ~/.local/bin/claudemanager — the warm-session starter + watchdog (see § The CLAUDEMANAGER machinery)
 ├── docs/
 │   ├── specs/                  ← design specs (workflow artifacts)
 │   └── plans/                  ← implementation plans (workflow artifacts)
@@ -173,6 +176,65 @@ through a shell — the hooks docs state the command string is passed to `sh -c`
 that "the shell tokenizes the string, expands variables", and the statusline docs'
 own example uses a `~/.claude/...` path. Verified on macOS: `sh -c 'bash "$HOME/..."'`
 resolves and both scripts run.
+
+---
+
+## The CLAUDEMANAGER machinery (server-specific)
+
+Lives in `server-specific/`. Two files, hand-symlinked, **never deployed by `install.sh`** — they name this box's board, paths and cron, so they'd be wrong anywhere else. They are versioned so two days of Hard-Won Knowledge can't die with a disk.
+
+### What runs
+
+A single long-lived Claude Code session inside tmux (`cs-manager`), started by `claudemanager`, watched by a cron watchdog every 5 minutes. The session is disposable; the files are the memory.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `claudemanager` | Start it. Safe to run twice — won't duplicate |
+| `claudemanager status` | One-line health check. **Also warns if the session is parked on a dialog** |
+| `claudemanager console` | Watch it live (detach: Ctrl+B then D) |
+| `claudemanager unstick` | Clear a dialog blocking the message queue |
+| `claudemanager stop` | Stop it and disable watchdog respawn |
+| `claudemanager watchdog` | For cron. Clears a stuck dialog, respawns if dead or heartbeat stale >2h |
+
+### The failure modes it defends against, and their signatures
+
+**1. Modal dialog blocks the message queue** *(4 Aug 2026, froze it for 22 minutes)*
+
+The starter used to type `/model` and `/effort` into the TUI after boot. A slash command typed while a turn is still running gets **queued**; it pops later and opens a "Switch model?" confirmation that nobody is there to answer. **An unanswered modal blocks the entire message queue** — Marc's next five messages enqueued unread and the scheduled wake-up never fired, while `tmux has-session` and the heartbeat both reported a perfectly healthy session.
+
+*Signature:* session alive, transcript stops writing, messages appear as `queue-operation enqueue` with no matching delivery.
+
+*Fixes:* model and effort are now set as **launch flags** (`claude --model … --effort max`), so no dialog can exist. `parked()` detects one; `unstick` and the watchdog clear it without killing the session, so nothing typed is lost.
+
+**2. `wait_idle` returned instantly, every time** — the bug behind #1
+
+It grepped the pane's **last 6 lines** for the string `"tokens"`. Both wrong: the spinner renders in the **content area** (~line 16), and carries no `"tokens"` in v2.1.221. So every send-keys landed in the queue instead of the prompt.
+
+The reliable busy test is the ellipsis-plus-timer, `BUSY_RE="[A-Za-z]+… \([0-9]+s"`:
+
+```
+running → "✻ Orchestrating… (4s · thinking with max effort)"
+running → "· Photosynthesizing… (29s · ↓ 625 tokens)"
+idle    → "✻ Worked for 17s"      ← past tense, stays on screen after the turn ends
+```
+
+**Never anchor on the spinner glyph** — it animates through `✻ · ✶`, so a glyph match reads a busy session as idle. That is the same bug class all over again.
+
+**3. Heartbeat starvation while actively serving Marc** *(4 Aug 2026, 15:15)*
+
+The heartbeat file is touched only by the agent's scheduled wake-ups — **never by Marc's messages**. When the wake-up chain broke, the heartbeat froze while Marc was mid-conversation, and two hours later the watchdog correctly recycled a session he was actively using. See the persona's Hard-Won Knowledge for the rule that replaces it (every turn ends with both a heartbeat touch and a fresh wake-up).
+
+*Open, unfixed:* the watchdog still reads only the heartbeat file. Reading the session transcript's last-write time instead would make killing a live session impossible.
+
+### Related observation, mechanism unverified
+
+Across three occasions, a scheduled wake-up failed to fire whenever the input box was occupied — once by a modal, once by unsubmitted text — and fired normally in a control run with the box empty. Consistent, but the mechanism was never confirmed against harness source. Recorded as an observation, not a cause.
+
+### Lifeline files
+
+`~/.claudemanager.heartbeat` · `~/.claudemanager.handover` · `~/.claudemanager.off` · `~/.claudemanager.lock`
 
 ---
 
