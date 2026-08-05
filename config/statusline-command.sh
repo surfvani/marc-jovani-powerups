@@ -1,6 +1,6 @@
 #!/bin/bash
 input=$(cat)
-cwd=$(echo "$input" | jq -r '.cwd')
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
 ctx_size=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
@@ -22,7 +22,7 @@ if [ -n "$used_pct" ] && [ -n "$ctx_size" ] && [ -n "$used_tokens" ] && [ "$used
   format_tokens() {
     local n=$1
     if [ "$n" -ge 1000000 ]; then
-      printf "%.1fM" "$(echo "scale=1; $n / 1000000" | bc)"
+      printf "%.1fM" "$(echo "$n / 1000000" | bc -l)"
     elif [ "$n" -ge 1000 ]; then
       printf "%dK" "$(( n / 1000 ))"
     else

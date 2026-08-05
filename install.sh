@@ -15,7 +15,9 @@
 # ./pull.sh updates them automatically):
 #   - global/CLAUDE.md            → ~/.claude/CLAUDE.md   (loads in EVERY session)
 #   - personas/*.md               → ~/.claude/personas/   (portable personas only)
-#   - config/settings.json        → ~/.claude/settings.json
+#   - config/settings.json        → ~/.claude/settings.json  (MERGED, not symlinked:
+#                                   repo wins on shared keys, the machine keeps its
+#                                   own plugins/model/theme — see merge_settings)
 #   - config/statusline-command.sh→ ~/.claude/statusline-command.sh
 #   - config/hooks/persona-picker.sh → ~/.claude/hooks/persona-picker.sh
 #
@@ -36,6 +38,22 @@ SKILLS_DEST="$HOME/.claude/skills"
 BIN_DEST="$HOME/.local/bin"
 CONFIG_BASE="$HOME/.config"
 BACKUP_DIR="$HOME/.claude/_powerups_backups"
+
+# Keys in settings.json that describe THIS MACHINE rather than the shared setup.
+# On a machine that already has settings.json, its own values for these win and
+# are never overwritten; the repo only supplies them as defaults on a brand-new
+# machine. Everything NOT listed here is shared, and the repo wins on it.
+#
+# Why these are machine-local:
+#   enabledPlugins / extraKnownMarketplaces — mirror which marketplaces are
+#     physically installed on the machine. The same plugin can come from
+#     different marketplaces (superpowers ships from both claude-plugins-official
+#     and obra/superpowers-marketplace), and naming a marketplace the machine
+#     doesn't have silently disables the plugin.
+#   model / theme / effortLevel / alwaysThinkingEnabled / voice /
+#     agentPushNotifEnabled — personal preferences that legitimately differ
+#     between a desktop and a headless server.
+MACHINE_LOCAL_KEYS='["enabledPlugins","extraKnownMarketplaces","model","theme","effortLevel","alwaysThinkingEnabled","voice","agentPushNotifEnabled"]'
 
 if [[ ! -d "$SKILLS_SRC" ]]; then
   echo "ERROR: $SKILLS_SRC does not exist." >&2
@@ -115,6 +133,82 @@ link_managed() {
   echo "  LINK    $label"
 }
 
+# ────────── helper: merge settings.json (NOT a symlink) ──────────
+# settings.json is the one managed file that cannot be a plain symlink: it mixes
+# shared configuration (the persona-picker hook, the statusline, env, permissions)
+# with machine-specific state (which plugin marketplaces are installed, model,
+# theme). Symlinking it would hand one machine's plugin list to every other
+# machine and silently disable plugins that came from a different marketplace.
+#
+# So: the repo wins on every shared key, the machine keeps every key listed in
+# MACHINE_LOCAL_KEYS, and any extra key the machine added on its own is left
+# alone. Idempotent — re-running produces no change once converged.
+merge_settings() {
+  local src="$1"
+  local target="$2"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "  WARN    settings.json needs jq to merge — skipped (install jq, then re-run)" >&2
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target")"
+
+  # Migration from the old regime, where settings.json was symlinked into the
+  # repo. The symlink's content IS that machine's live settings, so seed the new
+  # real file from it — nothing is lost on the machine that was symlinked.
+  if [[ -L "$target" ]]; then
+    local resolved
+    resolved="$(cat "$target" 2>/dev/null || echo '{}')"
+    rm "$target"
+    printf '%s\n' "$resolved" > "$target"
+    echo "  UNLINK  settings.json (was a symlink into the repo; now a real per-machine file)"
+  fi
+
+  # Brand-new machine with no settings at all: take the repo's file wholesale.
+  if [[ ! -e "$target" ]]; then
+    cp "$src" "$target"
+    echo "  SEED    settings.json (new machine — copied repo defaults)"
+    return 0
+  fi
+
+  if ! jq -e . "$target" >/dev/null 2>&1; then
+    echo "  WARN    settings.json is not valid JSON — leaving it untouched" >&2
+    return 0
+  fi
+
+  local merged
+  merged="$(mktemp)"
+  if ! jq -s --argjson local "$MACHINE_LOCAL_KEYS" '
+        .[0] as $repo
+      | .[1] as $mine
+      | ($repo | with_entries(select(.key as $k | ($local | index($k)) | not))) as $shared
+      | $mine * $shared
+      ' "$src" "$target" > "$merged" 2>/dev/null; then
+    rm -f "$merged"
+    echo "  WARN    settings.json merge failed — leaving it untouched" >&2
+    return 0
+  fi
+
+  if diff -q <(jq -S . "$target") <(jq -S . "$merged") >/dev/null 2>&1; then
+    rm -f "$merged"
+    echo "  OK      settings.json (shared keys already up to date)"
+    return 0
+  fi
+
+  mkdir -p "$BACKUP_DIR"
+  local backup="$BACKUP_DIR/settings.json.bak_pre_powerups_$(date +%Y-%m-%d)"
+  local n=1
+  while [[ -e "$backup" ]]; do
+    backup="$BACKUP_DIR/settings.json.bak_pre_powerups_$(date +%Y-%m-%d)-$n"
+    n=$((n + 1))
+  done
+  cp "$target" "$backup"
+  mv "$merged" "$target"
+  echo "  MERGE   settings.json (shared keys applied; machine-local keys kept)"
+  echo "          backup: _powerups_backups/$(basename "$backup")"
+}
+
 # ────────── helper: ensure per-skill venv ──────────
 ensure_skill_venv() {
   local skill_path="$1"
@@ -191,10 +285,16 @@ fi
 # so all three travel together — shipping one without the others breaks it.
 # persona-picker.sh is dynamic: it lists whatever is in ~/.claude/personas/,
 # so a machine with only CLAUDEDEV + CLAUDEREG shows exactly those two.
+#
+# The two scripts are symlinked (identical everywhere). settings.json is MERGED
+# instead — see merge_settings() for why it cannot be a symlink. Both scripts are
+# referenced from settings.json via "$HOME/..." rather than a hardcoded path, so
+# the same settings.json works on Linux and macOS; Claude Code runs hook and
+# statusLine commands through a shell, which expands the variable.
 if [[ -d "$REPO_DIR/config" ]]; then
   echo "→ Claude Code config"
   if [[ -f "$REPO_DIR/config/settings.json" ]]; then
-    link_managed "$REPO_DIR/config/settings.json" "$HOME/.claude/settings.json" "settings.json"
+    merge_settings "$REPO_DIR/config/settings.json" "$HOME/.claude/settings.json"
   fi
   if [[ -f "$REPO_DIR/config/statusline-command.sh" ]]; then
     link_managed "$REPO_DIR/config/statusline-command.sh" "$HOME/.claude/statusline-command.sh" "statusline-command.sh"
