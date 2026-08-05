@@ -41,9 +41,12 @@
   "autoUpdatesChannel": "latest",
   "autoMemoryEnabled": false,
   "skipWorkflowUsageWarning": true,
+  "theme": "dark",
   "autoCompactEnabled": false,
   "switchModelsOnFlag": false,
   "teammateMode": "auto",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true
 }

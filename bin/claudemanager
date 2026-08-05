@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# claudemanager — the CLAUDEMANAGER warm session, one command.
+# The manager's brain runs inside tmux session "cs-manager" (claudestart family:
+# `claudestart list` sees it, phone picks it up via claude.ai/code as "MANAGER").
+#   claudemanager           start it (safe to run twice — won't duplicate)
+#   claudemanager stop      stop it + disable watchdog respawn (until next start)
+#   claudemanager console   watch it live (detach: Ctrl+B then D)
+#   claudemanager status    one-line health check
+#   claudemanager unstick   clear a dialog that is blocking the message queue
+#   claudemanager watchdog  (for cron) clear a stuck dialog, respawn if dead or heartbeat stale >2h
+
+SESSION="cs-manager"
+TITLE="MANAGER"
+WORKDIR="$HOME"   # home, not NORTH_STAR: keeps personas/, skills/, NORTH_STAR/ all in-scope so auto-mode never stalls on permission prompts
+HEART="$HOME/.claudemanager.heartbeat"
+OFF="$HOME/.claudemanager.off"
+HANDOVER="$HOME/.claudemanager.handover"
+STALE_SECS=7200   # two missed hourly beats = dead brain
+MODEL_PRIMARY="claude-fable-5[1m]"    # Marc's requirement (3 Aug 2026): Fable + max effort
+MODEL_FALLBACK="claude-opus-5[1m]"    # if Fable is unavailable (usage limits)
+
+alive() { tmux has-session -t "$SESSION" 2>/dev/null; }
+
+# A modal dialog left unanswered blocks the ENTIRE message queue: Marc's messages
+# enqueue and are never read, and scheduled wake-ups never fire — while the session
+# still looks alive. This is what froze the manager on 4 Aug 2026 for 22 minutes.
+parked() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "❯ 1\.|Switch model\?"; }
+
+heartbeat_age() {
+  [ -f "$HEART" ] || { echo 999999; return; }
+  echo $(( $(date +%s) - $(stat -c %Y "$HEART") ))
+}
+
+case "$1" in
+  console)
+    exec tmux attach -t "$SESSION"
+    ;;
+  status)
+    if alive; then S="ALIVE"; else S="DEAD"; fi
+    AGE=$(heartbeat_age)
+    [ -f "$OFF" ] && O=" · OFF-SWITCH SET (watchdog will not respawn)" || O=""
+    [ -f "$HANDOVER" ] && H=" · handover marker present" || H=""
+    P=""; alive && parked && P=" · ⚠️  PARKED ON A DIALOG — queue blocked, run: claudemanager unstick"
+    echo "manager: $S · heartbeat ${AGE}s ago${O}${H}${P}"
+    exit 0
+    ;;
+  unstick)
+    # Answer whatever dialog the session is parked on, so the queue drains and any
+    # messages typed while it was stuck get read. Safe to run when nothing is stuck.
+    if ! alive; then echo "Manager is not running."; exit 0; fi
+    if parked; then
+      tmux send-keys -t "$SESSION" Enter
+      sleep 3
+      if parked; then
+        echo "⚠️  Still parked. Answer it by hand: claudemanager console"
+      else
+        echo "✅ Dialog cleared — queued messages are flushing now."
+      fi
+    else
+      echo "✅ Nothing parked; queue is flowing."
+    fi
+    exit 0
+    ;;
+  stop)
+    touch "$OFF"
+    if alive; then
+      tmux kill-session -t "$SESSION"
+      echo "🛑 Manager stopped. Watchdog respawn disabled until: claudemanager"
+    else
+      echo "Nothing was running. Watchdog respawn disabled until: claudemanager"
+    fi
+    exit 0
+    ;;
+  watchdog)
+    [ -f "$OFF" ] && exit 0
+    if alive; then
+      # Catch a blocked queue in ~5 min instead of waiting 2h for the heartbeat to go
+      # stale — and clear it WITHOUT killing the session, so nothing Marc typed is lost.
+      # Marc switches models mid-conversation often, across devices (his words, 4 Aug
+      # 2026); if a confirm ever gets orphaned, this heals it instead of stranding him.
+      if parked; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: manager PARKED ON A DIALOG — clearing it"
+        tmux send-keys -t "$SESSION" Enter
+        sleep 3
+        parked && echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: still parked — needs a human"
+        exit 0
+      fi
+      AGE=$(heartbeat_age)
+      if [ "$AGE" -lt "$STALE_SECS" ]; then exit 0; fi
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: session alive but heartbeat ${AGE}s stale — recycling it"
+      tmux kill-session -t "$SESSION"
+      # no handover marker on purpose: an unclean death must be confessed
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: manager is down — respawning"
+    fi
+    ;;
+esac
+
+# ---- start path (default, and watchdog fall-through) ----
+
+exec 9>"$HOME/.claudemanager.lock"
+if ! flock -n 9; then
+  echo "Another claudemanager start is already in progress."
+  exit 0
+fi
+[ "$1" = "watchdog" ] || rm -f "$OFF"
+
+if alive; then
+  echo "✅ Manager already running as '$TITLE' (tmux: $SESSION)."
+  echo "   Watch: claudemanager console · Health: claudemanager status"
+  exit 0
+fi
+
+touch "$HEART"   # grace period so the watchdog never kill-loops a booting session
+
+# Model + effort are set at LAUNCH, never by typing /model or /effort into the TUI.
+# Root cause of the 4 Aug 2026 freeze: a slash command typed while a turn is running
+# gets QUEUED. It pops later and opens a "Switch model?" modal that nobody is there to
+# answer — and an unanswered modal blocks the whole message queue. Marc's next 5
+# messages piled up unread and the scheduled wake-up never fired, all while the session
+# looked perfectly healthy. Launch flags open no dialog at all.
+# NOTE: this does NOT restrict Marc — switching models mid-conversation still works
+# exactly as before. It only stops the START-UP script from creating an orphan modal.
+tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
+  "claude --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max"
+sleep 12
+# Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
+# Check the live status line "[Fable 5]", NOT the word "Fable" anywhere on screen — the
+# old check matched the settings.json banner and so could never actually fail.
+if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
+  tmux kill-session -t "$SESSION" 2>/dev/null
+  tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
+    "claude --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max"
+  sleep 12
+fi
+
+# Wait until the TUI has no running turn.
+# The old version grepped `tail -6` for "tokens" and returned instantly EVERY time —
+# that single bug is what queued the slash commands that froze the manager. Two errors
+# in it, both measured live 4 Aug 2026:
+#   1. wrong region — the spinner renders in the CONTENT area (pane line ~16), so
+#      `tail -6` never saw it;
+#   2. wrong string — there is no "tokens" in the spinner in v2.1.221.
+# The real discriminator is "<verb>… (<n>s" — an ellipsis plus a live timer:
+#   running → "✻ Orchestrating… (4s · thinking with max effort)"
+#   running → "· Photosynthesizing… (29s · ↓ 625 tokens)"
+#   idle    → "✻ Worked for 17s"   (past tense, stays on screen after the turn ends)
+# Do NOT anchor on the glyph: it animates through ✻, ·, and others, so a glyph-based
+# match reads a busy session as idle — the exact bug class that caused the freeze.
+BUSY_RE="[A-Za-z]+… \([0-9]+s"
+wait_idle() {
+  local max=${1:-180} t=0
+  sleep 8   # let the turn actually start rendering before the first look
+  while tmux capture-pane -t "$SESSION" -p | grep -qE "$BUSY_RE"; do
+    sleep 3; t=$((t+3)); [ "$t" -ge "$max" ] && break
+  done
+  sleep 2
+  # Never type into a session sitting on a modal — that is how messages get queued
+  # and silently lost. Clear it first.
+  parked && { tmux send-keys -t "$SESSION" Enter; sleep 3; }
+}
+
+# Answer the persona picker, then boot it.
+tmux send-keys -t "$SESSION" "claudemanager" Enter
+wait_idle 240   # persona load + self-boot turn can run over a minute (seen 1m13s live)
+tmux send-keys -t "$SESSION" "Boot: run your boot sequence from the persona (handover check, open-check, heartbeat, schedule next wake-up), then stand by quietly."
+sleep 1
+tmux send-keys -t "$SESSION" Enter   # separate Enter: long text trips paste-detection, where inline Enter = newline, not submit
+
+echo "✅ Manager starting as '$TITLE' (tmux: $SESSION, dir: $WORKDIR)."
+echo "   Phone: claude.ai/code → session '$TITLE ...'"
+echo "   Watch: claudemanager console · Health: claudemanager status · Stop: claudemanager stop"
