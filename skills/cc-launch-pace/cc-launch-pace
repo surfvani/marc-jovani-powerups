@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""
+LAUNCH PACE — same-day-range launch comparison for Cinematic Composing.
+
+The question this answers, in Marc's words:
+    "How many days in? How much so far? So what's that per day?
+     Now compare against every other launch AT THE SAME DAY RANGE."
+
+Comparing a launch's first 3 days against another launch's full run is invalid —
+launches valley in the middle and spike at the close. This tool always compares
+day-N-cumulative against day-N-cumulative.
+
+Rules obeyed (CLAUDEANALYSIS.md):
+  - Revenue is measured by FUNNEL / CHECKOUT, never by product name or product_id.
+    Bumps and upsells carry the same funnel_id under a different product_id.
+  - NEW vs RELAUNCH comes from the Launch Hub, never guessed. `launches` = NEW,
+    `old_launches` = RELAUNCH. Unmappable funnels print "?" — never assumed.
+
+Why "runs" and not "the funnel's first sale":
+  A funnel sells again every time it is relaunched, and often has a stray sale
+  months before its real launch. Both corrupt "day 1". So revenue is split into
+  RUNS separated by >= GAP quiet days, and each run is its own comparable
+  instance. Runs touching the lookback edge are dropped as truncated.
+
+Usage:
+    python3 launch_pace.py                        # auto-detect the live launch
+    python3 launch_pace.py --focus fluid-flutes   # pin a funnel slug
+    python3 launch_pace.py --day 7                # force comparison day
+    python3 launch_pace.py --all                  # every run, not just top 15
+"""
+
+import argparse
+import json
+import os
+import sqlite3
+import sys
+from collections import defaultdict
+from datetime import timedelta
+
+import psycopg2
+
+PG = dict(dbname="app_cc", user="app_cc_user", password="AppCC2025", host="localhost")
+HUB_DB = "/home/ubuntu/LAUNCH_HUB/App/data/launch_hub.db"
+HERE = os.path.dirname(os.path.abspath(__file__))
+OVERRIDES = os.path.join(HERE, "overrides.json")
+GAP = 7          # quiet days that end a run
+B, R = "\033[1m", "\033[0m"
+
+
+def load_kinds():
+    """funnel_id -> 'NEW' | 'RELAUNCH', straight from the Launch Hub's two tables."""
+    kinds = {}
+    try:
+        con = sqlite3.connect(f"file:{HUB_DB}?mode=ro", uri=True)
+        for tbl, kind in (("launches", "NEW"), ("old_launches", "RELAUNCH")):
+            for (fid,) in con.execute(
+                f"SELECT funnel_id FROM {tbl} WHERE funnel_id IS NOT NULL"
+            ):
+                kinds[int(fid)] = kind
+        con.close()
+    except Exception as e:                                   # hub down != invent data
+        print(f"  ! Launch Hub unreadable ({e}) — kinds will print '?'\n", file=sys.stderr)
+    if os.path.exists(OVERRIDES):
+        with open(OVERRIDES) as fh:
+            for k, v in json.load(fh).items():
+                kinds[int(k)] = v
+    return kinds
+
+
+def split_runs(days):
+    """{date: rev} -> [[date,...], ...] split on >= GAP quiet days."""
+    runs, cur = [], []
+    for d in sorted(days):
+        if cur and (d - cur[-1]).days > GAP:
+            runs.append(cur)
+            cur = []
+        cur.append(d)
+    if cur:
+        runs.append(cur)
+    return runs
+
+
+def build(cur, months, min_rev):
+    cur.execute(
+        """SELECT f.id, f.slug, f.public_launch_end, bc.slug
+           FROM funnels f LEFT JOIN builder_checkouts bc ON bc.id = f.builder_checkout_id"""
+    )
+    meta = {r[0]: {"slug": r[1], "close": r[2], "co": r[3]} for r in cur.fetchall()}
+
+    cur.execute(
+        """SELECT funnel_id, date_trunc('day', created_at)::date, SUM(amount), MIN(created_at)
+           FROM purchases
+           WHERE funnel_id IS NOT NULL AND amount > 0
+             AND created_at >= CURRENT_DATE - (%s * 31)
+           GROUP BY 1, 2""",
+        (months,),
+    )
+    rev, first = defaultdict(dict), {}
+    for fid, d, amt, mn in cur.fetchall():
+        rev[fid][d] = float(amt)
+        k = (fid, d)
+        first[k] = mn
+    if not rev:
+        return [], None
+    edge = min(d for days in rev.values() for d in days)     # lookback boundary
+
+    sends_cache = {}
+    instances = []
+    for fid, days in rev.items():
+        if fid not in meta:
+            continue
+        m = meta[fid]
+        for run in split_runs(days):
+            total = sum(days[d] for d in run)
+            if total < min_rev:
+                continue
+            if (run[0] - edge).days <= 2:      # truncated by the lookback window
+                continue
+            if fid not in sends_cache:
+                pats = [f"%/{m['slug']}%"] + ([f"%/checkout/{m['co']}%"] if m["co"] else [])
+                cur.execute(
+                    """SELECT date_trunc('day', sent_at)::date, COUNT(*)
+                       FROM email_campaigns
+                       WHERE sent_at IS NOT NULL AND html_content ILIKE ANY(%s)
+                       GROUP BY 1""",
+                    (pats,),
+                )
+                sends_cache[fid] = dict(cur.fetchall())
+            instances.append({
+                "fid": fid, "slug": m["slug"], "close": m["close"],
+                "start": run[0], "end": run[-1],
+                "rev": {d: days[d] for d in run},
+                "sends": sends_cache[fid],
+                "first_ts": first[(fid, run[0])],
+            })
+    return instances, edge
+
+
+def at_day(inst, n):
+    d0 = inst["start"]
+    cut = d0 + timedelta(days=n - 1)
+    rev = sum(v for d, v in inst["rev"].items() if d <= cut)
+    sends = sum(v for d, v in inst["sends"].items() if d0 <= d <= cut)
+    span = (inst["end"] - d0).days + 1
+    return {"rev": rev, "sends": sends, "span": span, "eff": min(n, span)}
+
+
+def table(rows, headers, focus_idx=None):
+    w = [max(len(str(r[i])) for r in [headers] + rows) for i in range(len(headers))]
+    bar = lambda l, m, r: l + m.join("─" * (x + 2) for x in w) + r
+    out = [bar("┌", "┬", "┐"),
+           "│ " + " │ ".join(h.ljust(w[i]) for i, h in enumerate(headers)) + " │",
+           bar("├", "┼", "┤")]
+    for j, row in enumerate(rows):
+        cells = [str(c).ljust(w[i]) if i < 2 else str(c).rjust(w[i]) for i, c in enumerate(row)]
+        out.append("│ " + " │ ".join(cells) + " │" + ("  ◀ THIS ONE" if j == focus_idx else ""))
+    out.append(bar("└", "┴", "┘"))
+    return "\n".join(out)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--focus", help="funnel slug to centre on")
+    ap.add_argument("--day", type=int, help="comparison day N")
+    ap.add_argument("--months", type=int, default=18)
+    ap.add_argument("--min-rev", type=float, default=800)
+    ap.add_argument("--all", action="store_true", help="show every run")
+    a = ap.parse_args()
+
+    conn = psycopg2.connect(**PG)
+    cur = conn.cursor()
+    kinds = load_kinds()
+    instances, edge = build(cur, a.months, a.min_rev)
+    if not instances:
+        sys.exit("No launch runs found in window.")
+
+    if a.focus:
+        hits = [i for i in instances if i["slug"] == a.focus]
+        if not hits:
+            sys.exit(f"No run for '{a.focus}'. Known: "
+                     + ", ".join(sorted({i['slug'] for i in instances})))
+        F = max(hits, key=lambda i: i["start"])
+    else:
+        F = max(instances, key=lambda i: i["end"])
+
+    cur_day = (F["end"] - F["start"]).days + 1
+    N = a.day or cur_day
+    kind = kinds.get(F["fid"], "?")
+
+    print(f"\n{B}LAUNCH PACE — {F['slug'].upper()}{R}   day {cur_day}"
+          + (f" of {(F['close'].date() - F['start']).days + 1}" if F["close"] else "")
+          + f"   ·   every launch compared at {B}day {N}{R}")
+    hrs = 24 - F["first_ts"].hour
+    if hrs < 20:
+        print(f"  ⚠ day 1 was partial (~{hrs}h, first sale {F['first_ts']:%H:%M}) — "
+              f"its cumulative total is conservative")
+    if kind == "?":
+        print(f"  ⚠ funnel {F['fid']} is unmapped in the Launch Hub — "
+              f"add it to overrides.json to classify")
+
+    scored = [(s["rev"], i, s) for i, s in ((i, at_day(i, N)) for i in instances)]
+    scored.sort(key=lambda t: t[0], reverse=True)
+    rows, focus_idx = [], None
+    shown = scored if a.all else scored[:15]
+    if not a.all and not any(i is F for _, i, _ in shown):
+        shown = shown + [s for s in scored if s[1] is F]
+
+    for j, (rv, inst, s) in enumerate(shown):
+        if inst is F:
+            focus_idx = j
+        rows.append([
+            inst["slug"][:26] + (" *" if s["span"] < N else ""),
+            kinds.get(inst["fid"], "?"),
+            f"${rv:,.0f}",
+            f"${rv / s['eff']:,.0f}",
+            s["sends"] or "—",
+            f"${rv / s['sends']:,.0f}" if s["sends"] else "—",
+            f"{inst['start']:%b %d %y}",
+        ])
+
+    print()
+    print(table(rows, ["Launch (run)", "Kind", f"Rev @d{N}", "$/day", "Sends", "$/send", "Started"],
+                focus_idx))
+    if any(r[0].endswith(" *") for r in rows):
+        print(f"  * run was shorter than {N} days — Rev @d{N} is its entire run.")
+    if not a.all and len(scored) > len(shown):
+        print(f"  … {len(scored) - len(shown)} more runs hidden (--all to show)")
+
+    rank = next(j for j, (_, i, _) in enumerate(scored) if i is F) + 1
+    peers = [s for s in scored if kinds.get(s[1]["fid"]) == kind and s[1] is not F]
+    better = sum(1 for p in peers if p[0] > scored[rank - 1][0])
+    verdict = ("TOP PERFORMER" if better == 0 else
+               "top half" if better < len(peers) / 2 else "bottom half")
+    print(f"\n  {B}→ #{rank} of {len(scored)} runs overall · {verdict} among "
+          f"{kind} launches at day {N}.{R}")
+    if kind == "NEW" and better == 0 and len(peers) >= 2:
+        print("    TOP of its class — watch for an EXTENSION, and as a post-launch workhorse.")
+    print()
+    cur.close()
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()

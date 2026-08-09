@@ -211,6 +211,16 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 
 ## Skill catalog
 
+### `cc-launch-pace`
+
+- **Source:** fresh-authored 2026-08-08 (not a verbatim port). Designed during the Fluid Flutes launch session, from Marc's own framing: *"How many days in? How much so far? So what's that per day? Now compare against every other launch AT THE SAME DATE RANGE — comparing the first 3 days against a full launch is no good, because launches valley in the middle."*
+- **Trigger description:** see frontmatter `description:` field in `skills/cc-launch-pace/SKILL.md`.
+- **Purpose:** Answers "is this launch actually good, and is it worth extending?" by normalising every launch to **cumulative revenue at day N** and ranking them against each other at the *same* day-N. Reports `Rev @dN`, `$/day`, `Sends` and `$/send`, splits NEW vs RELAUNCH, and flags a NEW launch topping its class as an extension / post-launch-workhorse candidate. Exists as a CLI rather than persona prose because hand-derived launch SQL has produced wrong numbers twice — most notably Fluid Flutes reported at $2,997 when the funnel had made $5,510 (a product-name filter hid a $1,568 upsell and a $396 bump).
+- **Bundled tools:** `cc-launch-pace` (Python CLI, `psycopg2` + stdlib only — no `requirements.txt`, no venv needed; `psycopg2` is already present system-wide on the CC servers). Flags: `--focus <funnel-slug>`, `--day N`, `--months`, `--min-rev`, `--all`. Reads Postgres `purchases` / `funnels` / `builder_checkouts` / `email_campaigns` and the Launch Hub SQLite at `/home/ubuntu/LAUNCH_HUB/App/data/launch_hub.db`. **Read-only — it never writes.**
+- **Correctness properties worth preserving if this is ever edited:** (1) revenue is scoped by `funnel_id` / `builder_checkout_id`, never by product name or `product_id`, so bumps and upsells are counted; (2) NEW/RELAUNCH is read from the Launch Hub's two tables (`launches` = NEW, `old_launches` = RELAUNCH) and anything unmapped prints `?` rather than being guessed — classify permanently by adding `"<funnel_id>": "NEW"|"RELAUNCH"` to `overrides.json` beside `SKILL.md`; (3) revenue is split into **runs** separated by 7+ quiet days, because a funnel resells on every relaunch and often carries a stray sale months before its real launch — both corrupt "day 1"; (4) runs starting within 2 days of the lookback edge are dropped, or the window boundary masquerades as a launch date (this bug once reported Fast String Motors at $37 for day-4 instead of its real $10,884).
+- **Per-machine setup:** none. Works anywhere the CC Postgres and the Launch Hub SQLite are reachable — i.e. the prod server. On a machine without them the CLI errors out; it does not fall back or estimate.
+- **Last updated:** 2026-08-08 (created — second skill to use the "Skill-bundled tools" category after `cc-google-ads`).
+
 ### `distill-general-conversations`
 
 - **Source file:** `Destile Information (General — Conversations & Instructional).txt`
