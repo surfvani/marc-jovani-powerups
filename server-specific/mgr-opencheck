@@ -1,0 +1,12 @@
+#!/bin/bash
+# CLAUDEMANAGER open-check — the D15 boot/hop ritual as one command.
+# Exists because three consecutive hops (9 Aug 2026) composed the inline
+# version without its leading `cd` and ran `git pull` wherever the shell
+# happened to sit — once inside app_cc (D7 violation, zero damage by luck).
+# The cd is baked in here; hops call this absolute path and nothing else.
+cd /home/ubuntu/NORTH_STAR || { echo "FATAL: NORTH_STAR missing"; exit 1; }
+touch ~/.claudemanager.heartbeat
+git pull 2>&1 | tail -2
+echo "--- diff since close:"
+git diff --name-only "$(cat /home/ubuntu/NORTH_STAR/BOARDS/PROJECT_HERO/.last-close-sha)"..HEAD
+echo "--- $(date)"
