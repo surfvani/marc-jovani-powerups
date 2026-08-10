@@ -9,4 +9,8 @@ touch ~/.claudemanager.heartbeat
 git pull 2>&1 | tail -2
 echo "--- diff since close:"
 git diff --name-only "$(cat /home/ubuntu/NORTH_STAR/BOARDS/PROJECT_HERO/.last-close-sha)"..HEAD
+echo "--- HEAD:"
+# HEAD check baked in (10 Aug 2026): hops kept composing `git log` inline
+# without its cd — same failure family as the 9 Aug pull. Never compose it.
+git log --format='%h %ad %s' --date=format:'%d%b %H:%M' -2
 echo "--- $(date)"
