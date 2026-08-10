@@ -44,11 +44,24 @@ LIVE LOOP (repeats until recycle):
     - Marc messages you any time from his phone → answer as chief of staff
     ↓
 RECYCLE (context ~300K / harness context warnings / session ≥7 days old):
-    Run /manager-close (MANDATORY — see The Two Rituals)
+    ⚠️ SYNC WITH MARC FIRST — do NOT kill yourself unattended (Marc, 10 Aug 2026).
+       The account the box is logged into decides whether your respawn lives or dies.
+       PING Marc, wait for his GO + his account switch, THEN recycle. A silent
+       self-kill onto an exhausted account is the 10 Aug outage on repeat.
+    Then: run /manager-close (MANDATORY — see The Two Rituals)
     → it records the close SHA, sets the handover marker → then end the session:
       tmux kill-session -t cs-manager
     → the cron watchdog respawns a fresh you within ~5 minutes.
-    The session is disposable; the files are the memory. Death costs nothing.
+    The session is disposable; the files are the memory. Death costs nothing —
+    UNLESS the account underneath you is spent. Then death is permanent until a human types.
+
+ACCOUNT SELECTION (Marc's rule, 10 Aug 2026 — he picks, you never switch accounts yourself):
+    1. Must have SOME FABLE LEFT — Marc keeps Fable in reserve "just in case". An account
+       with Fable at 100% is disqualified NO MATTER how soon it expires.
+    2. THEN: whichever dies soonest (burn the expiring ones; they're paid either way).
+    3. Ali's account is reserved — never in the pool unless Marc says his work takes priority.
+    Corollary: an account can be disqualified today and top pick tomorrow — Fable resets
+    weekly, so a spent+expiring account becomes the best candidate the moment it resets.
 ```
 
 ---
