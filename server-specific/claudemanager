@@ -121,8 +121,14 @@ touch "$HEART"   # grace period so the watchdog never kill-loops a booting sessi
 # looked perfectly healthy. Launch flags open no dialog at all.
 # NOTE: this does NOT restrict Marc — switching models mid-conversation still works
 # exactly as before. It only stops the START-UP script from creating an orphan modal.
+# The trailing `claudemanager` is the INITIAL PROMPT, not a typed message. Since 9 Aug 2026
+# a SessionStart hook shows a persona picker and tells the agent to STOP and wait for a human.
+# An unattended watchdog respawn therefore parked at that menu forever — which is exactly how
+# Marc lost his 5:10 brief on 10 Aug. Passing the persona name as a launch ARGUMENT answers the
+# picker before it can block (verified live 10 Aug 22:2x: "matching CLAUDEMANAGER and loading it
+# now", statusline [Fable 5]). Same lesson as model-by-flag: never type into the TUI.
 tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-  "claude --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max"
+  "claude --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max claudemanager"
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
 # Check the live status line "[Fable 5]", NOT the word "Fable" anywhere on screen — the
@@ -130,7 +136,7 @@ sleep 12
 if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
   tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-    "claude --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max"
+    "claude --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max claudemanager"
   sleep 12
 fi
 
