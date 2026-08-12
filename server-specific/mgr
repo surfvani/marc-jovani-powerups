@@ -1,0 +1,32 @@
+#!/bin/bash
+# mgr — Marc's direct line to CLAUDEMANAGER, from ANY terminal or ANY Claude session.
+#
+# Why it exists (12 Aug 2026): cross-session messaging works, but it needs a
+# relay agent ("tell that agent to SendMessage ubuntu-0f..."). Marc wanted to
+# write to the manager HIMSELF, in his own words, with no interpreter in between.
+#
+#   mgr "hey manager, we're extending FF"     → sends. The manager sees it within seconds.
+#   mgr                                        → shows the manager's replies (newest last).
+#
+# Inside a Claude session, prefix with "!":   ! mgr "your message"
+#
+# Mechanism: appends to ~/.claudemanager.msgs. The manager keeps a Monitor armed
+# on that file, so the line lands in its conversation the moment it's written.
+# The file IS the durable record — if the manager is dead/recycling, the message
+# waits there and the next boot's open-check picks it up.
+
+MSGS="$HOME/.claudemanager.msgs"
+REPLIES="$HOME/.claudemanager.replies"
+
+# No args → show the manager's replies
+if [ $# -eq 0 ]; then
+  if [ -s "$REPLIES" ]; then
+    tail -40 "$REPLIES"
+  else
+    echo "(no replies yet — the manager answers here, and pushes important ones to your phone)"
+  fi
+  exit 0
+fi
+
+printf '[%s] MARC: %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*" >> "$MSGS"
+echo "→ sent to the manager. (see replies: mgr)"
