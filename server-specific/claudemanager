@@ -5,6 +5,8 @@
 #   claudemanager           start it (safe to run twice — won't duplicate)
 #   claudemanager stop      stop it + disable watchdog respawn (until next start)
 #   claudemanager rotate    clean recycle NOW: handover marker → kill → fresh session
+#   claudemanager solo      Marc is running one BY HAND: stop the tmux one, no respawn
+#                           until the 2am rotate (prevents two brains writing the board)
 #   claudemanager console   watch it live (detach: Ctrl+B then D)
 #   claudemanager status    one-line health check
 #   claudemanager unstick   clear a dialog that is blocking the message queue
@@ -29,6 +31,13 @@ WORKDIR="$HOME"   # home, not NORTH_STAR: keeps personas/, skills/, NORTH_STAR/ 
 HEART="$HOME/.claudemanager.heartbeat"
 OFF="$HOME/.claudemanager.off"
 HANDOVER="$HOME/.claudemanager.handover"
+# SOLO: "a hand-started manager is the live brain right now — watchdog, keep your hands
+# off." Marc runs managers by hand often (a bare `claude` in iTerm2); when he does, the
+# 5-minute watchdog would spawn a SECOND brain inside tmux and both would write the
+# board — two hands on one wheel. Different from OFF: `stop` means stopped until Marc
+# starts it again, while SOLO is cleared by the 2am rotate, which is exactly what he
+# wants — his hand-started session tonight, a clean managed one from 2am on.
+SOLO="$HOME/.claudemanager.solo"
 STALE_SECS=7200   # two missed hourly beats = dead brain
 MODEL_PRIMARY="claude-fable-5[1m]"    # Marc's requirement (3 Aug 2026): Fable + max effort
 MODEL_FALLBACK="claude-opus-5[1m]"    # if Fable is unavailable (usage limits)
@@ -61,6 +70,7 @@ case "$1" in
     AGE=$(heartbeat_age)
     [ -f "$OFF" ] && O=" · OFF-SWITCH SET (watchdog will not respawn)" || O=""
     [ -f "$HANDOVER" ] && H=" · handover marker present" || H=""
+    [ -f "$SOLO" ] && O="$O · 🙋 SOLO MODE (hand-started manager owns it until the 2am rotate)"
     P=""; alive && parked && P=" · ⚠️  PARKED ON A DIALOG — queue blocked, run: claudemanager unstick"
     echo "manager: $S · heartbeat ${AGE}s ago${O}${H}${P}"
     exit 0
@@ -92,6 +102,19 @@ case "$1" in
     fi
     exit 0
     ;;
+  solo)
+    # "I am running the manager by hand — stand down until the 2am rotate."
+    touch "$SOLO"
+    touch "$HANDOVER"   # so the 2am session takes over silently, no death to confess
+    if alive; then
+      tmux kill-session -t "$SESSION"
+      echo "🙋 Solo mode: tmux manager stopped. The watchdog will NOT respawn it."
+    else
+      echo "🙋 Solo mode set. The watchdog will NOT spawn a manager."
+    fi
+    echo "   Your hand-started session is the brain until 02:00, when rotate takes over."
+    exit 0
+    ;;
   rotate|renew)
     # The ONLY sanctioned way a healthy session gets replaced: on the 2am cron, or
     # because Marc asked. Sets the handover marker first, so the fresh session takes
@@ -100,6 +123,7 @@ case "$1" in
       echo "🛑 Off-switch is set — not rotating. Start it with: claudemanager"
       exit 0
     fi
+    rm -f "$SOLO"   # solo mode ends here: from now on the script owns the brain again
     if alive; then
       touch "$HANDOVER"
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: clean recycle (handover marker set)"
@@ -111,6 +135,7 @@ case "$1" in
     ;;
   watchdog)
     [ -f "$OFF" ] && exit 0
+    [ -f "$SOLO" ] && exit 0   # Marc is running a manager by hand — never duplicate it
     if alive; then
       # Catch a blocked queue in ~5 min instead of waiting 2h for the heartbeat to go
       # stale — and clear it WITHOUT killing the session, so nothing Marc typed is lost.
