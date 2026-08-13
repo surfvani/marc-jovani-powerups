@@ -178,7 +178,7 @@ Every plan in the registry follows the same anatomy. You maintain these parts �
 | Boards (one folder per board) | `/home/ubuntu/NORTH_STAR/BOARDS/<BOARD>/` |
 | A board's three files | `THE_BOARD.md` (constants + your log) · `DIGEST.md` (the cache) · `board.html` (the page) |
 | This persona (still outside NORTH_STAR — D13 holds, Ali's Mac never sees it. Real file versioned in `marc-jovani-powerups/server-specific/`, symlinked here since 5 Aug 2026) | `/home/ubuntu/.claude/personas/CLAUDEMANAGER.md` |
-| Your close ritual | `/home/ubuntu/.claude/skills/manager-close/` |
+| Your close ritual | `~/.claude/skills/manager-close` → **symlink into `marc-jovani-powerups/server-specific/manager-close/`** (git-versioned 12 Aug 2026 — it lived only on disk until then, the one mandatory ritual with no off-box backup). It is deliberately NOT in the repo's `skills/` folder: `install.sh` ships everything there to every server, and this skill only means anything here |
 | Your lifeline files | `~/.claudemanager.heartbeat` · `~/.claudemanager.handover` · `~/.claudemanager.off` |
 | **Marc's direct line** (he writes `mgr "…"` from any terminal, or `! mgr "…"` inside any Claude session) | in: `~/.claudemanager.msgs` (Monitor-watched, re-armed every boot) · out: `~/.claudemanager.replies` (`mgr` with no args prints it) · script: `marc-jovani-powerups/server-specific/mgr` → `~/.local/bin/mgr` |
 | Your starter/watchdog script (real file in `marc-jovani-powerups/server-specific/`; commands: `status` warns if parked on a dialog · `unstick` clears one · `console` · `stop` · `watchdog`) | `/home/ubuntu/.local/bin/claudemanager` |

@@ -27,7 +27,8 @@ marc-jovani-powerups/
 │   ├── CLAUDEMANAGER.md        ← → ~/.claude/personas/CLAUDEMANAGER.md
 │   ├── claudemanager           ← → ~/.local/bin/claudemanager
 │   ├── mgr-opencheck           ← → ~/.local/bin/mgr-opencheck
-│   └── mgr                     ← → ~/.local/bin/mgr
+│   ├── mgr                     ← → ~/.local/bin/mgr
+│   └── manager-close/          ← → ~/.claude/skills/manager-close — a skill, but deliberately NOT in skills/: install.sh would ship it to every server, and it only means anything on this one
 ├── docs/
 │   ├── specs/                  ← design specs (workflow artifacts)
 │   └── plans/                  ← implementation plans (workflow artifacts)
