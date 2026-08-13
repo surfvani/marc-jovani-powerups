@@ -618,6 +618,13 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 - ⚠️ **The VPS has not pulled this yet.** On its next `./pull.sh`, `merge_settings()` will convert its symlinked `settings.json` into a real file seeded from that same content — so its plugin set and preferences survive — and only the two `$HOME` paths change. Expected output there: `UNLINK settings.json` followed by `MERGE settings.json`.
 - Workflow change worth knowing: `/config` no longer writes through to `config/settings.json` (it isn't a symlink anymore). Repo-wide changes are made by editing `config/settings.json` and running `./update.sh`; single-machine changes go through `/config` as before.
 
+**Future improvement — PER-SERVER SEPARATION (Marc, 12 Aug 2026, not scheduled):**
+Today the installer has **no filter**: it ships 100% of `skills/` to every machine, and the only separation is placement — `server-specific/` is invisible to `install.sh` and gets symlinked by hand. Binary, with nothing in between. What Marc wants instead:
+1. **One universal folder** that installs on any server, no questions asked.
+2. **Per-server folders** that install only where they belong — and the installer does NOT guess: **the agent running the install asks Marc which additional folders belong on THIS server**, then links those.
+3. **This documentation carries that instruction**, so a cold agent installing on a new machine knows to ask rather than assume.
+Context that motivates it: 5 of the 22 travelling skills assume the surfvani server (`cc-launch-pace` and `cc-google-ads` have hard dependencies; the two doc skills and `how-marc-works-w-claude-code` only mention it in prose — and that last one *should* travel). They are inert elsewhere, not broken, which is why this is an improvement and not a bug. Full capture, with Marc's words and design notes: `NORTH_STAR/BOARDS/PROJECT_HERO/inbox/POWERUPS_IMPROVEMENTS.md` #1.
+
 **Next, when Marc resumes:**
 - Run `./pull.sh` on the Ubuntu VPS to complete the propagation test in the other direction, and confirm the `UNLINK` → `MERGE` migration path behaves as designed there.
 - Add more skills from Marc's prompt library as they get authored.
