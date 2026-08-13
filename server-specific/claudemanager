@@ -4,10 +4,24 @@
 # `claudestart list` sees it, phone picks it up via claude.ai/code as "MANAGER").
 #   claudemanager           start it (safe to run twice — won't duplicate)
 #   claudemanager stop      stop it + disable watchdog respawn (until next start)
+#   claudemanager rotate    clean recycle NOW: handover marker → kill → fresh session
 #   claudemanager console   watch it live (detach: Ctrl+B then D)
 #   claudemanager status    one-line health check
 #   claudemanager unstick   clear a dialog that is blocking the message queue
-#   claudemanager watchdog  (for cron) clear a stuck dialog, respawn if dead or heartbeat stale >2h
+#   claudemanager watchdog  (for cron) clear a stuck dialog · respawn if DEAD · recycle only a CORPSE
+#
+# WHEN THE SESSION IS REPLACED (Marc's rule, 12 Aug 2026 — "me molesta que el agente
+# decida cerrar y abrir sesión… prefiero mantener un agente más tiempo para conservar
+# contexto"):
+#   • DAILY at 2:00am  → cron runs `claudemanager rotate` (clean, silent handover)
+#   • ON HIS WORD      → `claudemanager rotate`, or the agent recycling when he asks
+#   • NEVER on a stale heartbeat alone. A quiet session is not a broken session, and
+#     killing it throws away the context that makes him fast. The old rule (recycle any
+#     live session whose heartbeat was >2h old) is GONE.
+# The watchdog still respawns a session that is genuinely DEAD, still clears a blocking
+# dialog, and still recycles a CORPSE — but a corpse now has to prove it is one: the
+# usage-limit banner on screen AND a stale heartbeat (the 10 Aug 2026 signature, where
+# every respawn booted into "You've reached your Fable 5 limit" and made zero tool calls).
 
 SESSION="cs-manager"
 TITLE="MANAGER"
@@ -25,6 +39,13 @@ alive() { tmux has-session -t "$SESSION" 2>/dev/null; }
 # enqueue and are never read, and scheduled wake-ups never fire — while the session
 # still looks alive. This is what froze the manager on 4 Aug 2026 for 22 minutes.
 parked() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "❯ 1\.|Switch model\?"; }
+
+# A CORPSE: alive as a process, brain-dead as an agent. The 10 Aug 2026 signature —
+# the session boots straight into the usage-limit banner, makes zero tool calls, and
+# can therefore never touch its own heartbeat. Requires BOTH signals: the banner on
+# screen AND a stale heartbeat. Never the heartbeat alone — that would kill the quiet
+# healthy sessions Marc wants kept.
+limited() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qiE "reached your .*limit|/usage-credits|usage limit"; }
 
 heartbeat_age() {
   [ -f "$HEART" ] || { echo 999999; return; }
@@ -71,6 +92,23 @@ case "$1" in
     fi
     exit 0
     ;;
+  rotate|renew)
+    # The ONLY sanctioned way a healthy session gets replaced: on the 2am cron, or
+    # because Marc asked. Sets the handover marker first, so the fresh session takes
+    # over silently instead of confessing a death that never happened.
+    if [ -f "$OFF" ]; then
+      echo "🛑 Off-switch is set — not rotating. Start it with: claudemanager"
+      exit 0
+    fi
+    if alive; then
+      touch "$HANDOVER"
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: clean recycle (handover marker set)"
+      tmux kill-session -t "$SESSION"
+      sleep 2
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: nothing was running — starting fresh"
+    fi
+    ;;
   watchdog)
     [ -f "$OFF" ] && exit 0
     if alive; then
@@ -86,8 +124,16 @@ case "$1" in
         exit 0
       fi
       AGE=$(heartbeat_age)
+      # A stale heartbeat on its own is NOT a reason to kill anything (Marc, 12 Aug
+      # 2026). A session can be quiet for hours and be perfectly alive — and its
+      # context is worth more than a tidy wake chain. Only a proven CORPSE is recycled:
+      # usage-limit banner on screen AND heartbeat stale.
       if [ "$AGE" -lt "$STALE_SECS" ]; then exit 0; fi
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: session alive but heartbeat ${AGE}s stale — recycling it"
+      if ! limited; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: heartbeat ${AGE}s stale but session is healthy — LEAVING IT ALONE (rotate runs at 2am)"
+        exit 0
+      fi
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: CORPSE — usage-limit banner + heartbeat ${AGE}s stale — recycling"
       tmux kill-session -t "$SESSION"
       # no handover marker on purpose: an unclean death must be confessed
     else
@@ -103,7 +149,7 @@ if ! flock -n 9; then
   echo "Another claudemanager start is already in progress."
   exit 0
 fi
-[ "$1" = "watchdog" ] || rm -f "$OFF"
+case "$1" in watchdog|rotate|renew) : ;; *) rm -f "$OFF" ;; esac
 
 if alive; then
   echo "✅ Manager already running as '$TITLE' (tmux: $SESSION)."
@@ -113,6 +159,12 @@ fi
 
 touch "$HEART"   # grace period so the watchdog never kill-loops a booting session
 
+# `--name "MANAGER"` (added 12 Aug 2026) is what makes OTHER sessions see this one as
+# "MANAGER" in /list-agents and in the session picker. `--remote-control` only names it
+# for the phone: measured live, the script-started manager was listed by its peers as
+# "ubuntu-b5 · tmux cs-manager" while a separate stale row read "MANAGER · Remote Control
+# · offline". Marc could not tell which row to message, and the manager had to grep
+# transcripts to find him back. One flag closes both holes.
 # Model + effort are set at LAUNCH, never by typing /model or /effort into the TUI.
 # Root cause of the 4 Aug 2026 freeze: a slash command typed while a turn is running
 # gets QUEUED. It pops later and opens a "Switch model?" modal that nobody is there to
@@ -128,7 +180,7 @@ touch "$HEART"   # grace period so the watchdog never kill-loops a booting sessi
 # picker before it can block (verified live 10 Aug 22:2x: "matching CLAUDEMANAGER and loading it
 # now", statusline [Fable 5]). Same lesson as model-by-flag: never type into the TUI.
 tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-  "claude --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max claudemanager"
+  "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max claudemanager"
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
 # Check the live status line "[Fable 5]", NOT the word "Fable" anywhere on screen — the
@@ -136,7 +188,7 @@ sleep 12
 if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
   tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-    "claude --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max claudemanager"
+    "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max claudemanager"
   sleep 12
 fi
 

@@ -28,5 +28,28 @@ if [ $# -eq 0 ]; then
   exit 0
 fi
 
-printf '[%s] MARC: %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*" >> "$MSGS"
+# --- Who is writing, and how the manager answers them ----------------------
+# Added 12 Aug 2026. Without this, a message arrived with no return address: the
+# manager had to grep every session transcript to guess which one Marc was sitting
+# in, and still got it wrong. A shell launched inside a Claude session already
+# knows — these variables are set for it — so the message carries them.
+#   CLAUDE_CODE_MESSAGING_SOCKET → the exact SendMessage address of that session
+#   CLAUDE_CODE_SESSION_ID       → its transcript, at ~/.claude/projects/*/<id>.jsonl
+#   its --name flag              → the display name Marc sees in /list-agents
+FROM="terminal (fuera de una sesión Claude)"
+if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ]; then
+  NAME=""
+  if [ -n "${CLAUDE_PID:-}" ]; then
+    CMD="$(ps -o args= -p "$CLAUDE_PID" 2>/dev/null)"
+    case "$CMD" in
+      *--name\ *) NAME="$(printf '%s' "$CMD" | sed -n 's/.*--name \(.*\)/\1/p' | sed 's/ --.*//')" ;;
+      *-n\ *)     NAME="$(printf '%s' "$CMD" | sed -n 's/.*-n \(.*\)/\1/p'     | sed 's/ --.*//')" ;;
+    esac
+  fi
+  [ -n "$NAME" ] || NAME="sin nombre (arrancada sin --name)"
+  FROM="sesión «$NAME» · id ${CLAUDE_CODE_SESSION_ID%%-*}"
+  [ -n "${CLAUDE_CODE_MESSAGING_SOCKET:-}" ] && FROM="$FROM · responder con SendMessage to=uds:${CLAUDE_CODE_MESSAGING_SOCKET}"
+fi
+
+printf '[%s] MARC (desde: %s): %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$FROM" "$*" >> "$MSGS"
 echo "→ sent to the manager. (see replies: mgr)"
