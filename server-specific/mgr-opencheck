@@ -14,3 +14,21 @@ echo "--- HEAD:"
 # without its cd — same failure family as the 9 Aug pull. Never compose it.
 git log --format='%h %ad %s' --date=format:'%d%b %H:%M' -2
 echo "--- $(date)"
+
+# --- Marc's direct line (mgr): surface anything not yet seen ---------------
+# Mechanized 12 Aug 2026, same day the line was built. The persona told the
+# boot to re-read ~/.claudemanager.msgs by hand — but a memorized rule is how
+# the 9 Aug cwd bug survived three hops. This runs at EVERY boot and EVERY hop,
+# so a message written while the manager was dead can never be silently lost.
+# It may reprint a line the live Monitor already delivered; that costs one echo
+# and is the safe direction to err.
+MSGS="$HOME/.claudemanager.msgs"; SEEN="$HOME/.claudemanager.msgs.seen"
+if [ -s "$MSGS" ]; then
+  total=$(wc -l < "$MSGS"); seen=$(cat "$SEEN" 2>/dev/null || echo 0)
+  case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
+  if [ "$total" -gt "$seen" ]; then
+    echo "--- MARC DIRECT LINE (mgr) — $((total - seen)) new, ANSWER IN ~/.claudemanager.replies:"
+    tail -n "$((total - seen))" "$MSGS"
+    echo "$total" > "$SEEN"
+  fi
+fi
