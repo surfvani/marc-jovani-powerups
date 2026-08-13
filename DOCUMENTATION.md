@@ -25,7 +25,9 @@ marc-jovani-powerups/
 │   └── hooks/persona-picker.sh ← → ~/.claude/hooks/persona-picker.sh — dynamic: lists whatever .md files exist in ~/.claude/personas/, so each server shows its own menu
 ├── server-specific/            ← versioned but NEVER deployed by install.sh — files that belong to THIS server only, symlinked by hand. Here purely so they survive a disk loss. ⚠️ NOT documented here: the manager project deliberately has no DOCUMENTATION.md — the persona itself is the documentation (see NORTH_STAR/BOARDS/CLAUDEMANAGER-BUILD_PLAN.md §7.2)
 │   ├── CLAUDEMANAGER.md        ← → ~/.claude/personas/CLAUDEMANAGER.md
-│   └── claudemanager           ← → ~/.local/bin/claudemanager
+│   ├── claudemanager           ← → ~/.local/bin/claudemanager
+│   ├── mgr-opencheck           ← → ~/.local/bin/mgr-opencheck
+│   └── mgr                     ← → ~/.local/bin/mgr
 ├── docs/
 │   ├── specs/                  ← design specs (workflow artifacts)
 │   └── plans/                  ← implementation plans (workflow artifacts)
