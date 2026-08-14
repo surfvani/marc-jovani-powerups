@@ -154,13 +154,26 @@ case "$1" in
       # context is worth more than a tidy wake chain. Only a proven CORPSE is recycled:
       # usage-limit banner on screen AND heartbeat stale.
       if [ "$AGE" -lt "$STALE_SECS" ]; then exit 0; fi
-      if ! limited; then
+      # A pre-touched handover marker + a stale heartbeat = the manager SANCTIONED its
+      # own replacement (the 5:10 brief hop ends chain-dead by design with the marker
+      # already set — 12 Aug rule). Rotating here honors the manager's own declared
+      # handover; it is NOT the watchdog deciding. Everything is on disk, the respawn
+      # takes over silently, zero context burned that the manager didn't write down.
+      # Closes the 13 Aug contradiction (manager dark 05:14→17:01: the brief rule
+      # trusted a recycle this script no longer performed; agents' messages and the
+      # 3pm alarm waited ~12h for a tool round that never came).
+      if [ -f "$HANDOVER" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: heartbeat ${AGE}s stale WITH handover marker — manager sanctioned its replacement; rotating"
+        tmux kill-session -t "$SESSION"
+        # marker stays in place → the fresh session takes over silently (clean handover)
+      elif ! limited; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: heartbeat ${AGE}s stale but session is healthy — LEAVING IT ALONE (rotate runs at 2am)"
         exit 0
+      else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: CORPSE — usage-limit banner + heartbeat ${AGE}s stale — recycling"
+        tmux kill-session -t "$SESSION"
+        # no handover marker on purpose: an unclean death must be confessed
       fi
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: CORPSE — usage-limit banner + heartbeat ${AGE}s stale — recycling"
-      tmux kill-session -t "$SESSION"
-      # no handover marker on purpose: an unclean death must be confessed
     else
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: manager is down — respawning"
     fi
