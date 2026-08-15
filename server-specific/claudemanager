@@ -358,8 +358,12 @@ wait_idle() {
   parked && { tmux send-keys -t "$SESSION" Enter; sleep 3; }
 }
 
-# Answer the persona picker, then boot it.
-tmux send-keys -t "$SESSION" "claudemanager" Enter
+# The persona already arrived as the LAUNCH ARGUMENT above, and it self-boots the moment
+# it loads (Session 2 discovery #9). Typing "claudemanager" here as well — a leftover from
+# before 10 Aug 2026, when the picker still had to be answered by hand — made the manager
+# load its persona and run its whole boot sequence TWICE, every rotate, on Fable at max
+# effort. Removed 15 Aug 2026 after Marc read a boot log and saw the duplication.
+# The wait stays: the launch-arg boot turn must finish before the safety-net Boot message.
 wait_idle 240   # persona load + self-boot turn can run over a minute (seen 1m13s live)
 tmux send-keys -t "$SESSION" "Boot: run your boot sequence from the persona (handover check, open-check, heartbeat, schedule next wake-up), then stand by quietly."
 sleep 1
