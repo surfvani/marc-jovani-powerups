@@ -4,6 +4,31 @@
 # version without its leading `cd` and ran `git pull` wherever the shell
 # happened to sit — once inside app_cc (D7 violation, zero damage by luck).
 # The cd is baked in here; hops call this absolute path and nothing else.
+
+# --- AM I THE SANCTIONED MANAGER? (first thing, every boot and every hop) ---
+# 15 Aug 2026: two live processes shared session a81474e2 and both acted as the
+# manager for ~30 minutes. Identity is the PROCESS, not a file: the sanctioned
+# manager is the claude running inside tmux session cs-manager, which is already
+# how the watchdog, rotate, status and unstick all define it.
+# ~/.claudemanager.lock proves NOTHING — it is a start-path mutex released ~30s
+# after boot (verified 15 Aug: `flock -n` acquires it instantly while the manager
+# is live). Checking it would have caught nothing.
+# This runs here, and not as a remembered rule, for the same reason the cd and the
+# mgr-line drain live here: a memorized rule is what failed on 9 Aug.
+MGR_PID="$(tmux list-panes -t cs-manager -F '#{pane_pid}' 2>/dev/null | head -1)"
+if [ -n "$MGR_PID" ] && [ -n "${CLAUDE_PID:-}" ] && [ "$CLAUDE_PID" != "$MGR_PID" ]; then
+  echo "!!! ==================================================================="
+  echo "!!! YOU ARE NOT THE SANCTIONED MANAGER."
+  echo "!!! A live manager is running in tmux cs-manager (pid $MGR_PID)."
+  echo "!!! You are pid $CLAUDE_PID. Two managers writing one board is the"
+  echo "!!! failure the Iron Rules call two hands on one wheel."
+  echo "!!!"
+  echo "!!! STAND DOWN NOW — no board writes, no plan edits, no [mgr] commits,"
+  echo "!!! no manager hops, no /manager-close, no heartbeat touches."
+  echo "!!! Tell Marc you are a duplicate. HE decides which one survives."
+  echo "!!! ==================================================================="
+fi
+
 cd /home/ubuntu/NORTH_STAR || { echo "FATAL: NORTH_STAR missing"; exit 1; }
 touch ~/.claudemanager.heartbeat
 git pull 2>&1 | tail -2

@@ -17,6 +17,10 @@
 # contexto"):
 #   • DAILY at 2:00am  → cron runs `claudemanager rotate` (clean, silent handover)
 #   • ON HIS WORD      → `claudemanager rotate`, or the agent recycling when he asks
+#   • PROVEN BLOCKED  → the liveness ladder replaces it (rung 3, Marc approved 15 Aug
+#     2026). Not "quiet": blocked — heartbeat past 90 min AND the screen frozen AND no
+#     turn running, and two Escapes already failed. A stopped session has no context
+#     worth keeping; everything real is on disk.
 #   • NEVER on a stale heartbeat alone. A quiet session is not a broken session, and
 #     killing it throws away the context that makes him fast. The old rule (recycle any
 #     live session whose heartbeat was >2h old) is GONE.
@@ -25,24 +29,63 @@
 # usage-limit banner on screen AND a stale heartbeat (the 10 Aug 2026 signature, where
 # every respawn booted into "You've reached your Fable 5 limit" and made zero tool calls).
 
-SESSION="cs-manager"
+# SESSION and the state-file prefix are overridable for ONE reason: the watchdog's
+# kill path (rung 3, below) must be truth-table tested against a throwaway tmux
+# session instead of Marc's live manager. Unset in production — the defaults are
+# byte-identical to the values used before this was added (15 Aug 2026).
+SESSION="${CLAUDEMANAGER_SESSION:-cs-manager}"
+STATE="${CLAUDEMANAGER_STATE:-$HOME/.claudemanager}"
 TITLE="MANAGER"
 WORKDIR="$HOME"   # home, not NORTH_STAR: keeps personas/, skills/, NORTH_STAR/ all in-scope so auto-mode never stalls on permission prompts
-HEART="$HOME/.claudemanager.heartbeat"
-OFF="$HOME/.claudemanager.off"
-HANDOVER="$HOME/.claudemanager.handover"
+HEART="$STATE.heartbeat"
+OFF="$STATE.off"
+HANDOVER="$STATE.handover"
 # SOLO: "a hand-started manager is the live brain right now — watchdog, keep your hands
 # off." Marc runs managers by hand often (a bare `claude` in iTerm2); when he does, the
 # 5-minute watchdog would spawn a SECOND brain inside tmux and both would write the
 # board — two hands on one wheel. Different from OFF: `stop` means stopped until Marc
 # starts it again, while SOLO is cleared by the 2am rotate, which is exactly what he
 # wants — his hand-started session tonight, a clean managed one from 2am on.
-SOLO="$HOME/.claudemanager.solo"
+SOLO="$STATE.solo"
+PANE_FP="$STATE.pane"    # previous watchdog run's screen fingerprint — see the ladder below
+STUCK="$STATE.stuck"     # "<epoch first seen blocked> <escape attempts made>"
 STALE_SECS=7200   # two missed hourly beats = dead brain
+# BLOCKED_SECS — the liveness ladder's threshold (15 Aug 2026). A WORKING manager
+# touches its heartbeat every hop, hourly. 90 minutes is 1.5 missed beats: past any
+# healthy gap, yet early enough that a 2am freeze is repaired hours before the 5:10
+# brief. Deliberately ABOVE the 60-minute hop interval — a shorter value would flag a
+# perfectly healthy manager that is simply sitting between wakes, which is exactly the
+# session Marc's 12 Aug rule protects.
+BLOCKED_SECS=5400
 MODEL_PRIMARY="claude-fable-5[1m]"    # Marc's requirement (3 Aug 2026): Fable + max effort
 MODEL_FALLBACK="claude-opus-5[1m]"    # if Fable is unavailable (usage limits)
 
+# Is a turn RUNNING right now? Defined up here (moved 15 Aug 2026) because the watchdog
+# now needs it too: sending Escape into a running turn CANCELS that turn, so every
+# key the watchdog sends is gated on this being false.
+# The discriminator is "<verb>… (<timer>" — an ellipsis plus a live timer:
+#   running → "✻ Orchestrating… (4s · thinking with max effort)"
+#   running → "· Photosynthesizing… (29s · ↓ 625 tokens)"
+#   running → "✽ Precipitating… (2m 20s · ↓ 6.9k tokens · thinking with max effort)"
+#   idle    → "✻ Worked for 17s"   (past tense, stays on screen after the turn ends)
+# Do NOT anchor on the glyph: it animates through ✻, ·, ✽, so a glyph-based match reads
+# a busy session as idle — the bug class that caused the 4 Aug freeze.
+# ⚠️ FIXED 15 Aug 2026: the old pattern ended `\([0-9]+s` and therefore went BLIND the
+# moment a turn passed 60 seconds, because the timer switches from "(45s" to "(2m 20s".
+# Measured live: the manager was mid-turn on "Precipitating… (2m 20s" and the old regex
+# matched zero. Trailing `[ms]` covers both forms. `\([0-9]` also keeps it from matching
+# "Reading 1 file… (ctrl+o to expand)", which is not a timer.
+BUSY_RE="[A-Za-z]+… \([0-9]+[ms]"
+
 alive() { tmux has-session -t "$SESSION" 2>/dev/null; }
+busy()  { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "$BUSY_RE"; }
+
+# The screen, as one hash. A session that is doing ANYTHING repaints; a session frozen
+# behind a modal is byte-identical run after run. This is content-free on purpose — it
+# knows nothing about which dialog is up, so a Claude Code release that ships a brand
+# new dialog cannot blind it (autoUpdatesChannel is "latest": four versions in three
+# days). It is the redundant half of the ladder; the heartbeat is the primary signal.
+pane_fingerprint() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | md5sum | cut -d' ' -f1; }
 
 # A modal dialog left unanswered blocks the ENTIRE message queue: Marc's messages
 # enqueue and are never read, and scheduled wake-ups never fire — while the session
@@ -137,18 +180,70 @@ case "$1" in
     [ -f "$OFF" ] && exit 0
     [ -f "$SOLO" ] && exit 0   # Marc is running a manager by hand — never duplicate it
     if alive; then
-      # Catch a blocked queue in ~5 min instead of waiting 2h for the heartbeat to go
-      # stale — and clear it WITHOUT killing the session, so nothing Marc typed is lost.
-      # Marc switches models mid-conversation often, across devices (his words, 4 Aug
-      # 2026); if a confirm ever gets orphaned, this heals it instead of stranding him.
-      if parked; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: manager PARKED ON A DIALOG — clearing it"
-        tmux send-keys -t "$SESSION" Enter
-        sleep 3
-        parked && echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: still parked — needs a human"
-        exit 0
-      fi
+      FP=$(pane_fingerprint); PREV=$(cat "$PANE_FP" 2>/dev/null || echo "")
+      printf '%s\n' "$FP" > "$PANE_FP"
       AGE=$(heartbeat_age)
+
+      # ── FAST PATH · a dialog is on screen ───────────────────────────────────────
+      # Clear it WITHOUT killing the session, so nothing Marc typed is lost. Marc
+      # switches models mid-conversation often, across devices (his words, 4 Aug 2026);
+      # if a confirm ever gets orphaned, this heals it instead of stranding him.
+      # ESCAPE, never Enter (changed 15 Aug 2026). Enter selects whatever is highlighted
+      # — a decision, made blind, by a cron, on Marc's behalf. That morning it answered
+      # option 1 of "Set up auto mode for your environment?". Escape decides nothing.
+      # And never send a key into a RUNNING turn: Escape would cancel Marc's own work.
+      if parked && ! busy; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: dialog on screen — sending Escape (dismiss, decide nothing)"
+        tmux send-keys -t "$SESSION" Escape; sleep 2; tmux send-keys -t "$SESSION" Escape
+        # Deliberately NO exit and NO all-clear here. On 15 Aug the blind Enter made the
+        # regex stop matching, the watchdog logged success, and the session stayed frozen
+        # for seven more hours. "The dialog text went away" is not evidence of recovery.
+        # Only the ladder below is allowed to decide whether this manager is working.
+      fi
+
+      # ── THE LIVENESS LADDER · is this manager producing work? ────────────────────
+      # Content-free on purpose: it never asks WHAT is on screen, only whether the
+      # manager is doing its job — so a Claude Code release that ships an unknown new
+      # dialog cannot blind it. Three conditions, all required:
+      #   · heartbeat older than 90 min      — a working manager beats hourly
+      #   · screen identical to last run     — a working manager repaints
+      #   · no turn running                  — a long task is work, not a freeze
+      # A quiet-but-healthy manager fails the first test; a busy one fails the third.
+      # Only a genuinely stopped session gets in here.
+      # ENTERING the ladder is conservative — it needs the frozen screen as corroboration.
+      # STAYING in it deliberately does not: our own Escape repaints the pane, and a
+      # repaint we caused is not evidence of work. Once a freeze has been confirmed the
+      # heartbeat is the sole authority, and only a fresh beat (or a running turn) clears
+      # the state. Found by the truth-table test, 15 Aug 2026: without this the attempt
+      # counter reset on every Escape and rung 3 could never be reached — the watchdog
+      # would have Escaped a dead session forever.
+      if [ "$AGE" -ge "$BLOCKED_SECS" ] && ! busy \
+         && { [ -f "$STUCK" ] || { [ -n "$PREV" ] && [ "$FP" = "$PREV" ]; }; }; then
+        read -r SINCE ATT <<< "$(cat "$STUCK" 2>/dev/null || echo '0 0')"
+        case "$SINCE" in ''|*[!0-9]*) SINCE=0 ;; esac
+        case "$ATT"   in ''|*[!0-9]*) ATT=0   ;; esac
+        NOW=$(date +%s); [ "$SINCE" -eq 0 ] && SINCE=$NOW
+        ATT=$((ATT+1)); printf '%s %s\n' "$SINCE" "$ATT" > "$STUCK"
+        if [ "$ATT" -lt 3 ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: BLOCKED (heartbeat ${AGE}s · screen frozen · no turn running) — Escape ${ATT}/2"
+          tmux send-keys -t "$SESSION" Escape; sleep 2; tmux send-keys -t "$SESSION" Escape
+          exit 0
+        fi
+        # RUNG 3 — approved by Marc, 15 Aug 2026. Two Escapes failed. This session is
+        # not thinking, it is stopped, and a stopped session has no context worth
+        # keeping — everything real is on disk. The marker makes the respawn a SILENT
+        # clean takeover. This does NOT weaken Marc's 12 Aug rule: a quiet, responsive
+        # manager can never reach this line. The respawn itself is left to the next
+        # watchdog run (≤5 min), which takes the ordinary "manager is down" path —
+        # no new start logic, nothing else in this branch chain disturbed.
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: BLOCKED $((NOW-SINCE))s after 2 Escapes — replacing the session (rung 3)"
+        rm -f "$STUCK" "$PANE_FP"
+        touch "$HANDOVER"
+        tmux kill-session -t "$SESSION"
+        exit 0
+      else
+        rm -f "$STUCK"   # working again, or never stuck — reset the ladder
+      fi
       # A stale heartbeat on its own is NOT a reason to kill anything (Marc, 12 Aug
       # 2026). A session can be quiet for hours and be perfectly alive — and its
       # context is worth more than a tidy wake chain. Only a proven CORPSE is recycled:
@@ -181,6 +276,10 @@ case "$1" in
 esac
 
 # ---- start path (default, and watchdog fall-through) ----
+
+# Test-only stop line (15 Aug 2026). Lets the truth-table test exercise every watchdog
+# decision without ever spawning a real Claude session. Unset in production.
+[ -n "${CLAUDEMANAGER_NO_START:-}" ] && { echo "[test] CLAUDEMANAGER_NO_START set — stopping before the start path"; exit 0; }
 
 exec 9>"$HOME/.claudemanager.lock"
 if ! flock -n 9; then
@@ -217,8 +316,15 @@ touch "$HEART"   # grace period so the watchdog never kill-loops a booting sessi
 # Marc lost his 5:10 brief on 10 Aug. Passing the persona name as a launch ARGUMENT answers the
 # picker before it can block (verified live 10 Aug 22:2x: "matching CLAUDEMANAGER and loading it
 # now", statusline [Fable 5]). Same lesson as model-by-flag: never type into the TUI.
+# `--permission-mode auto` (added 15 Aug 2026) is the third instance of that same lesson.
+# At 02:02 that morning a fresh manager was stopped by the dialog "Set up auto mode for
+# your environment?" and sat frozen for 439 minutes. A mode that is already decided at
+# launch cannot be asked about later. The value matches settings.json's existing
+# permissions.defaultMode ("auto"), so behaviour is unchanged — it is simply no longer
+# negotiable at runtime. Anything the boot needs arrives as a flag: model (4 Aug),
+# persona (10 Aug), permission mode (15 Aug).
 tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-  "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max claudemanager"
+  "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max --permission-mode auto claudemanager"
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
 # Check the live status line "[Fable 5]", NOT the word "Fable" anywhere on screen — the
@@ -226,7 +332,7 @@ sleep 12
 if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
   tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
-    "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max claudemanager"
+    "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager"
   sleep 12
 fi
 
@@ -237,13 +343,9 @@ fi
 #   1. wrong region — the spinner renders in the CONTENT area (pane line ~16), so
 #      `tail -6` never saw it;
 #   2. wrong string — there is no "tokens" in the spinner in v2.1.221.
-# The real discriminator is "<verb>… (<n>s" — an ellipsis plus a live timer:
-#   running → "✻ Orchestrating… (4s · thinking with max effort)"
-#   running → "· Photosynthesizing… (29s · ↓ 625 tokens)"
-#   idle    → "✻ Worked for 17s"   (past tense, stays on screen after the turn ends)
-# Do NOT anchor on the glyph: it animates through ✻, ·, and others, so a glyph-based
-# match reads a busy session as idle — the exact bug class that caused the freeze.
-BUSY_RE="[A-Za-z]+… \([0-9]+s"
+# BUSY_RE — the real discriminator, and the note on why the glyph must never be matched
+# — now lives at the TOP of this file: the watchdog needs the same test before it may
+# send a single key, so there is exactly one definition of "is a turn running".
 wait_idle() {
   local max=${1:-180} t=0
   sleep 8   # let the turn actually start rendering before the first look
