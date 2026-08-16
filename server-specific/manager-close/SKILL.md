@@ -38,6 +38,8 @@ List, from your own session memory + `git status`: every plan edit you made, eve
 ### Step 3 — Update DIGEST.md
 Targeted edits only, for the sections your inventory touches: lane states, 🚨 rows, dates, the "Today" block. Each new fact must be traceable to a plan (or to THE_BOARD.md's Marc-reported table). Rebuild a section rather than patch it if drift has accumulated.
 
+**The Today block must leave TOMORROW'S BRIEF STAGED** — leads + day plan readable in one block, MAÑANA content in the PRE-GAINS journal formula (persona Hard-Won 16 Aug) — so the next boot renders the 5:10 brief from digest + wiki DB + live numbers alone.
+
 ### Step 4 — Tick the plans (bookkeeping only)
 For each plan whose reality moved: tick the box / refresh the Active State row **with evidence in the edit**. You are a polite guest (D4): status ticks, Active State refreshes, cross-doc consistency — never specs, never build work, never Locked Decisions registers. **Grep the whole document for any fact you correct — never trust the pointer to one section** (the six-places lesson).
 
@@ -60,7 +62,7 @@ cd /home/ubuntu/NORTH_STAR && git add -A && git commit -m "[mgr] close: <one-lin
 If the auto-sync already swept your edits: commit whatever remains (the SHA file at minimum), do not fight the race, note nothing — it is normal.
 
 ### Step 9 — Recycling? Set the marker, then end
-Only when this close is a self-recycle (context ~300K / harness warnings / session ≥7 days) or Marc ordered shutdown:
+Only when Marc ordered the recycle/shutdown. **Context pressure and session age are NOT recycle reasons** (Marc's two-triggers rule, 12 Aug 2026: the 2am cron or his word, nothing else). Closing ahead of the 2am rotate? Close WITHOUT marker or kill — the cron sets the marker and kills by itself (proven 16 Aug: 01:11 quiet close → 02:00 rotate → silent takeover):
 ```bash
 touch ~/.claudemanager.handover
 tmux kill-session -t cs-manager
