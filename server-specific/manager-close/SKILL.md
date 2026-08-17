@@ -38,7 +38,7 @@ List, from your own session memory + `git status`: every plan edit you made, eve
 ### Step 3 — Update DIGEST.md
 Targeted edits only, for the sections your inventory touches: lane states, 🚨 rows, dates, the "Today" block. Each new fact must be traceable to a plan (or to THE_BOARD.md's Marc-reported table). Rebuild a section rather than patch it if drift has accumulated.
 
-**The Today block must leave TOMORROW'S BRIEF STAGED** — leads + day plan readable in one block, MAÑANA content in the PRE-GAINS journal formula (persona Hard-Won 16 Aug) — so the next boot renders the 5:10 brief from digest + wiki DB + live numbers alone.
+**The Today block must leave TOMORROW'S BRIEF STAGED** — leads + day plan readable in one block, MAÑANA content in the PRE-GAINS journal formula (persona Hard-Won 16 Aug), taken from `/manager-checkout`'s planner-framed output (weekly-intentions frame + INTENTIONAL/URGENCIA classification, Hard-Won 17 Aug) — so the next boot renders the 5:10 brief from digest + wiki DB + live numbers alone.
 
 ### Step 4 — Tick the plans (bookkeeping only)
 For each plan whose reality moved: tick the box / refresh the Active State row **with evidence in the edit**. You are a polite guest (D4): status ticks, Active State refreshes, cross-doc consistency — never specs, never build work, never Locked Decisions registers. **Grep the whole document for any fact you correct — never trust the pointer to one section** (the six-places lesson).
