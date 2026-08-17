@@ -60,6 +60,7 @@ Task list from these steps (task tools where available; a visible manual checkli
 - Scheduled/automatic sends stay OUT (one reassurance line at most; a full what's-coming schedule only on explicit request).
 
 ### Step 5 — MAÑANA (pre-gains, chat first)
+0. **TIMING (locked by Marc, 17 Aug 2026):** if a daily alignment landed MID-DAY, the MAÑANA surfaces (sheet → bar → card) were already refreshed THE MOMENT the alignment was processed — fresh context, the alignment always wins. This checkout then **ADJUSTS** what changed since; it never re-creates. On days with NO mid-day alignment, this checkout is where MAÑANA is born.
 1. **Source:** tomorrow's daily sheet if it exists; else derive from the weekly's daily_focus row + intentions, LABELED derived.
 2. **Frame:** weekly intentions first (aligns_with mentally attached) → urgencies under/after → time-feasibility vs tomorrow's schedule table (Hard rule 3).
 3. **Classify every item** (see The Classification). Name conflicts in one line ("el weekly dice mañana AM = componer CA; tus 3 del vault van después — ¿ok?"). Marc decides with the frame visible — even against his own late-night words, restate the frame once, then obey his call.
@@ -71,7 +72,7 @@ The day's meaningful accomplishments, most → least important, one needle-moved
 
 ### Step 7 — ONE file pass (only after Marc's adjustments)
 - WINS three layers: `BOARDS/PROJECT_HERO/WINS.md` (append, newest-week-first) · board **Hero Log** box (current week, ALL wins) · `wins.html` (the /wins archive). Monday's close starts a fresh week section.
-- Board **MAÑANA bar** + **`dia-card.html`** → redeploy the "EL DÍA" artifact, SAME url (https://claude.ai/code/artifact/74279c94-37ac-474d-8144-45f0c4cfdcc6). URGENCIA items carry the ultra-mini red dot; INTENTIONAL items stay clean. Footer stamp updated (`date` first).
+- Board **MAÑANA bar** + **`dia-card.html`** → redeploy the "EL DÍA" artifact, SAME url (https://claude.ai/code/artifact/74279c94-37ac-474d-8144-45f0c4cfdcc6). URGENCIA items carry the ultra-mini red dot; INTENTIONAL items stay clean. **The FLOW line carries design WEIGHT and a CONCRETE HOUR** — larger type, the hour in mono accent, "no negociable" (Marc, 17 Aug: *"el flow hay que schedulearlo — si no se schedulea, me lo salto… ocurre a esta hora, no es negociable; todo lo demás ocurre alrededor"*). Footer stamp updated (`date` first).
 - Checkout answers are EVIDENCE: tick plans with it ("Marc confirmed, checkout N Aug"), one log row per edit in `THE_BOARD.md`.
 
 ### Step 8 — Hand off to /manager-close
