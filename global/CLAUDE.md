@@ -50,6 +50,12 @@ Not:
 
 ---
 
+## Server Backups — read before touching s1 / s2 / the NAS / the vault
+
+The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `NORTH_STAR/BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
+
+---
+
 ## Claim Discipline
 
 "Done / works / passes / fixed" requires evidence produced THIS turn. Run the proving command, read the output, then claim — citing it. Not "should pass," not "ran it earlier," not "looks correct."
