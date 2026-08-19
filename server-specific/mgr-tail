@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""mgr-tail — recover the stretch a dead manager never got to write down.
+
+Born 18 Aug 2026, the night the box OOM-killed the manager mid-command (kernel:
+"Out of memory: Killed process ... anon-rss 11.3 GB"). Marc's own framing: two
+assistants, and when the first one leaves mid-shift the second must not need the
+day re-explained. The written brief (DIGEST + board log) is that briefing — but a
+kernel bullet gives no time to write it, so everything since the predecessor's last
+flush exists in exactly one place: its transcript.
+
+This prints THAT stretch, and only that stretch. Not "the last N lines": everything
+before the watermark is already on the board, and re-reading it would burn the fresh
+manager's context re-living the day instead of continuing it. Tool traffic (psql
+dumps, git output, file reads) is dropped for the same reason — the conversation is
+what carries decisions.
+
+    mgr-tail <since-epoch> [transcript.jsonl]
+
+With no transcript it reads the predecessor recorded in ~/.claudemanager.session
+(written by mgr-opencheck at every boot and every hop). The full file always stays on
+disk: if this summary is not enough, read the .jsonl directly.
+"""
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+STATE = os.path.expanduser("~/.claudemanager.session")
+MAX_CHARS = 4000  # per message: long enough for a decision, short enough to stay a briefing
+
+
+def resolve():
+    if len(sys.argv) < 2:
+        sys.exit("usage: mgr-tail <since-epoch> [transcript.jsonl]")
+    try:
+        since = float(sys.argv[1])
+    except ValueError:
+        sys.exit(f"not an epoch: {sys.argv[1]}")
+    if len(sys.argv) > 2:
+        return since, sys.argv[2]
+    try:
+        with open(STATE) as fh:
+            parts = fh.read().split()
+        path = parts[2]
+    except (OSError, IndexError):
+        sys.exit(f"no transcript given and none recorded in {STATE}")
+    return since, path
+
+
+def main():
+    since, path = resolve()
+    if not os.path.exists(path):
+        sys.exit(f"transcript not found: {path}")
+    cutoff = datetime.fromtimestamp(since, tz=timezone.utc)
+    print(f"=== UNFLUSHED STRETCH — {os.path.basename(path)}")
+    print(f"=== everything after {cutoff.astimezone():%d %b %H:%M %Z} "
+          f"(the predecessor's last flush). Earlier work is already on the board.\n")
+    shown = 0
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            stamp = obj.get("timestamp")
+            if not stamp:
+                continue
+            try:
+                when = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if when <= cutoff:
+                continue
+            msg = obj.get("message")
+            if not isinstance(msg, dict):
+                continue
+            role = msg.get("role")
+            if role not in ("user", "assistant"):
+                continue
+            content = msg.get("content")
+            chunks = []
+            if isinstance(content, str):
+                chunks.append(content)
+            elif isinstance(content, list):
+                for part in content:
+                    # tool_use / tool_result carry the noise; the text carries the day
+                    if isinstance(part, dict) and part.get("type") == "text":
+                        chunks.append(part.get("text", ""))
+            text = "\n".join(c.strip() for c in chunks if c and c.strip())
+            if not text:
+                continue
+            # Not everything on the "user" side is Marc. Skill loads, wake-up carriers
+            # and harness notifications arrive in the same channel and are enormous —
+            # and none of them carry a decision. Measured on this very incident: they
+            # were 90% of the recovered bytes and 0% of what a successor needs.
+            if any(text.startswith(p) for p in (
+                "<system-reminder>", "Caveat:", "Base directory for this skill:",
+                "<command-name>", "<local-command-caveat>", "HOURLY HOP",
+                "MANAGER HOURLY HOP", "[SYSTEM NOTIFICATION",
+            )) or "<task-notification>" in text[:400]:
+                continue
+            who = "MARC" if role == "user" else "MANAGER"
+            local = when.astimezone()
+            print(f"[{local:%H:%M}] {who}: {text[:MAX_CHARS]}"
+                  f"{'…' if len(text) > MAX_CHARS else ''}\n")
+            shown += 1
+    if not shown:
+        print("(nothing after the watermark — the predecessor flushed everything it did)")
+    else:
+        print(f"=== {shown} messages recovered. Full transcript: {path}")
+
+
+if __name__ == "__main__":
+    # `mgr-tail … | head` is the normal way to skim this, and a bare SIGPIPE would
+    # answer it with a traceback. Die quietly like every other unix tool.
+    import signal
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    main()

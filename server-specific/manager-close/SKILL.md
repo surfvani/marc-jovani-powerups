@@ -40,6 +40,8 @@ Targeted edits only, for the sections your inventory touches: lane states, 🚨 
 
 **The Today block must leave TOMORROW'S BRIEF STAGED** — leads + day plan readable in one block, MAÑANA content in the PRE-GAINS journal formula (persona Hard-Won 16 Aug), taken from `/manager-checkout`'s planner-framed output (weekly-intentions frame + INTENTIONAL/URGENCIA classification, Hard-Won 17 Aug) — so the next boot renders the 5:10 brief from digest + wiki DB + live numbers alone.
 
+**⚠️ REPLACE the Today block, never append (Marc, 18 Aug 2026).** Hop lines and yesterday's staging already live in their permanent homes (wins → `WINS.md` · audit → board log · facts → plans · everything → git), so one fresh block overwrites the old and the file never grows. Anything you can't delete because it lives nowhere else belongs in a plan, the log, or `INBOX.md` — put it there first, then replace.
+
 ### Step 4 — Tick the plans (bookkeeping only)
 For each plan whose reality moved: tick the box / refresh the Active State row **with evidence in the edit**. You are a polite guest (D4): status ticks, Active State refreshes, cross-doc consistency — never specs, never build work, never Locked Decisions registers. **Grep the whole document for any fact you correct — never trust the pointer to one section** (the six-places lesson).
 
@@ -62,11 +64,14 @@ cd /home/ubuntu/NORTH_STAR && git add -A && git commit -m "[mgr] close: <one-lin
 If the auto-sync already swept your edits: commit whatever remains (the SHA file at minimum), do not fight the race, note nothing — it is normal.
 
 ### Step 9 — Recycling? Set the marker, then end
-Only when Marc ordered the recycle/shutdown. **Context pressure and session age are NOT recycle reasons** (Marc's two-triggers rule, 12 Aug 2026: the 2am cron or his word, nothing else). Closing ahead of the 2am rotate? Close WITHOUT marker or kill — the cron sets the marker and kills by itself (proven 16 Aug: 01:11 quiet close → 02:00 rotate → silent takeover):
+Only when Marc ordered the recycle/shutdown, or the watchdog ordered an EMERGENCY ROTATE (memory guard, below). **Context pressure and session age are NOT recycle reasons** (Marc's two-triggers rule, 12 Aug 2026: the 2am cron or his word, nothing else). Closing ahead of the 2am rotate? Close WITHOUT marker or kill — the cron sets the marker and kills by itself (proven 16 Aug: 01:11 quiet close → 02:00 rotate → silent takeover):
 ```bash
-touch ~/.claudemanager.handover
+printf 'manual %s\n' "$(date +%s)" > ~/.claudemanager.handover
 tmux kill-session -t cs-manager
 ```
+**The marker states WHY** — `manual`/`brief`/`rotate`/`solo`/`emergency-rotate`. With a reason it is valid at any age; a bare `touch` only for 3h (on 18 Aug a 9h-old bare one let an OOM kill pass as a clean handover). **Never pre-touch it outside those moments.**
+
+**EMERGENCY ROTATE (memory guard).** A `🚨 EMERGENCY ROTATE` line on the `mgr` line = the box is out of memory and you are replaced in 15 min, ready or not. Run lean and now: Steps 1 → 3 → 6 → 7 → 8 (skip the board page unless stale). Do NOT set a marker, do NOT kill — the watchdog sees the close SHA move and does both. Miss it and your successor inherits a confession plus `mgr-tail` instead of your brief.
 The watchdog respawns a fresh manager within ~5 minutes; the marker tells it the death was clean, so it takes over silently. If you are closing but the session should stay alive (e.g., Marc asked for a mid-day close-out), SKIP this step entirely — no marker, no kill.
 
 ## Failure modes

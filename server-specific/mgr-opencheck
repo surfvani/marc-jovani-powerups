@@ -29,6 +29,44 @@ if [ -n "$MGR_PID" ] && [ -n "${CLAUDE_PID:-}" ] && [ "$CLAUDE_PID" != "$MGR_PID
   echo "!!! ==================================================================="
 fi
 
+# --- WAS I RELIEVED, OR DID I DIE? + WHERE MY PREDECESSOR'S MEMORY LIVES --------
+# 18 Aug 2026. The box OOM-killed the manager at 21:30:55 mid-command; the watchdog
+# respawned it 5 minutes later; the fresh session found a handover marker touched 9.5
+# hours earlier "as a safety net", read it as a clean relevo, and never confessed the
+# death — Marc discovered a 20-minute hole on his own. Two mechanical fixes live here:
+#   1. the handover verdict is COMPUTED, not remembered (claudemanager handover-check),
+#      and a bare marker older than 3h no longer passes as a sanctioned relevo;
+#   2. every session records WHERE ITS OWN TRANSCRIPT IS and WHEN IT LAST FLUSHED, so a
+#      successor born of a crash can read exactly the stretch its predecessor never got
+#      to write down — the mid-shift handover briefing, recovered from the corpse.
+# This block runs on the FIRST run of a new session (the boot); on later hops it only
+# refreshes the watermark, which is what makes "since the last flush" meaningful.
+SESSFILE="$HOME/.claudemanager.session"
+MY_ID="${CLAUDE_CODE_SESSION_ID:-unknown}"
+MY_TX="$(find /home/ubuntu/.claude/projects -name "$MY_ID.jsonl" 2>/dev/null | head -1)"
+read -r PREV_ID PREV_AT PREV_TX < "$SESSFILE" 2>/dev/null || true
+if [ "$MY_ID" != "${PREV_ID:-}" ]; then
+  VERDICT="$(/home/ubuntu/.local/bin/claudemanager handover-check --consume)"
+  echo "--- BOOT · handover verdict: $VERDICT"
+  case "$VERDICT" in
+    CLEAN*)
+      echo "    → clean relevo. Take over silently; Marc never sees the seam." ;;
+    *)
+      echo "    → ⚠️  UNSANCTIONED DEATH (no valid marker). CONFESS IT to Marc in your"
+      echo "       next brief or contact — with the window: predecessor last flushed"
+      echo "       ${PREV_AT:+$(date -d "@$PREV_AT" '+%H:%M %Z') on $(date -d "@$PREV_AT" '+%d %b')}${PREV_AT:+, }you booted $(date '+%H:%M %Z')."
+      if [ -n "${PREV_TX:-}" ] && [ -f "${PREV_TX:-/nonexistent}" ]; then
+        echo "       RECOVER THE UNFLUSHED STRETCH (everything before it is already on the"
+        echo "       board — this is the only part that exists nowhere else):"
+        echo "         /home/ubuntu/.local/bin/mgr-tail ${PREV_AT:-0}"
+      else
+        echo "       (no predecessor transcript recorded — first run after this upgrade,"
+        echo "        or the session file was cleared)"
+      fi ;;
+  esac
+fi
+printf '%s %s %s\n' "$MY_ID" "$(date +%s)" "${MY_TX:-none}" > "$SESSFILE"
+
 cd /home/ubuntu/NORTH_STAR || { echo "FATAL: NORTH_STAR missing"; exit 1; }
 touch ~/.claudemanager.heartbeat
 git pull 2>&1 | tail -2

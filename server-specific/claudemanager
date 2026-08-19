@@ -10,7 +10,10 @@
 #   claudemanager console   watch it live (detach: Ctrl+B then D)
 #   claudemanager status    one-line health check
 #   claudemanager unstick   clear a dialog that is blocking the message queue
+#   claudemanager handover-check [--consume]
+#                           is the handover marker a real relevo, or a crash wearing its clothes?
 #   claudemanager watchdog  (for cron) clear a stuck dialog · respawn if DEAD · recycle only a CORPSE
+#                           · log the memory curve · warn at 6 GB · graceful rotate at 16 GB / <2 GB free
 #
 # WHEN THE SESSION IS REPLACED (Marc's rule, 12 Aug 2026 — "me molesta que el agente
 # decida cerrar y abrir sesión… prefiero mantener un agente más tiempo para conservar
@@ -28,6 +31,28 @@
 # dialog, and still recycles a CORPSE — but a corpse now has to prove it is one: the
 # usage-limit banner on screen AND a stale heartbeat (the 10 Aug 2026 signature, where
 # every respawn booted into "You've reached your Fable 5 limit" and made zero tool calls).
+#
+# THE MEMORY GUARD (18 Aug 2026, Marc's design after the box OOM-killed the manager at
+# 21:30:55 — kernel: "Out of memory: Killed process … anon-rss 11.3 GB"). A manager that
+# works a full day grows: 0.6 GB fresh, ~1.1 GB/hour under load, 11.3 GB at 9.5 hours.
+# Nothing watched that number, so the kernel made the decision instead — no warning, no
+# brief written, and the fresh session mistook the crash for a clean relevo.
+#   · every run  → the memory curve, one CSV line, claude and children counted apart
+#                  (Marc's ask: it names WHICH half leaks — session heap or MCP servers)
+#   · 6 GB       → ONE warning down Marc's own `mgr` line. The live manager reads it in
+#                  seconds and brings it to him with a recommendation. He decides.
+#   · 16 GB, or under 2 GB available box-wide while the manager itself is over 4 GB
+#                → GRACEFUL rotate: order the manager to write its brief (/manager-close),
+#                  give it 15 minutes, then replace it. Wrote the brief → marker set, the
+#                  successor takes over silently. Too frozen to write → killed anyway, NO
+#                  marker, so the successor confesses and recovers from the transcript.
+#   · always     → the manager is the kernel's DESIGNATED VICTIM (oom_score_adj on its
+#                  whole process tree). A sudden spike no watchdog can outrun shoots the
+#                  manager, never postgres or a gunicorn worker. The manager's death is
+#                  survivable by design; production's is not.
+# The 4 GB floor on the low-memory trigger is deliberate: when the box fills up and the
+# manager is NOT the cause, replacing it frees nothing and burns the context Marc's
+# 12 Aug rule exists to protect.
 
 # SESSION and the state-file prefix are overridable for ONE reason: the watchdog's
 # kill path (rung 3, below) must be truth-table tested against a throwaway tmux
@@ -59,6 +84,32 @@ STALE_SECS=7200   # two missed hourly beats = dead brain
 BLOCKED_SECS=5400
 MODEL_PRIMARY="claude-fable-5[1m]"    # Marc's requirement (3 Aug 2026): Fable + max effort
 MODEL_FALLBACK="claude-opus-5[1m]"    # if Fable is unavailable (usage limits)
+
+# ── MEMORY GUARD state + thresholds (18 Aug 2026) ────────────────────────────
+MEMLOG="$STATE.mem"          # the curve: one CSV line per watchdog run, ~288/day
+MEMWARN="$STATE.memwarn"     # tmux session-created stamp already warned about (one warning per session)
+EMERG="$STATE.emergency"     # "<epoch ordered> <session stamp>" — a graceful rotate is in flight
+# Marc's direct line: the manager tails it, so it is also how the watchdog TELLS the
+# manager something. Derived from $STATE on purpose — the production path is unchanged
+# ($HOME/.claudemanager.msgs), and the truth-table test redirects it with everything else
+# instead of writing into Marc's real inbox.
+MSGS="$STATE.msgs"
+WARN_GB=6                    # 10× a fresh session (0.6 GB measured) — loud enough to mean something, quiet enough never to nag
+CEIL_GB=16                   # Marc's number, 18 Aug 2026 ("16, not 12")
+FREE_MIN_GB=2                # box-wide MemAvailable floor — tonight's real condition
+MEM_FLOOR_GB=4               # …but only rotate for it if the manager is actually part of the problem
+EMERG_GRACE=900              # 15 minutes to write the brief, then the emergency wins
+OOM_ADJ=500                  # designated victim: shoot the manager first, never prod
+# A handover marker states WHY it exists (18 Aug 2026). A marker with a sanctioned
+# reason is a real relevo at any age — solo sets one at 14:00 that the 2am rotate
+# consumes 12 hours later. A BARE marker (a plain `touch`, the old habit) is only
+# trusted while it is fresh: the 21:30 crash was disguised as a clean takeover by a
+# marker touched 9.5 hours earlier "as a safety net".
+MARKER_FRESH_SECS=10800      # 3h — a bare marker older than this is a crash in disguise
+# The current board's close marker. The graceful rotate waits for THIS file's mtime to
+# move: the close ritual's own Step 7 writes it, so it is the one unambiguous "the brief
+# is written" signal. Swap the path when the board changes (persona § Current Board).
+CLOSE_SHA="${CLAUDEMANAGER_CLOSE_SHA:-$HOME/NORTH_STAR/BOARDS/PROJECT_HERO/.last-close-sha}"
 
 # Is a turn RUNNING right now? Defined up here (moved 15 Aug 2026) because the watchdog
 # now needs it too: sending Escape into a running turn CANCELS that turn, so every
@@ -104,6 +155,91 @@ heartbeat_age() {
   echo $(( $(date +%s) - $(stat -c %Y "$HEART") ))
 }
 
+# ── MEMORY GUARD helpers ─────────────────────────────────────────────────────
+
+# The pane's pid, and every process under it. Why the whole tree and not one pid:
+# the 21:30 OOM victim was pid 1213133 with comm "2.1.234" — a version-named process
+# that was NOT the pid tmux started (997450). Claude Code re-spawns itself on in-place
+# updates (autoUpdatesChannel: latest), so anything that must find "the manager" walks
+# the tree. The MCP servers live in the same tree and are counted separately below.
+# ⚠️ `if (seen[p]==1)` on the way out is load-bearing, not style. awk CREATES an array
+# entry the moment you read one, so `seen[par[p]]` inside the walk quietly adds every
+# parent pid on the box — and the first version printed them all. Caught by the truth
+# table on 18 Aug 2026 before it ever ran from cron, but not before the test run itself
+# had flagged ~156 processes (app_cc gunicorn workers among them) as OOM victims; all
+# were reset the same minute. A tree walk that can return the whole process table is a
+# loaded gun pointed at production.
+mgr_tree() {
+  local root="$1"; [ -n "$root" ] || return 0
+  ps -eo pid=,ppid= 2>/dev/null | awk -v root="$root" '
+    { pid[NR]=$1; par[$1]=$2; n=NR }
+    END {
+      seen[root]=1; changed=1
+      while (changed) { changed=0
+        for (i=1;i<=n;i++) { p=pid[i]; if (seen[p]!=1 && seen[par[p]]==1) { seen[p]=1; changed=1 } } }
+      for (p in seen) if (seen[p]==1) print p
+    }'
+}
+
+# "<pane_kb> <children_kb> <available_kb>". MemAvailable, not MemFree: cache is
+# reclaimable, and it is what the kernel actually has left before it starts shooting.
+# The FAKE_* overrides are TEST-ONLY (same precedent as CLAUDEMANAGER_NO_START): every
+# threshold below must be provable without putting real memory pressure on a box that
+# has already OOM-killed once tonight.
+mem_snapshot() {
+  local pane="$1" p kb pane_kb=0 child_kb=0 avail_kb
+  if [ -n "${CLAUDEMANAGER_FAKE_RSS_KB:-}" ]; then
+    pane_kb="$CLAUDEMANAGER_FAKE_RSS_KB"; child_kb="${CLAUDEMANAGER_FAKE_CHILD_KB:-0}"
+  else
+    for p in $(mgr_tree "$pane"); do
+      kb=$(awk '/^VmRSS:/{print $2}' "/proc/$p/status" 2>/dev/null) || continue
+      [ -n "$kb" ] || continue
+      if [ "$p" = "$pane" ]; then pane_kb=$((pane_kb + kb)); else child_kb=$((child_kb + kb)); fi
+    done
+  fi
+  avail_kb="${CLAUDEMANAGER_FAKE_AVAIL_KB:-$(awk '/^MemAvailable:/{print $2}' /proc/meminfo)}"
+  echo "$pane_kb $child_kb ${avail_kb:-0}"
+}
+
+# Tell the kernel who to shoot when the box runs out in a single breath — faster than
+# any 5-minute check can react. Raising oom_score_adj needs no privileges; the whole
+# manager tree gets it, so an in-place update cannot quietly drop the protection.
+# The blast radius is capped on purpose (18 Aug 2026). A manager tree is a handful of
+# processes — claude plus its MCP servers. If the walk ever returns a crowd, the walk is
+# broken, and marking the box's processes as preferred OOM victims is the exact opposite
+# of this feature's job. Refuse and log instead of acting on a bad answer.
+OOM_TREE_MAX=25
+oom_protect() {
+  local pane="$1" p tree count
+  tree=$(mgr_tree "$pane"); count=$(printf '%s\n' "$tree" | grep -c .)
+  if [ "$count" -gt "$OOM_TREE_MAX" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: REFUSING oom_score_adj — tree walk returned $count pids for pane $pane (expected ≤$OOM_TREE_MAX); not touching anything"
+    return 0
+  fi
+  for p in $tree; do
+    echo "$OOM_ADJ" > "/proc/$p/oom_score_adj" 2>/dev/null || true
+  done
+}
+
+# Is the handover marker a real relevo, or a crash wearing its clothes?
+# Prints: "CLEAN <reason> <age>s" · "STALE bare-marker <age>s" · "NONE"
+marker_verdict() {
+  [ -f "$HANDOVER" ] || { echo "NONE"; return; }
+  local age reason
+  age=$(( $(date +%s) - $(stat -c %Y "$HANDOVER") ))
+  reason=$(awk 'NR==1{print $1}' "$HANDOVER" 2>/dev/null)
+  case "$reason" in
+    rotate|solo|brief|emergency-rotate|blocked-rung3|manual)
+      echo "CLEAN $reason ${age}s" ;;
+    *)
+      if [ "$age" -lt "$MARKER_FRESH_SECS" ]; then echo "CLEAN bare-marker ${age}s"
+      else echo "STALE bare-marker ${age}s"; fi ;;
+  esac
+}
+
+# Every writer of the marker states its reason, so age never has to be guessed at.
+set_marker() { printf '%s %s\n' "$1" "$(date +%s)" > "$HANDOVER"; }
+
 case "$1" in
   console)
     exec tmux attach -t "$SESSION"
@@ -116,6 +252,16 @@ case "$1" in
     [ -f "$SOLO" ] && O="$O · 🙋 SOLO MODE (hand-started manager owns it until the 2am rotate)"
     P=""; alive && parked && P=" · ⚠️  PARKED ON A DIALOG — queue blocked, run: claudemanager unstick"
     echo "manager: $S · heartbeat ${AGE}s ago${O}${H}${P}"
+    exit 0
+    ;;
+  handover-check)
+    # The boot's first question: was I relieved, or did I die? `mgr-opencheck` calls this
+    # with --consume at every boot, so the answer is MECHANICAL — the persona used to ask
+    # the agent to check the marker by hand, and on 18 Aug that hand-check accepted a
+    # 9.5-hour-old bare marker and reported a clean takeover over a kernel OOM kill.
+    # One definition of "is this marker real", used by the boot and by the watchdog.
+    marker_verdict
+    [ "$2" = "--consume" ] && rm -f "$HANDOVER"
     exit 0
     ;;
   unstick)
@@ -148,7 +294,9 @@ case "$1" in
   solo)
     # "I am running the manager by hand — stand down until the 2am rotate."
     touch "$SOLO"
-    touch "$HANDOVER"   # so the 2am session takes over silently, no death to confess
+    set_marker solo   # so the 2am session takes over silently, no death to confess.
+                      # Reason-stamped: a solo marker is legitimately hours old by the
+                      # time the rotate consumes it, and age alone must never call it stale.
     if alive; then
       tmux kill-session -t "$SESSION"
       echo "🙋 Solo mode: tmux manager stopped. The watchdog will NOT respawn it."
@@ -167,8 +315,9 @@ case "$1" in
       exit 0
     fi
     rm -f "$SOLO"   # solo mode ends here: from now on the script owns the brain again
+    rm -f "$EMERG"  # a scheduled rotate satisfies any emergency rotate in flight
     if alive; then
-      touch "$HANDOVER"
+      set_marker rotate
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: clean recycle (handover marker set)"
       tmux kill-session -t "$SESSION"
       sleep 2
@@ -183,6 +332,77 @@ case "$1" in
       FP=$(pane_fingerprint); PREV=$(cat "$PANE_FP" 2>/dev/null || echo "")
       printf '%s\n' "$FP" > "$PANE_FP"
       AGE=$(heartbeat_age)
+
+      # ── THE MEMORY GUARD (18 Aug 2026) ──────────────────────────────────────────
+      # Runs before everything else: a box with no memory left is a harder deadline
+      # than a frozen screen, and unlike the ladder it protects production too.
+      PANE_PID=$(tmux list-panes -t "$SESSION" -F '#{pane_pid}' 2>/dev/null | head -1)
+      SESS_STAMP=$(tmux display -p -t "$SESSION" '#{session_created}' 2>/dev/null || echo 0)
+      if [ -n "$PANE_PID" ]; then
+        oom_protect "$PANE_PID"
+        read -r MEM_KB CHILD_KB AVAIL_KB <<< "$(mem_snapshot "$PANE_PID")"
+        TREE_KB=$((MEM_KB + CHILD_KB))
+        # The curve, in a file of its own so the watchdog log keeps only signal. Every
+        # line is claude and children apart: a leak that grows while the manager sits
+        # idle is a streaming/MCP buffer, one that jumps per hop is per-turn retention.
+        printf '%s,%s,%s,%s,%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$MEM_KB" "$CHILD_KB" "$AVAIL_KB" "$AGE" >> "$MEMLOG"
+        if [ "$(wc -l < "$MEMLOG" 2>/dev/null || echo 0)" -gt 4000 ]; then
+          tail -3000 "$MEMLOG" > "$MEMLOG.trim" && mv "$MEMLOG.trim" "$MEMLOG"
+        fi
+        MEM_GB=$((TREE_KB / 1048576)); AVAIL_GB=$((AVAIL_KB / 1048576))
+
+        # 6 GB — ONE warning per session, down Marc's own line, for the MANAGER to
+        # carry to him with a recommendation. The watchdog never decides here: Marc's
+        # 12 Aug rule says a session is replaced on the 2am cron or on his word.
+        if [ "$MEM_GB" -ge "$WARN_GB" ] && [ "$(cat "$MEMWARN" 2>/dev/null)" != "$SESS_STAMP" ]; then
+          printf '%s\n' "$SESS_STAMP" > "$MEMWARN"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: MEMORY WARNING — manager tree ${MEM_GB}GB (claude $((MEM_KB/1048576))GB + children $((CHILD_KB/1048576))GB) · box available ${AVAIL_GB}GB — warned Marc's line once"
+          printf '[%s] WATCHDOG (memory guard): the manager session is at %sGB (fresh is ~0.6GB) · box available %sGB. Ceiling %sGB = automatic graceful rotate. Flush anything unwritten to the board now, and bring Marc the option of an early rotate with a recommendation.\n' \
+            "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$MEM_GB" "$AVAIL_GB" "$CEIL_GB" >> "$MSGS"
+        fi
+
+        # The ceiling, and tonight's real condition (a full box with the manager in it).
+        # The 4 GB floor keeps a small manager from being churned for someone else's leak.
+        if [ "$MEM_GB" -ge "$CEIL_GB" ] || { [ "$AVAIL_GB" -lt "$FREE_MIN_GB" ] && [ "$MEM_GB" -ge "$MEM_FLOOR_GB" ]; }; then
+          if [ ! -f "$EMERG" ]; then
+            # Not a kill — an ORDER. The manager is told to write its brief, exactly as
+            # an assistant leaving mid-shift briefs the one taking over. Everything that
+            # matters ends up on disk BEFORE the session is replaced.
+            printf '%s %s\n' "$(date +%s)" "$SESS_STAMP" > "$EMERG"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: EMERGENCY ROTATE ORDERED — tree ${MEM_GB}GB · available ${AVAIL_GB}GB — manager has $((EMERG_GRACE/60))min to write its brief"
+            printf '[%s] WATCHDOG (memory guard): 🚨 EMERGENCY ROTATE — manager tree %sGB · box available %sGB. Run /manager-close NOW (digest Today block + log rows + close SHA + push). You have %s minutes; then this session is replaced. Write the brief so your successor needs no re-explaining.\n' \
+              "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$MEM_GB" "$AVAIL_GB" "$((EMERG_GRACE/60))" >> "$MSGS"
+            exit 0
+          fi
+        fi
+
+        # An emergency already ordered: has the brief landed?
+        if [ -f "$EMERG" ]; then
+          read -r EM_AT EM_STAMP <<< "$(cat "$EMERG")"
+          case "$EM_AT" in ''|*[!0-9]*) EM_AT=0 ;; esac
+          if [ "$EM_STAMP" != "$SESS_STAMP" ]; then
+            rm -f "$EMERG"   # a different session is running now — the order died with the old one
+          else
+            CLOSE_AT=$(stat -c %Y "$CLOSE_SHA" 2>/dev/null || echo 0)
+            if [ "$CLOSE_AT" -ge "$EM_AT" ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: emergency rotate — brief WRITTEN (close SHA moved) — clean replacement"
+              rm -f "$EMERG" "$MEMWARN"
+              set_marker emergency-rotate   # brief on disk → the successor takes over silently
+              tmux kill-session -t "$SESSION"
+              exit 0
+            elif [ $(( $(date +%s) - EM_AT )) -ge "$EMERG_GRACE" ]; then
+              # Too frozen (or too busy) to write. The memory pressure is real and
+              # production is behind it, so the replacement happens anyway — with NO
+              # marker, so the successor confesses the death and recovers the unwritten
+              # stretch from the dead session's transcript (mgr-opencheck prints how).
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: emergency rotate — grace expired with NO close — replacing WITHOUT marker (successor confesses + recovers from transcript)"
+              rm -f "$EMERG" "$MEMWARN"
+              tmux kill-session -t "$SESSION"
+              exit 0
+            fi
+          fi
+        fi
+      fi
 
       # ── FAST PATH · a dialog is on screen ───────────────────────────────────────
       # Clear it WITHOUT killing the session, so nothing Marc typed is lost. Marc
@@ -238,7 +458,7 @@ case "$1" in
         # no new start logic, nothing else in this branch chain disturbed.
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: BLOCKED $((NOW-SINCE))s after 2 Escapes — replacing the session (rung 3)"
         rm -f "$STUCK" "$PANE_FP"
-        touch "$HANDOVER"
+        set_marker blocked-rung3
         tmux kill-session -t "$SESSION"
         exit 0
       else
@@ -257,8 +477,12 @@ case "$1" in
       # Closes the 13 Aug contradiction (manager dark 05:14→17:01: the brief rule
       # trusted a recycle this script no longer performed; agents' messages and the
       # 3pm alarm waited ~12h for a tool round that never came).
-      if [ -f "$HANDOVER" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: heartbeat ${AGE}s stale WITH handover marker — manager sanctioned its replacement; rotating"
+      # ⚠️ The marker must be a REAL one (18 Aug 2026). A bare marker touched hours
+      # earlier "as a safety net" is not a sanction — under the old test it could have
+      # rotated a perfectly healthy quiet session on someone else's leftover file.
+      MARKER=$(marker_verdict)
+      if [ "${MARKER%% *}" = "CLEAN" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: heartbeat ${AGE}s stale WITH a sanctioned handover marker ($MARKER) — manager sanctioned its replacement; rotating"
         tmux kill-session -t "$SESSION"
         # marker stays in place → the fresh session takes over silently (clean handover)
       elif ! limited; then
@@ -335,6 +559,17 @@ if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
     "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager"
   sleep 12
 fi
+
+# Designated victim, from the first second (18 Aug 2026). If the box runs out of memory
+# in one breath — faster than any 5-minute check can react — the kernel shoots whatever
+# it is told to shoot first. That must be the manager: its death is recoverable by design
+# (marker → confession → transcript recovery), while postgres or a gunicorn worker taking
+# the bullet is an outage with real users on it. The watchdog re-applies this every run,
+# because an in-place update re-spawns the process (the 21:30 victim was a pid tmux never
+# started).
+PANE_PID=$(tmux list-panes -t "$SESSION" -F '#{pane_pid}' 2>/dev/null | head -1)
+[ -n "$PANE_PID" ] && oom_protect "$PANE_PID"
+rm -f "$MEMWARN" "$EMERG"   # a fresh session starts with a clean memory slate
 
 # Wait until the TUI has no running turn.
 # The old version grepped `tail -6` for "tokens" and returned instantly EVERY time —
