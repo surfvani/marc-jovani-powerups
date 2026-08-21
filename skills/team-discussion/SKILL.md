@@ -107,6 +107,7 @@ At that moment: the OWNER rings the closing bell — one final ≤15-line desk r
 - The user reads `DESK.md`. Or asks either agent, who renders from the files in **one** message; the other agent verifies silently and speaks only if 🔴.
 - **Decisions reach the desk once, in plain language, with a recommendation.** No convergence theater in front of the user, ever.
 - Pending decisions go at the **top** of every rendering. They are the point; everything else is context.
+- **Never cite a row ID naked.** Every `L7` / `E3` / `C1` / `D8` / `R4` reference carries a short plain-language gloss the first time it appears in a message — `L17 (one model, no second brain)`, not `L17`. Row IDs are the agents' index, not the user's memory; an unglossed ID silently asks them to hold a symbol table in their head, and a rendering they cannot read without the ledger open has failed at its only job.
 - When the user gives a GO, the OWNER moves the row to USER-LOCKED with quote, session, and date — same turn.
 - Default to **one agent between gates**. Convene the team when a claim gates spending or an irreversible decision, when a plan is about to be committed, or when the user asks — and **the user loading this skill IS the ask.** A quiet default is what makes the loud moments worth it.
 
