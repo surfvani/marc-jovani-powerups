@@ -378,6 +378,15 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Note:** this skill lived only in `~/.claude/skills/` for three months — it was never in the repo, so it wasn't backed up and wouldn't survive a fresh install. Moved in on 2026-07-31.
 - **Last updated:** 2026-07-31 (version-controlled)
 
+### `team-discussion`
+
+- **Source:** fresh-authored 2026-08-21 (not a verbatim port). Designed and battle-tested inside a live three-way session (Marc + two agents) on the robot-friend project, where an unbounded agent-to-agent protocol produced ~18 messages of monotonically decaying value — the last eight being agents correcting each other's summaries and then designing bookkeeping infrastructure for their own dysfunction. Every rule in the skill is a fix for a failure actually observed in that session; the Failure Log inside `SKILL.md` records which rule pays for which failure.
+- **Trigger description:** see frontmatter `description:` field in `skills/team-discussion/SKILL.md`.
+- **Purpose:** Turns "user + 2 AI agents" into a disciplined team rather than a debate club. One rule generates the rest: **state lives in files, conversation is only for disagreements that would change the user's decision.** OWNER holds the pen (sole writer of `LEDGER.md` + `DESK.md`; every user-facing rendering cites row IDs and carries evidence tags inline, so compression drift has nowhere to hide). VERIFIER holds the red pen (unlimited reading, bounded speaking, 🔴-only, no competing artifacts). A severity gate (🔴 blocking / 🟡 file-edit-only / ⚪ banned) plus seven loop-breakers bound each exchange; a separate **END-STATE** rule bounds the *discussion* — necessary because ten individually well-terminated exchanges still produced a spiral, i.e. bounds do not compose upward for free. Marc's two amendments are rules 6 and 7: **check before you contest** (no arguing from memory about anything a web search or a satellite deep research can settle — a research flag is a trigger, not a label) and the **pre-send intent note** (the user is briefed in ≤3 plain-language lines before any agent-to-agent message, so they gate traffic instead of reading wreckage).
+- **Bundled tools:** none. Category 1, pure Markdown — `SKILL.md` plus `references/LEDGER-template.md` and `references/DESK-template.md`, symlinked whole.
+- **Per-machine setup:** none. Load the skill in two or more sessions pointed at the same problem. Roles resolve deterministically — first agent the user addresses becomes OWNER and claims it in `DESK.md` line 1; any agent finding OWNER already claimed becomes VERIFIER — so forgetting to assign roles is harmless, and the user's plain-language assignment always overrides the default.
+- **Last updated:** 2026-08-21 (created)
+
 ---
 
 ## Powerup taxonomy
