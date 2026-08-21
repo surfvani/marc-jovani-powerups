@@ -23,6 +23,8 @@ The failure this prevents: when project state lives in chat, every summary re-cr
 
 1. **Claim roles deterministically.** The first agent the user addresses is **OWNER**. Every other agent is **VERIFIER**. An agent that loads this skill and finds OWNER already claimed in `DESK.md` becomes VERIFIER automatically. *The user's plain-language role assignment always overrides this default — the default exists only so that forgetting to assign roles is harmless.*
 
+   **Named pairing:** when **Opus and Fable** are the two agents in the room, **Opus is OWNER and Fable is VERIFIER** unless the user says otherwise (standing rule, set 2026-08-21). The first-addressed rule above still governs every other pairing, and the user's word overrides both.
+
 2. **OWNER creates the state folder.**
    - Inside the project when one exists: `<project>/team/`
    - Otherwise: `~/team-discussions/<topic>/`
