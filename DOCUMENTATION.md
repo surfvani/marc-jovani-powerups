@@ -331,7 +331,7 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Source:** pasted in chat 2026-07-16 (Marc's TextExpander clarity prompt — verbatim port, byte-verified via the cat + diff procedure)
 - **Trigger description:** see frontmatter `description:` field in `skills/simplll/SKILL.md`
 - **Purpose:** Plain-English, decision-ready explainer. Explains the What / How / Why CEO/Founder/Visionary-style — short lists, no dense engineer paragraphs, complete information — so Marc (juggling 3+ workstreams) can decide fast. Callable standalone on anything (a proposal, a system, a bug, a plan) AND auto-fired at the end of /whatdocs immediately after the PROPOSED SOLUTION block: loading the skill is not the job, the delivered explanation is.
-- **Last updated:** 2026-07-16 (created — first new skill of the Fable 5 improvement pass)
+- **Last updated:** 2026-08-23 v1.1 (**THE MOST IMPORTANT RULE** appended to the body, authored by Marc in chat and added verbatim — three rules: (1) stop reporting problems, give solutions; (2) we're here to get shit done, not to show how much you caught — don't over-explain, it's exhausting; (3) short phrases, keyword style, not long paragraphs. Placed at the END of the body deliberately: it is the last thing the agent reads before producing output, which is where a style rule bites hardest. Marc's typo "exausting" preserved under the verbatim rule — SKILL.md is canonical for this skill, there is no source .txt to sync.) Prior: 2026-07-16 (created — first new skill of the Fable 5 improvement pass)
 
 ### `samepage-brainstorming`
 
