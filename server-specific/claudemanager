@@ -74,6 +74,15 @@ HANDOVER="$STATE.handover"
 SOLO="$STATE.solo"
 PANE_FP="$STATE.pane"    # previous watchdog run's screen fingerprint — see the ladder below
 STUCK="$STATE.stuck"     # "<epoch first seen blocked> <escape attempts made>"
+PARKSEEN="$STATE.parkseen"  # epoch of the FIRST parked sighting — Escape only on the second.
+                            # 24 Aug 2026: a single-glance parked() false-positive Escaped a
+                            # HEALTHY booting session mid-tool-call ("Request interrupted by
+                            # user for tool use", 00:00:01) and doomed it. A real orphaned
+                            # modal is still there 5 minutes later; a false positive never is.
+# rotate refuses to replace a session younger than this (24 Aug 2026: the 02:00 cron
+# killed a session born 01:45 — 15 minutes of context for zero benefit, and every
+# succession strands Marc's open phone chat). Overridable for the truth-table test only.
+ROTATE_MIN_AGE="${CLAUDEMANAGER_ROTATE_MIN_AGE:-1800}"
 STALE_SECS=7200   # two missed hourly beats = dead brain
 # BLOCKED_SECS — the liveness ladder's threshold (15 Aug 2026). A WORKING manager
 # touches its heartbeat every hop, hourly. 90 minutes is 1.5 missed beats: past any
@@ -149,6 +158,15 @@ parked() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "❯ 1\.|Sw
 # screen AND a stale heartbeat. Never the heartbeat alone — that would kill the quiet
 # healthy sessions Marc wants kept.
 limited() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qiE "reached your .*limit|/usage-credits|usage limit"; }
+
+# A BOOT-CORPSE of the transient kind (24 Aug 2026): session d7493b80 booted into
+# "API Error: 529 Overloaded" (server-side), made zero tool calls, and sat 94 minutes
+# until rung 3 killed it. A 5xx heals in minutes — replace fast and let the next
+# watchdog run respawn. Detection needs THREE signals (see the branch below): the
+# error class on screen, a stale heartbeat, AND a heartbeat that has never beaten
+# since the session was born — so a WORKING manager whose pane merely QUOTES an API
+# error (forensics output, pasted logs) can never match: its heartbeat has moved.
+overloaded() { tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "API Error: 5[0-9][0-9]"; }
 
 heartbeat_age() {
   [ -f "$HEART" ] || { echo 999999; return; }
@@ -317,6 +335,15 @@ case "$1" in
     rm -f "$SOLO"   # solo mode ends here: from now on the script owns the brain again
     rm -f "$EMERG"  # a scheduled rotate satisfies any emergency rotate in flight
     if alive; then
+      # Born minutes ago? Replacing it buys nothing and costs Marc's phone binding —
+      # every succession strands whatever chat view he has open (24 Aug 2026: the
+      # 02:00 cron killed a session born 01:45, 15 minutes old).
+      BORN=$(tmux display -p -t "$SESSION" '#{session_created}' 2>/dev/null || echo 0)
+      case "$BORN" in ''|*[!0-9]*) BORN=0 ;; esac
+      if [ "$BORN" -gt 0 ] && [ $(( $(date +%s) - BORN )) -lt "$ROTATE_MIN_AGE" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: session is only $(( ( $(date +%s) - BORN ) / 60 )) min old — already fresh, SKIPPING replacement"
+        exit 0
+      fi
       set_marker rotate
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: clean recycle (handover marker set)"
       tmux kill-session -t "$SESSION"
@@ -413,12 +440,41 @@ case "$1" in
       # option 1 of "Set up auto mode for your environment?". Escape decides nothing.
       # And never send a key into a RUNNING turn: Escape would cancel Marc's own work.
       if parked && ! busy; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: dialog on screen — sending Escape (dismiss, decide nothing)"
-        tmux send-keys -t "$SESSION" Escape; sleep 2; tmux send-keys -t "$SESSION" Escape
-        # Deliberately NO exit and NO all-clear here. On 15 Aug the blind Enter made the
-        # regex stop matching, the watchdog logged success, and the session stayed frozen
-        # for seven more hours. "The dialog text went away" is not evidence of recovery.
-        # Only the ladder below is allowed to decide whether this manager is working.
+        if [ -f "$PARKSEEN" ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: dialog on screen (2nd consecutive sighting) — sending Escape (dismiss, decide nothing)"
+          tmux send-keys -t "$SESSION" Escape; sleep 2; tmux send-keys -t "$SESSION" Escape
+          # Deliberately NO exit and NO all-clear here. On 15 Aug the blind Enter made the
+          # regex stop matching, the watchdog logged success, and the session stayed frozen
+          # for seven more hours. "The dialog text went away" is not evidence of recovery.
+          # Only the ladder below is allowed to decide whether this manager is working.
+        else
+          # First sighting: suspect, don't shoot (24 Aug 2026). parked() is a content
+          # match ("❯ 1.") that can race a turn transition or match agent-printed text —
+          # at 00:00:01 a single-glance Escape interrupted a healthy boot mid-tool-call
+          # and doomed the session. A real orphaned modal survives one 5-min cycle; a
+          # false positive clears itself. Cost: one extra cycle before a true dialog
+          # is dismissed — the 4 Aug class froze for 22+ min, so 5 min is cheap.
+          date +%s > "$PARKSEEN"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: dialog suspected on screen — waiting one cycle to confirm before any key is sent"
+        fi
+      elif ! parked; then
+        rm -f "$PARKSEEN"   # whatever we saw is gone — it was a false positive or got answered
+      fi
+
+      # ── BOOT-CORPSE · transient API overload — replace fast (24 Aug 2026) ────────
+      # Three signals, all required: the 5xx error on screen · heartbeat past 15 min ·
+      # heartbeat NEVER beaten since this session was born (the start path touches it
+      # ~1s before spawn, so a corpse's heartbeat mtime ≈ birth; any session that ever
+      # ran its boot has moved it past birth+120). That third signal is what makes a
+      # healthy manager that merely PRINTED "API Error: 529" in forensics output
+      # unkillable here — its heartbeat beats hourly.
+      SESS_BORN="${CLAUDEMANAGER_FAKE_BORN:-$SESS_STAMP}"
+      HB_AT=$(stat -c %Y "$HEART" 2>/dev/null || echo 0)
+      if [ "$AGE" -ge 900 ] && ! busy && [ "$SESS_BORN" -gt 0 ] && [ "$HB_AT" -le $((SESS_BORN + 120)) ] && overloaded; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: BOOT-CORPSE — API 5xx on screen + heartbeat ${AGE}s stale and never beaten since birth — replacing now (fast retry; NO marker, successor confesses)"
+        rm -f "$STUCK" "$PANE_FP" "$PARKSEEN"
+        tmux kill-session -t "$SESSION"
+        exit 0
       fi
 
       # ── THE LIVENESS LADDER · is this manager producing work? ────────────────────
@@ -457,7 +513,7 @@ case "$1" in
         # watchdog run (≤5 min), which takes the ordinary "manager is down" path —
         # no new start logic, nothing else in this branch chain disturbed.
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] watchdog: BLOCKED $((NOW-SINCE))s after 2 Escapes — replacing the session (rung 3)"
-        rm -f "$STUCK" "$PANE_FP"
+        rm -f "$STUCK" "$PANE_FP" "$PARKSEEN"
         set_marker blocked-rung3
         tmux kill-session -t "$SESSION"
         exit 0
@@ -569,7 +625,7 @@ fi
 # started).
 PANE_PID=$(tmux list-panes -t "$SESSION" -F '#{pane_pid}' 2>/dev/null | head -1)
 [ -n "$PANE_PID" ] && oom_protect "$PANE_PID"
-rm -f "$MEMWARN" "$EMERG"   # a fresh session starts with a clean memory slate
+rm -f "$MEMWARN" "$EMERG" "$PARKSEEN"   # a fresh session starts with a clean slate
 
 # Wait until the TUI has no running turn.
 # The old version grepped `tail -6` for "tokens" and returned instantly EVERY time —
