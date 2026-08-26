@@ -15,6 +15,55 @@ Process
 
 =============
 
+## STEP 0 — THE DISCOVERY GATE (MANDATORY — before STEP 1, before any question to the user)
+
+**Nothing happens until this gate closes.** No brainstorming, no clarifying questions, no plan writing.
+
+Why it exists (25 Aug 2026, paid for in a real session): a planning agent opened an INVESTORS build plan having read only a transcript and a digest. It had not read the board, the persona, or the parent plan. Within five minutes it had misread the user's own journal note as strategic doctrine, asked a downstream tactical question as if it were a gating one, and later proposed reviving a small app nobody had mentioned. Marc's words: *"if you do not know these things, you should get contextualized before you even ask these questions, because it is embarrassing."* An uncontextualized planning agent does not just work slowly — it burns the user's patience before the plan has a shape.
+
+**→ Read `~/.claude/skills/whatdocs/SKILL.md` and run it now.**
+
+Its text is deliberately NOT reproduced here. One file on disk, one source of truth. What follows is only **which of its sections apply when it runs inside a `/plan-build` session.**
+
+### First, classify the project — three sections are conditional on it
+
+| Class | What it produces | Examples |
+|---|---|---|
+| **BUILD** | Software, in a codebase | a feature, an app, a refactor, a plugin, a pipeline |
+| **STRATEGIC** | A business outcome | a launch, a raise, a course, a campaign, an org change, a sale |
+| **MIXED** | A business outcome that needs something built | a launch that needs a registration page; outreach that needs a desk |
+
+State the class out loud before you start reading. It decides three rows below.
+
+### Which /whatdocs sections apply
+
+| # | /whatdocs section | Applies inside /plan-build? |
+|---|---|---|
+| 1 | Research-only banner | **YES** — reads *"no plan writing yet."* Discovery only |
+| 2 | Challenge the request | **YES** — unchanged |
+| 3 | What counts as a legitimate question | **YES — the most load-bearing rule in the gate.** Only intent and scope. Anything a document can answer, you go read |
+| 4 | The Discovery Loop (5 steps) | **YES** — reworded for documents: restate the task → get the lay of the land → list every document by exact path → read each ENTIRELY → reassess and loop |
+| 5 | Hard rules | **YES** — unchanged. Read entirely; never skip a file or part of one |
+| 6 | File types to cover | **CONDITIONAL.** BUILD → as written (models, routes, templates, JS, HTML, config). STRATEGIC → swap for the **business reading list**: the parent direction doc · every build plan this one touches · the board and its constants · the relevant persona · the source transcripts · the inbox · anything the user names. MIXED → both |
+| 7 | Environment checks | **CONDITIONAL.** Run for a BUILD, or for a MIXED project whose build connects to a larger live environment. Otherwise skip |
+| 8 | Chat memory rule | **YES** — free, and it prevents editing a stale copy |
+| 9 | Solution criteria (the 10 tests) | **CONDITIONAL.** They are code-shaped — apply them for BUILD and for the built half of MIXED. Skip for pure STRATEGIC |
+| 10 | The overriding rule — coherent with the architecture | **YES, ADAPTED** — *coherent with what is already decided and already running.* A plan that contradicts a locked decision or an immutable date is the same defect as code that fights its own architecture |
+| 11 | The non-negotiable — no duplicates | **YES, RECONTEXTUALIZED — and this is the biggest one for planning.** In /whatdocs it means *don't rebuild a system that already exists in the codebase.* In /plan-build it means **don't plan something that already exists — in the estate OR in the world.** Two checks, both mandatory: ① *the estate* — is this already a plan, a ghost row, a parked decision, or an action item somebody already wrote? ② *the world* — has someone already solved this, and can we learn from their wins AND their failures? **Check ② is exactly what the 🔬 deep-research checkpoints are for.** A plan that reinvents a solved wheel is the planning-stage version of a duplicate system |
+| 12 | Start by creating a TODO list | **YES — but it is TEMPORARY.** It tracks discovery only. **At the end of the ending sequence it gets deleted and replaced by the build-plan TODO list.** Two lists never coexist |
+| 13 | The PROPOSED SOLUTION block | **REPLACED.** Its fields demand a code answer and will drag a strategic project into the codebase (that is exactly how the 25 Aug session ended up in a small CRM nobody had mentioned). Substitute one thing: **explain in simple terms what it is that we are trying to build.** Then go straight to 14 |
+| 14 | Mandatory ending sequence | **YES** — `/simplll` then `/samepage-brainstorming`, delivered in ONE final message: the plain-terms statement from 13, the simplll explanation, and the gate's first question |
+
+### Closing the gate
+
+When the alignment gate closes with the user's GO:
+
+1. **Delete the /whatdocs discovery TODO list** (`TaskUpdate` → `deleted`, or resolve every item).
+2. **Create the build-plan TODO list** in its place.
+3. Continue at STEP 1 below — the long brainstorming session, the research prompts, and the document itself.
+
+---
+
 STEP 1: User describes the project. Start by investigating, reading any documents they gave you. Gather all information needed. If working with Marc: if the /how-marc-works-w-claude-code skill is available, load it now — it contains Marc's builder profile (workflow, pain points, architectural principles, technical context) and must inform every architecture and infrastructure decision from this point forward.
 
 STEP 2: BRAINSTORMING PHASE

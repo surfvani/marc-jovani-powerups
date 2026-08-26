@@ -127,7 +127,11 @@ ultrathink and give me the best solution (or multiple options if there are genui
 
 START BY CREATING A TODO LIST
 
-Use the task tools — `TaskCreate` one item per step, `TaskUpdate` to move each through in_progress/completed, `TaskList` to read the list back — to lay out your discovery plan before reading anything. Example shape:
+Use the task tools — `TaskCreate` one item per step, `TaskUpdate` to move each through in_progress/completed, `TaskList` to read the list back — to lay out your discovery plan before reading anything.
+
+⚠️ **THIS LIST IS TEMPORARY WHEN YOU ARE RUNNING INSIDE `/plan-build`.** It tracks discovery and nothing else. The moment the ending sequence finishes and the alignment gate closes with a GO, **delete it and create the build-plan TODO list in its place.** Two lists never coexist — the second one is the plan's own, and a leftover discovery list competes with it for the agent's attention. (Mirrored in `plan-build/SKILL.md` STEP 0.)
+
+Example shape:
 
      ☐ Restate the task back to user — confirm I understand
      ☐ Run targeted tree on [specific directory] to see structure
@@ -209,6 +213,23 @@ the turn.
 /defcode is LOCKED until the samepage-brainstorming gate closes with an explicit
 GO. When it does, the same agent (you) continues into /defcode — no fresh agent,
 no context loss.
+
+---
+
+RUNNING INSIDE /plan-build — two substitutions
+
+When this skill is invoked as `/plan-build` STEP 0 rather than before a code fix,
+`plan-build/SKILL.md` STEP 0 is authoritative on which sections apply. Two
+changes land in the ending sequence above:
+
+- **2a is REPLACED.** No `=== PROPOSED SOLUTION ===` block — its fields demand a
+  code answer and will drag a strategic project into the codebase. Substitute
+  one thing: **explain in simple terms what it is that we are trying to build.**
+  2b and 2c are unchanged.
+- **After the gate closes with a GO:** delete the discovery TODO list, create the
+  build-plan TODO list, and continue with the /plan-build steps — the long
+  brainstorming session, the research prompts, then the document. `/defcode` is
+  not the next step in that flow and stays out of it.
 
 
 

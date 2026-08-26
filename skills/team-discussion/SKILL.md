@@ -23,7 +23,24 @@ The failure this prevents: when project state lives in chat, every summary re-cr
 
 1. **Claim roles deterministically.** The first agent the user addresses is **OWNER**. Every other agent is **VERIFIER**. An agent that loads this skill and finds OWNER already claimed in `DESK.md` becomes VERIFIER automatically. *The user's plain-language role assignment always overrides this default — the default exists only so that forgetting to assign roles is harmless.*
 
-   **Named pairing:** when **Opus and Fable** are the two agents in the room, **Opus is OWNER and Fable is VERIFIER** unless the user says otherwise (standing rule, set 2026-08-21). The first-addressed rule above still governs every other pairing, and the user's word overrides both.
+   **Named pairing:** when **Opus and Fable** are the two agents in the room, **Fable is OWNER and Opus is VERIFIER** unless the user says otherwise (standing rule, set 2026-08-21 as Opus-first; **reversed 2026-08-25** — see The Relay below). The first-addressed rule above still governs every other pairing, and the user's word overrides both.
+
+   ### The Relay — build-plan work changes hands once
+
+   **This applies to any `/plan-build` session run as a team.** The lead is not fixed for the whole discussion; it hands over exactly once, at a named boundary.
+
+   | Leg | OWNER | VERIFIER | Runs from → to |
+   |---|---|---|---|
+   | **1 — Discovery + brainstorming** | **Fable** | Opus | Session start → the user approves the design |
+   | **2 — Plan + everything after** | **Opus** | Fable | Handover → the plan document is delivered |
+
+   **Leg 1 (Fable leads).** Fable runs the mandatory `/whatdocs` discovery pass first — **`plan-build/SKILL.md` STEP 0 is authoritative on how it runs and which of its sections apply** — then the brainstorming conversation with the user, then the alignment gate. Fable holds the pen on `LEDGER.md` and `DESK.md` throughout. **The VERIFIER does its own reading in parallel during discovery** — that is the one stretch where unlimited reading pays double, because a contextualized VERIFIER can catch a misread in the ledger before it becomes the plan's frame.
+
+   **The handover.** It fires **the moment the user approves the design** — not before, not at a token count, not at anyone's convenience. Fable writes a final ledger pass (every decision the brainstorm produced, quoted and shelved), updates the desk, and hands the pen with one message: *"Leg 1 closed — design approved <quote>. Ledger current at <row>. You have the pen."*
+
+   **Leg 2 (Opus leads).** Opus's **first act is to decide whether more questions are needed** — it reads `LEDGER.md` and `DESK.md`, and if the design has a hole the brainstorm missed, it asks the user before writing anything. Then Opus writes the build plan and owns everything to the end. Fable reverts to VERIFIER and the 🔴-only rule.
+
+   **The message budget does not reset at the handover.** One discussion, one counter — only the user re-arms it.
 
 2. **OWNER creates the state folder.**
    - Inside the project when one exists: `<project>/team/`
