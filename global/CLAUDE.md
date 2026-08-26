@@ -132,8 +132,10 @@ Consider what the user actually needs to achieve, not just what they literally t
 
 ## Skill Execution Discipline
 
-When you load a multi-step skill with **3 or more substantive steps** (each step requiring its own thinking or tool call), **immediately create a TodoWrite checklist of its steps before executing any of them.** Skip for trivial 2-step skills where the tracking overhead exceeds the value.
+When you load a multi-step skill with **3 or more substantive steps** (each step requiring its own thinking or tool call), **immediately lay its steps out as a task list — `TaskCreate` one item per step — before executing any of them**, then `TaskUpdate` each to in_progress/completed as you go. Skip for trivial 2-step skills where the tracking overhead exceeds the value.
 
 At high token counts, working memory degrades. You start a step, generate thousands of tokens of output, and lose track of remaining steps. The checklist compensates mechanically — each check-off produces fresh output showing what's left.
 
-This is a safety net. Well-written skills already include TodoWrite instructions. This rule catches the ones that don't.
+This is a safety net. Well-written skills already include task-list instructions. This rule catches the ones that don't.
+
+**If the task tools aren't in your toolset**, don't silently skip the discipline — keep a numbered checklist in your replies and restate what's left as you go. (`install.sh` sets `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` so `TaskCreate`/`TaskGet`/`TaskList`/`TaskUpdate` are available; newer models drop them by default without it, and the setting only takes effect on a fresh session.)

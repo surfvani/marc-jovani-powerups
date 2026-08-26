@@ -78,7 +78,7 @@ then print the list of topics/sections here in the chat —>  create a todo
 =======
 
 
-❯ For long format tasks, AI works best with TODO lists (I’m not talking about a todo list inside the document, I’m talking about that you should instruct the next AI to create a TODO (using their todo tool) and follow it. Ideally, suggest the right todo list to create…. Again I don't mean for you to just create a TODO inside the documentation... I mean for you to create an example todo and instruct the future AI to actually create a TODO (using todo tool) and to follow the todo.
+❯ For long format tasks, AI works best with TODO lists (I’m not talking about a todo list inside the document, I’m talking about that you should instruct the next AI to create a TODO (using the task tools — `TaskCreate` one item per step, `TaskUpdate` to mark progress) and follow it. Ideally, suggest the right todo list to create…. Again I don't mean for you to just create a TODO inside the documentation... I mean for you to create an example todo and instruct the future AI to actually create a TODO (using the task tools, not just printing a list) and to follow the todo.
   
 Instruct the next AI to do the work exactly as I told you.
 - One task at a time

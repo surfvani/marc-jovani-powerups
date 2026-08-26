@@ -87,9 +87,13 @@ Claude Code reads personal skills from `~/.claude/skills/<skill-name>/SKILL.md`.
 
 A **skill** is a single capability: a folder containing one `SKILL.md` (YAML frontmatter + a markdown body that's the prompt itself). A **plugin** is a bundle: a manifest (`plugin.json`) plus skills, slash commands, agents, hooks, and/or MCP server configs. This project currently ships standalone skills (Option A). It is structured so it can be wrapped into a plugin later (Option B) by adding a `.claude-plugin/plugin.json` — no file moves needed.
 
-### The verbatim-port rule (non-negotiable)
+### Porting a prompt, and editing it afterwards
 
-When porting a Marc Jovani prompt into a SKILL.md, the body is **100% verbatim**. No rewriting, no summarization, no cleanup, no tightening, no fixing typos, no translating. The body of `SKILL.md` equals the body of the source prompt, byte-for-byte. The only thing Claude authors is the YAML frontmatter (`name` and `description`).
+When a skill starts life as one of Marc's prompts, **port the body as-is on the first pass** — don't rewrite, summarize, or "improve" a prompt you haven't seen work yet. Claude authors the YAML frontmatter (`name` and `description`); the body is Marc's.
+
+**After that first pass, the skill is a living document.** Skills evolve — typo sweeps, tool-name corrections, new rules Marc adds in chat, fixes for failures seen in the field. Edit them freely. `SKILL.md` is the canonical version of every skill in this repo; most source `.txt` files live on the VPS and are no longer kept in sync (noted per-skill in the catalog where it applies).
+
+The one thing to preserve is **Marc's voice** — his phrasing, his emphasis, his vocabulary. Change what's wrong or stale; don't smooth out how he writes.
 
 ---
 
@@ -477,11 +481,11 @@ This procedure is written so a brand-new Claude session, reading only this file,
    description: <approved description>
    ---
 
-   <EXACT VERBATIM BODY OF THE SOURCE PROMPT — BYTE FOR BYTE>
+   <BODY OF THE SOURCE PROMPT>
    ```
-   **The body is 100% verbatim. No edits of any kind. No "small fixes". No translation. No cleanup. No exceptions.** If Marc wants edits, he edits the source separately, not during the port.
+   **On this first pass, port the body as-is** — no rewriting, no "small fixes", no cleanup. You haven't seen the prompt work yet. Once it's in, the skill is editable like any other file in this repo.
 
-   To preserve bytes exactly, write the file via Bash + `cat` rather than the Write tool:
+   To copy the body cleanly, write the file via Bash + `cat` rather than the Write tool:
    ```bash
    {
      echo "---"
@@ -492,12 +496,12 @@ This procedure is written so a brand-new Claude session, reading only this file,
      cat "<path to source .txt>"
    } > /home/ubuntu/marc-jovani-powerups/skills/<slug>/SKILL.md
    ```
-   Then verify byte-equivalence:
+   Then confirm the body copied cleanly:
    ```bash
    tail -n +6 skills/<slug>/SKILL.md > /tmp/skill-body.txt
    diff /tmp/skill-body.txt "<path to source .txt>"
    ```
-   The diff must be empty.
+   Expect an empty diff on the initial port — it catches a truncated or mangled copy. Later edits will make this diff non-empty, which is normal and expected.
 6. **Run `./install.sh`** — auto-creates the symlink (idempotent).
 7. **Add a Skill-catalog entry** to this `DOCUMENTATION.md` under "Skill catalog": new `### \`<slug>\`` subsection with source file path, trigger description (or "see frontmatter"), one-line Purpose, last updated date. **Do not skip — the catalog is the cold-agent's index.**
 8. **Run `./update.sh "added <slug> skill"`** — commits and pushes (includes the catalog edit).
@@ -550,7 +554,7 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 
 ## Decisions & rationale
 
-- **Verbatim-port rule.** Marc's prompts work for him as-is. Any "improvement" risks losing nuance Marc put there on purpose. Skills get their voice from Marc; Claude only authors the frontmatter.
+- **Port as-is, then evolve.** Marc's prompts work for him as-is, so the first pass copies the body rather than "improving" a prompt nobody has watched run yet. After that, skills are living documents — edit them as they evolve. Preserve Marc's voice, not the original bytes. (The old byte-for-byte "verbatim-port rule" was retired 2026-08-25: it had hardened into a rule that made routine, correct edits — typo sweeps, dead tool names — read as violations, and agents kept flagging them at Marc.)
 - **Single `DOCUMENTATION.md`.** Cleaner than juggling README + CHANGELOG + EVOLUTION. One file, comprehensive, designed for cold-start.
 - **Symlinks over copies.** A copy-based workflow requires "deploy" steps and risks drift between repo and live skill. Symlinks make the repo file the single source of truth.
 - **Standalone skills, not a plugin (yet).** Option A from the original conversation. Plugin manifest can be added later without moving any files.
@@ -627,6 +631,14 @@ If Marc pastes the prompt body directly into chat (no file), the procedure is id
 - Net effect on the Mac: `claudeclarity` symlinked (it was missing), `plan-build` v1.5 live, `CLAUDE.md` + both personas now repo-managed symlinks (they were stale real files missing the *Default Register* block and the *Deferred follow-ups* rule), settings.json merged with every Mac-specific preference and all four plugins intact.
 - ⚠️ **The VPS has not pulled this yet.** On its next `./pull.sh`, `merge_settings()` will convert its symlinked `settings.json` into a real file seeded from that same content — so its plugin set and preferences survive — and only the two `$HOME` paths change. Expected output there: `UNLINK settings.json` followed by `MERGE settings.json`.
 - Workflow change worth knowing: `/config` no longer writes through to `config/settings.json` (it isn't a symlink anymore). Repo-wide changes are made by editing `config/settings.json` and running `./update.sh`; single-machine changes go through `/config` as before.
+
+**As of 2026-08-25 (task tools re-enabled by the installer + verbatim-port rule retired):**
+- **Root cause found.** Claude Code v2.1.233 turned the todo/task-tracking tools OFF by default on Opus 4.8, Sonnet 5, Fable 5, Mythos 5 and newer. Anthropic's stated reason, verbatim from their tools reference: *"Those models keep track of multi-step work without a written checklist, and the tools' definitions and reminders take up context, so Claude Code leaves them out."* Restored with `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`. Every skill in this repo that says "start by creating a task list" had been calling tools that silently weren't there — including the global `CLAUDE.md` rule that exists to catch skills which forget.
+- **Measured, not assumed** (harness `system.init` tool list, `claude-opus-5[1m]`, not model self-report): no flag → no task tools at all; `ENABLE_TODO_TOOLS=1` → `TaskCreate` + `TaskGet` + `TaskList` + `TaskUpdate`; `ENABLE_TODO_TOOLS=1` **plus** `ENABLE_TASKS=0` → `TodoWrite` only, Task family gone. **The two families are mutually exclusive** — no configuration yields both. We standardise on the Task family; `TodoWrite` is the legacy tool Anthropic superseded.
+- **The installer now owns this.** `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` added to `config/settings.json`'s `env` block, so `merge_settings()` propagates it to every machine on every `./install.sh` — no new mechanism, the existing merge already deep-merges `env` and `env` is not machine-local. New `verify_env_keys()` re-reads the **installed** `~/.claude/settings.json` and reports per key (`OK` / `FAIL`), because `merge_settings()` returns 0 even when it skips for a missing `jq` — a silent skip would have left the tools dead with the install still reporting success.
+- **Skill sweep** (all 38 live `.md` files read in full, 8,368 lines): `global/CLAUDE.md`'s Skill Execution Discipline rewritten off `TodoWrite` onto `TaskCreate`/`TaskUpdate`, plus a fallback line for sessions without the tools. The three `(TaskCreate/TaskUpdate — formerly TodoWrite)` breadcrumbs (`whatdocs`, `defcode`, `handoff-continuia`) removed — kept in July for older-Claude-Code compatibility, they now name a tool the flag deliberately does NOT provide. `plan-build`'s generic "using their todo tool" and `doc-update-project`'s unnamed "START BY CREATING A TODO" now name the tools. Already-correct sites left alone: `subagentic-workflow` + its 3 templates, all three `distill-*`, `manager-checkout`, `manager-close`.
+- ⚖️ **Verbatim-port rule RETIRED (Marc's call).** *"This was an agent making it a stupid rule that now overflags things. Yes, originally these skills were exact copies of my prompts. But they evolve. This rule no longer applies."* Replaced with "port as-is on the first pass, then evolve" — preserve Marc's voice, not the original bytes. Removed from all three sites (the rule section, step 5 of the add-a-skill procedure, the Decisions & rationale bullet); the byte-diff step survives only as a truncated-copy check on the initial port.
+- **Note for the VPS:** `whatdocs` / `defcode` sources at `/home/ubuntu/img/*.md` were not touched (not on this Mac). `SKILL.md` is canonical for both.
 
 **Future improvement — PER-SERVER SEPARATION (Marc, 12 Aug 2026, not scheduled):**
 Today the installer has **no filter**: it ships 100% of `skills/` to every machine, and the only separation is placement — `server-specific/` is invisible to `install.sh` and gets symlinked by hand. Binary, with nothing in between. What Marc wants instead:

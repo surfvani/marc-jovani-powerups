@@ -127,7 +127,7 @@ ultrathink and give me the best solution (or multiple options if there are genui
 
 START BY CREATING A TODO LIST
 
-Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your discovery plan before reading anything. Example shape:
+Use the task tools — `TaskCreate` one item per step, `TaskUpdate` to move each through in_progress/completed, `TaskList` to read the list back — to lay out your discovery plan before reading anything. Example shape:
 
      ☐ Restate the task back to user — confirm I understand
      ☐ Run targeted tree on [specific directory] to see structure

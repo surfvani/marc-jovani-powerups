@@ -17,7 +17,13 @@
 #   - personas/*.md               → ~/.claude/personas/   (portable personas only)
 #   - config/settings.json        → ~/.claude/settings.json  (MERGED, not symlinked:
 #                                   repo wins on shared keys, the machine keeps its
-#                                   own plugins/model/theme — see merge_settings)
+#                                   own plugins/model/theme — see merge_settings).
+#                                   Its `env` block carries the switches the skills
+#                                   depend on — CLAUDE_CODE_ENABLE_TODO_TOOLS keeps
+#                                   the TaskCreate/TaskGet/TaskList/TaskUpdate tools
+#                                   available on models that drop them by default.
+#                                   verify_env_keys re-reads the installed file and
+#                                   reports per key, so a skipped merge is loud.
 #   - config/statusline-command.sh→ ~/.claude/statusline-command.sh
 #   - config/hooks/persona-picker.sh → ~/.claude/hooks/persona-picker.sh
 #
@@ -209,6 +215,47 @@ merge_settings() {
   echo "          backup: _powerups_backups/$(basename "$backup")"
 }
 
+# ────────── helper: verify the repo's env keys actually landed ──────────
+# merge_settings() returns 0 even when it skips (no jq, invalid JSON, failed
+# merge), so a machine can finish "successfully" with none of the repo's env
+# vars applied. Those vars are load-bearing: CLAUDE_CODE_ENABLE_TODO_TOOLS is
+# what keeps TaskCreate / TaskGet / TaskList / TaskUpdate available on Opus 4.8,
+# Sonnet 5, Fable 5, Mythos 5 and newer, where Claude Code drops them by
+# default. A silent miss means every skill that says "create a task list" calls
+# a tool that isn't there. This reads the INSTALLED file back and reports per
+# key, so the failure shows up at install time, not mid-session weeks later.
+verify_env_keys() {
+  local src="$1"
+  local target="$2"
+
+  command -v jq >/dev/null 2>&1 || return 0   # merge_settings already warned
+  [[ -f "$target" ]] || return 0
+
+  local keys
+  keys="$(jq -r '.env // {} | keys[]' "$src" 2>/dev/null)" || return 0
+  [[ -n "$keys" ]] || return 0
+
+  local missing=0 key want got
+  while IFS= read -r key; do
+    [[ -n "$key" ]] || continue
+    want="$(jq -r --arg k "$key" '.env[$k]' "$src" 2>/dev/null)"
+    got="$(jq -r --arg k "$key" '.env[$k] // "(absent)"' "$target" 2>/dev/null)"
+    if [[ "$got" == "$want" ]]; then
+      echo "  OK      env $key=$want"
+    else
+      echo "  FAIL    env $key — expected '$want', found '$got'" >&2
+      missing=$((missing + 1))
+    fi
+  done <<< "$keys"
+
+  if [[ $missing -gt 0 ]]; then
+    echo "  WARN    $missing env key(s) did NOT land in $target." >&2
+    echo "          Task tools and/or agent teams may be unavailable this session." >&2
+    return 0
+  fi
+  echo "  OK      env keys verified in ~/.claude/settings.json"
+}
+
 # ────────── helper: ensure per-skill venv ──────────
 ensure_skill_venv() {
   local skill_path="$1"
@@ -301,6 +348,9 @@ if [[ -d "$REPO_DIR/config" ]]; then
   fi
   if [[ -f "$REPO_DIR/config/hooks/persona-picker.sh" ]]; then
     link_managed "$REPO_DIR/config/hooks/persona-picker.sh" "$HOME/.claude/hooks/persona-picker.sh" "hooks/persona-picker.sh"
+  fi
+  if [[ -f "$REPO_DIR/config/settings.json" ]]; then
+    verify_env_keys "$REPO_DIR/config/settings.json" "$HOME/.claude/settings.json"
   fi
 fi
 

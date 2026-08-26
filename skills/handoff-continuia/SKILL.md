@@ -333,7 +333,7 @@ After approval: state in one final chat line what you did and end your response.
 
 ## START BY CREATING A TODO LIST
 
-Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
+Use the task tools — `TaskCreate` one item per step, `TaskUpdate` to move each through in_progress/completed, `TaskList` to read the list back — to lay out your handoff plan before reading anything. Example shape (adapt to the project — LEAN or DEEP mode, with or without DOCUMENTATION.md):
 
      ☐ Step 1 — Detect mode (LEAN vs DEEP) — assess session work, state recommendation, wait for user override
      ☐ Step 2 — Targeted read of plan doc if LEAN, entire of DEEP...

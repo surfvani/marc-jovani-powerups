@@ -110,7 +110,7 @@ Verification: 
 
 Think deeply. Think a lot before executing these steps. Think deeply between steps. 
 
-START BY CREATING A TODO ... for example:
+START BY CREATING A TODO — use the task tools (`TaskCreate` one item per step, `TaskUpdate` to mark progress), not just a printed list ... for example:
 
      ☐ Read current DOCUMENTATION file FRESH FROM DISK (do not trust in-memory copy)
      ☐ Read conversation carefully to understand all changes done

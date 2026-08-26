@@ -245,7 +245,7 @@ Evidence before assertions. Always.
 
 START BY CREATING A TODO LIST
 
-Use the task tools (TaskCreate/TaskUpdate — formerly TodoWrite) to lay out your execution plan before touching code. Build it from the APPROVED PROPOSED SOLUTION (from the /whatdocs phase) — not from scratch. Example shape:
+Use the task tools — `TaskCreate` one item per step, `TaskUpdate` to move each through in_progress/completed, `TaskList` to read the list back — to lay out your execution plan before touching code. Build it from the APPROVED PROPOSED SOLUTION (from the /whatdocs phase) — not from scratch. Example shape:
 
      ☐ Confirm I have the APPROVED PROPOSAL in context (problem, approach, files to touch, files NOT to touch)
      ☐ Final context check — any file in the proposal I haven't read entirely yet?
