@@ -32,25 +32,13 @@ The failure this prevents: when project state lives in chat, every summary re-cr
    | Leg | OWNER | VERIFIER | Runs from → to |
    |---|---|---|---|
    | **1 — Discovery + brainstorming** | **Fable** | Opus | Session start → the user approves the design |
-   | **2 — the rest of `/plan-build`** | **Opus** | Fable | Handover → the kickoff prompt is printed in chat |
+   | **2 — The rest of /plan-build** | **Opus** | Fable | Handover → the /plan-build process completes |
 
    **Leg 1 (Fable leads).** Fable runs the mandatory `/whatdocs` discovery pass first — **`plan-build/SKILL.md` STEP 0 is authoritative on how it runs and which of its sections apply** — then the brainstorming conversation with the user, then the alignment gate. Fable holds the pen on `LEDGER.md` and `DESK.md` throughout. **The VERIFIER does its own reading in parallel during discovery** — that is the one stretch where unlimited reading pays double, because a contextualized VERIFIER can catch a misread in the ledger before it becomes the plan's frame.
 
    **The handover.** It fires **the moment the user approves the design** — not before, not at a token count, not at anyone's convenience. Fable writes a final ledger pass (every decision the brainstorm produced, quoted and shelved), updates the desk, and hands the pen with one message: *"Leg 1 closed — design approved <quote>. Ledger current at <row>. You have the pen."*
 
-   **Leg 2 (Opus leads).** Opus's **first act is to decide whether more questions are needed** — it reads `LEDGER.md` and `DESK.md`, and if the design has a hole the brainstorm missed, it asks the user before anything else.
-
-   **Then it RESUMES `/plan-build` exactly where Leg 1 left off and carries the process to the end. It does NOT jump to the document.** ⚠️ Taking the pen is not permission to skip steps — everything between design approval and the finished plan still has to happen, in order:
-
-   1. Assess which deep researches the **execution** phase still needs (different from the brainstorm-phase ones).
-   2. Get the user's approval on that list, then write the research prompts — reminding them to invoke `/research-prompt-instructions` first so the prompt-writing discipline loads.
-   3. **Wait.** The user runs them with satellite agents and brings the results back. The executing agent never runs the research itself.
-   4. Plan the document structure and **print the section list in chat**.
-   5. Pass the **STEP 6.5 self-evaluation gate** — too dense? over-engineered? did the end of the conversation crowd out the beginning? If any is true, redo the structure.
-   6. Create the document as structure + placeholders, then fill it **one placeholder at a time with the Edit tool**.
-   7. Print the next-agent kickoff prompt **in chat**, never buried in the doc.
-
-   Fable reverts to VERIFIER and the 🔴-only rule for all of it.
+   **Leg 2 (Opus leads).** Opus's **first act is to decide whether more questions are needed** — it reads `LEDGER.md` and `DESK.md`, and if the design has a hole the brainstorm missed, it asks the user before anything else. Then it **continues the `/plan-build` process from wherever Leg 1 left off — skipping no steps — and owns it until the end.** The steps themselves live in `plan-build/SKILL.md`, not here. Fable reverts to VERIFIER and the 🔴-only rule.
 
    **The message budget does not reset at the handover.** One discussion, one counter — only the user re-arms it.
 
