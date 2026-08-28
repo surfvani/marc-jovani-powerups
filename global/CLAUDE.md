@@ -52,7 +52,9 @@ Not:
 
 ## Server Backups — read before touching s1 / s2 / the NAS / the vault
 
-The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `NORTH_STAR/BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
+The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` in the north-star repo FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
+
+⟳ **28 Aug 2026 (SERVERS S15): s1 no longer hosts the north-star repo** — it was deleted from `/home/ubuntu/NORTH_STAR` after verifying pushed-clean. Copies live on: GitHub `surfvani/north-star` (private) · lake-vault `/home/surfvani/north-star` · both Macs. On a box that has the repo, read the doc there. **On s1: to READ a repo doc, fetch that single file — `gh api -H "Accept: application/vnd.github.raw" repos/surfvani/north-star/contents/<path>` (gh is authed as surfvani; temp copy, delete after). Actual repo WORK happens on lake-vault or the Macs, never by re-cloning onto s1.**
 
 ---
 
