@@ -80,4 +80,4 @@ mgr "AGENT <your-name>: <message>"
 
 ## For humans
 
-Marc reaches the manager the same durable way, **on either box**: `mgr "…"` from any terminal, or `! mgr "…"` inside any Claude session; `mgr` alone prints its replies. From the tower it arrives in seconds; from s1 it is picked up at the manager's next hourly check.
+Marc reaches the manager the same durable way, **on either box**: `mgr "…"` from any terminal, or `! mgr "…"` inside any Claude session; `mgr` alone prints its replies. From the tower it arrives in seconds; from s1 it is picked up at the manager's next hourly check (or live, while the manager's ssh Monitor holds). **Over a one-shot ssh** (`ssh … ubuntu@148.113.170.120 'mgr "…"'`) use the full path `~/.local/bin/mgr` — non-interactive ssh skips `.profile` and reports `command not found` (28 Aug 2026).
