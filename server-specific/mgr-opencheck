@@ -50,7 +50,7 @@ fi
 SESSFILE="$HOME/.claudemanager.session"
 MY_ID="${CLAUDE_CODE_SESSION_ID:-unknown}"
 MY_TX="$(find "$HOME/.claude/projects" -name "$MY_ID.jsonl" 2>/dev/null | head -1)"
-read -r PREV_ID PREV_AT PREV_TX < "$SESSFILE" 2>/dev/null || true
+read -r PREV_ID PREV_AT PREV_TX 2>/dev/null < "$SESSFILE" || true   # 2> before <: a missing file (first boot on a box) stays silent
 if [ "$MY_ID" != "${PREV_ID:-}" ]; then
   VERDICT="$("$HOME/.local/bin/claudemanager" handover-check --consume)"
   echo "--- BOOT · handover verdict: $VERDICT"

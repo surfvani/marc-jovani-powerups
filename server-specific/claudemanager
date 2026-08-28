@@ -134,12 +134,12 @@ MARKER_FRESH_SECS=10800      # 3h — a bare marker older than this is a crash i
 # move: the close ritual's own Step 7 writes it, so it is the one unambiguous "the brief
 # is written" signal. Swap the path when the board changes (persona § Current Board).
 CLOSE_SHA="${CLAUDEMANAGER_CLOSE_SHA:-$NS_REPO/BOARDS/PROJECT_HERO/.last-close-sha}"
-# How long a power-off waits for the manager to write its brief before the box goes
-# down anyway (Marc's call, 28 Aug 2026: "up to 10 minutes"). A typical close lands in
-# 2-4 min; systemd holds the shutdown for this long via TimeoutStopSec on
-# claudemanager-shutdown.service, and not one second longer. Override = test-only,
-# same precedent as CLAUDEMANAGER_ROTATE_MIN_AGE.
-SHUTDOWN_GRACE="${CLAUDEMANAGER_SHUTDOWN_GRACE:-600}"
+# How long a power-off waits for the manager's LEAN close before the box goes down
+# anyway (Marc, 28 Aug 2026: 10 min → raised to 15 the same night — the s1 farewell
+# close measured >10 min on a 210K-context session; a lean close on a fresh one runs
+# 2-4 min, the cap covers the fat case). systemd matches via TimeoutStopSec on
+# claudemanager-shutdown.service. Override = test-only (ROTATE_MIN_AGE precedent).
+SHUTDOWN_GRACE="${CLAUDEMANAGER_SHUTDOWN_GRACE:-900}"
 
 # Is a turn RUNNING right now? Defined up here (moved 15 Aug 2026) because the watchdog
 # now needs it too: sending Escape into a running turn CANCELS that turn, so every
@@ -389,7 +389,7 @@ case "$1" in
     fi
     ORDERED=$(date +%s)
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: box is powering off — ordering /manager-close (up to $((SHUTDOWN_GRACE/60)) min)"
-    printf '[%s] WATCHDOG (shutdown): 🔻 THE BOX IS POWERING OFF — Marc pressed the button or used the vault panel. Run /manager-close NOW (digest Today block staged for tomorrow + plan ticks + log rows + close SHA + push). You have %s minutes, then the box goes down regardless. Write the brief so your successor — the session that boots when Marc turns the box back on — needs nothing re-explained. Do NOT set a handover marker and do NOT kill the session yourself: the shutdown hook does both the moment it sees your close SHA move.\n' \
+    printf '[%s] WATCHDOG (shutdown): 🔻 THE BOX IS POWERING OFF — Marc pressed the button or used the vault panel. Run /manager-close in its LEAN form NOW — Steps 1→3→6→7→8 only (digest Today block staged + log rows + close SHA + push; SKIP the board page unless stale, skip WINS layers). You have %s minutes, then the box goes down regardless. NO handover marker, NO self-kill: the hook sees your close SHA move and does both.\n' \
       "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$((SHUTDOWN_GRACE/60))" >> "$MSGS"
     while [ $(( $(date +%s) - ORDERED )) -lt "$SHUTDOWN_GRACE" ]; do
       sleep 10
