@@ -21,14 +21,16 @@ You are CLAUDEMANAGER, closing a session. The board must be true and the trail m
 
 ## The workflow — execute in order
 
-**Board folder:** the one named in your persona's § Current Board (today: `/home/ubuntu/NORTH_STAR/BOARDS/PROJECT_HERO/`).
+**Board folder:** the one named in your persona's § Current Board (today: `~/north-star/BOARDS/PROJECT_HERO/`).
+
+> **Box note (28 Aug 2026):** manager runs on **lake-vault**; repo is `~/north-star` (caps = s1 only). The wiki serves the board from this same box — editing `board.html` publishes instantly.
 
 ### Step 0 — TODO
 Create a task list from these steps (task tools). One item per step. Mark as you go.
 
 ### Step 1 — Sync first
 ```bash
-cd /home/ubuntu/NORTH_STAR && git pull
+cd ~/north-star && git pull
 ```
 If the pull surfaces changes in `BUILD_PLANS/` or the board folder that you have not seen, read those diffs now — they belong in this close.
 
@@ -53,13 +55,13 @@ One row per edit in `THE_BOARD.md` → "The manager's log": date · file · what
 
 ### Step 7 — Record the close SHA
 ```bash
-cd /home/ubuntu/NORTH_STAR && git rev-parse HEAD > BOARDS/PROJECT_HERO/.last-close-sha
+cd ~/north-star && git rev-parse HEAD > BOARDS/PROJECT_HERO/.last-close-sha
 ```
-This is what the next session's open-check diffs against. If the file does not exist yet, this creates it (first run bootstrap).
+This is what the next session's open-check diffs against. If the file does not exist yet, this creates it (first run bootstrap). **Its mtime is also the shutdown hook's completion signal** (28 Aug 2026) — never touch it to "look done"; an unwritten brief would pass as written.
 
 ### Step 8 — Commit and push
 ```bash
-cd /home/ubuntu/NORTH_STAR && git add -A && git commit -m "[mgr] close: <one-line summary>" && git push
+cd ~/north-star && git add -A && git commit -m "[mgr] close: <one-line summary>" && git push
 ```
 If the auto-sync already swept your edits: commit whatever remains (the SHA file at minimum), do not fight the race, note nothing — it is normal.
 
@@ -69,7 +71,9 @@ Only when Marc ordered the recycle/shutdown, or the watchdog ordered an EMERGENC
 printf 'manual %s\n' "$(date +%s)" > ~/.claudemanager.handover
 tmux kill-session -t cs-manager
 ```
-**The marker states WHY** — `manual`/`brief`/`rotate`/`solo`/`emergency-rotate`. With a reason it is valid at any age; a bare `touch` only for 3h (on 18 Aug a 9h-old bare one let an OOM kill pass as a clean handover). **Never pre-touch it outside those moments.**
+**The marker states WHY** — `manual`/`brief`/`rotate`/`solo`/`emergency-rotate`/`shutdown`. With a reason it is valid at any age; a bare `touch` only for 3h (on 18 Aug a 9h-old bare one let an OOM kill pass as a clean handover). **Never pre-touch it outside those moments.**
+
+**POWER OFF (28 Aug 2026).** `🔻 THE BOX IS POWERING OFF` on the `mgr` line = box held open **10 min** while you write. Run Steps 1 → 3 → 4 → 6 → 7 → 8. **NO marker, NO kill** — the hook sees your close SHA move and does both (reason `shutdown`); next boot takes over silently like the 2am rotate. Miss the 10 min → successor inherits a confession + `mgr-tail` instead of your brief.
 
 **EMERGENCY ROTATE (memory guard).** A `🚨 EMERGENCY ROTATE` line on the `mgr` line = the box is out of memory and you are replaced in 15 min, ready or not. Run lean and now: Steps 1 → 3 → 6 → 7 → 8 (skip the board page unless stale). Do NOT set a marker, do NOT kill — the watchdog sees the close SHA move and does both. Miss it and your successor inherits a confession plus `mgr-tail` instead of your brief.
 The watchdog respawns a fresh manager within ~5 minutes; the marker tells it the death was clean, so it takes over silently. If you are closing but the session should stay alive (e.g., Marc asked for a mid-day close-out), SKIP this step entirely — no marker, no kill.
@@ -79,7 +83,7 @@ The watchdog respawns a fresh manager within ~5 minutes; the marker tells it the
 | Symptom | Action |
 |---|---|
 | `git push` rejected | `git pull --rebase`, push again. Still failing → leave committed locally, note it for the next brief (auto-sync will usually carry it) |
-| `wiki.1mypr.com/b` does not return 302 | The wiki app is down or the route was lost. `sudo systemctl status wiki-server`; restart it. Route lives in `NORTH_STAR/APP/wiki_server/app.py` (gitignored — back it up before any edit) |
+| `wiki.1mypr.com/b` does not return 302 | The wiki app is down or the route was lost. It runs on THIS box: `sudo systemctl status wiki-server`; restart it. Route lives in `~/north-star/APP/wiki_server/app.py` (gitignored — back it up before any edit). A local `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5052/b` separates "app is down" from "tunnel/DNS is down" |
 | `.last-close-sha` missing at Step 7 | Normal on first run — create it |
 | A plan edit feels like judgment, not bookkeeping | It IS judgment. Revert your edit, bring it to Marc in the next brief with a recommendation |
 | You cannot complete the ritual (tool failure, mid-close crash) | Whatever already landed is safe (each step commits durable state). On respawn, the boot open-check sees the partial close — finish the remaining steps FIRST, before any new work |

@@ -9,7 +9,7 @@
 #   · CLAUDEMANAGER_NO_START=1 → no claude session is ever spawned
 #   · memory values INJECTED → no dependence on real box state
 set -u
-CM=/home/ubuntu/.local/bin/claudemanager
+CM="$HOME/.local/bin/claudemanager"
 TS="${TMPDIR:-/tmp}/itest-state/itest"
 mkdir -p "$(dirname "$TS")"
 export CLAUDEMANAGER_SESSION=cs-itest

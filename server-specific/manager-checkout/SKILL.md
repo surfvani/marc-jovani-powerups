@@ -10,7 +10,7 @@ The brief says what should move; the checkout verifies what did — and plans to
 ## Hard rules (non-negotiable)
 
 1. **PLANNER FIRST.** No rapid-fire question, no accountability line, no MAÑANA item until you have fetched and read IN FULL, at checkout time, from the wiki DB (`http://127.0.0.1:5052/api/documents`): the latest WEEKLY (One Domino · numbered intentions · daily_focus rows · Zone 2 including any "confirm at checkout" items and its urgency list · NOT MY NORTH STAR) and the latest DAILY sheets for today and tomorrow (intentions + aligns_with + schedule table). A wake-carrier summary or digest block is staging, NEVER a substitute — the 16 Aug failure was running from the summary. The DB lives outside git; the open-check cannot see it.
-2. **Intentions outrank urgencies.** Tomorrow's plan is FRAMED by the weekly intentions (`NORTH_STAR/DOCUMENTATION.md` §5B: every daily plan derives from the weekly). Urgencies slot under or after — they never claim the prime block by default. Conflicts are surfaced, not silently resolved (see The Classification).
+2. **Intentions outrank urgencies.** Tomorrow's plan is FRAMED by the weekly intentions (`~/north-star/DOCUMENTATION.md` §5B: every daily plan derives from the weekly). Urgencies slot under or after — they never claim the prime block by default. Conflicts are surfaced, not silently resolved (see The Classification).
 3. **Meetings are must-shows.** Only automated sends "run themselves." Any fixed-clock human commitment (meeting, class, call) goes into MAÑANA AND into accountability as show-up-prepared. Time-feasibility check: the MORNING block must physically fit before the first fixed clock.
 4. **LIVE-NUMBER RULE** (persona § Daily Brief): every number measured at write time or timestamped as cached; `date` before any clock claim.
 5. **Chat first, files second** (Marc, 15 Aug): accountability + MAÑANA + WINS are presented as chat text, Marc adjusts, ONLY THEN the file pass — one pass.
@@ -46,7 +46,12 @@ Task list from these steps (task tools where available; a visible manual checkli
 
 ### Step 2 — PLANNER FIRST + fresh systems read
 1. Wiki DB IN FULL (Hard rule 1). `?limit=10` to spot the newest docs; `GET /api/documents/<id>` for today + tomorrow dailies; `GET /api/documents/latest/weekly`.
-2. `(cd /home/ubuntu/NORTH_STAR && git pull)` · prod send calendar read-only in a subshell `(cd /home/ubuntu/app_cc && …)` — scheduled/sent rows `AT TIME ZONE 'America/Los_Angeles'` · live numbers (members, launch revenue by funnel/checkout — never by product name).
+2. `(cd ~/north-star && git pull)` · prod send calendar + live numbers (members, launch revenue **by funnel/checkout, never by product name**) — read-only SQL against app_cc's Postgres, which now answers **through the s1 link on `127.0.0.1:15432`** (the manager left s1 on 28 Aug 2026; there is no local app_cc tree here and D7 forbids touching it anyway):
+   ```bash
+   set -a; . ~/mjfinances/bookkeeping/.env.app_cc; set +a   # 0600, DATABASE_URL → 127.0.0.1:15432
+   psql "$DATABASE_URL" -tAc "SELECT ... AT TIME ZONE 'America/Los_Angeles' ..."
+   ```
+   Scheduled/sent rows are `timestamptz` — always read them `AT TIME ZONE 'America/Los_Angeles'`, never with manual offset math (a −7h guess double-subtracted on 3 Aug 2026 and showed an 8:00pm send as 1:00pm). ⚠️ Each fresh connection over the link costs **~1.4s** vs ~1ms on s1: batch your questions into few queries instead of many small ones (the 28 Aug `/pis` lesson — 22 round-trips became a 30-second page).
 3. Build the "should have happened today" list FROM: today's daily sheet + the weekly (daily_focus row AND intentions AND its checkout-confirmation items AND its urgency list) → then plans' Active State, standing watch, chases, prior NO's.
 4. If the day pivoted, mark displaced items dead before building questions (3 Aug lesson).
 
@@ -64,7 +69,7 @@ Task list from these steps (task tools where available; a visible manual checkli
 1. **Source:** tomorrow's daily sheet if it exists; else derive from the weekly's daily_focus row + intentions, LABELED derived.
 2. **Frame:** weekly intentions first (aligns_with mentally attached) → urgencies under/after → time-feasibility vs tomorrow's schedule table (Hard rule 3).
 3. **Classify every item** (see The Classification). Name conflicts in one line ("el weekly dice mañana AM = componer CA; tus 3 del vault van después — ¿ok?"). Marc decides with the frame visible — even against his own late-night words, restate the frame once, then obey his call.
-4. **Render** in the journal formula (Hard rule 6) · 🌊 flow = a SPECIFIC physical trigger activity (`NORTH_STAR/DOCUMENTATION.md` §5B — bike best; never "how the day flows") · 💭 feeling intention.
+4. **Render** in the journal formula (Hard rule 6) · 🌊 flow = a SPECIFIC physical trigger activity (`~/north-star/DOCUMENTATION.md` §5B — bike best; never "how the day flows") · 💭 feeling intention.
 5. Present in CHAT. Marc adjusts. Files wait.
 
 ### Step 6 — THE WINS (the final conversational beat — nothing after it)

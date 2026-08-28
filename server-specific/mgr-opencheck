@@ -5,6 +5,12 @@
 # happened to sit — once inside app_cc (D7 violation, zero damage by luck).
 # The cd is baked in here; hops call this absolute path and nothing else.
 
+# WHERE THIS RUNS: lake-vault (Marc's tower) since 28 Aug 2026. Paths are $HOME-relative
+# so the script is box-agnostic; the ONE cross-box constant is s1, which still hosts
+# other agents that write to the manager (§ s1 DROP-BOX at the bottom).
+NS_REPO="$HOME/north-star"; [ -d "$NS_REPO" ] || NS_REPO="$HOME/NORTH_STAR"
+CLOSE_SHA_FILE="$NS_REPO/BOARDS/PROJECT_HERO/.last-close-sha"
+
 # --- AM I THE SANCTIONED MANAGER? (first thing, every boot and every hop) ---
 # 15 Aug 2026: two live processes shared session a81474e2 and both acted as the
 # manager for ~30 minutes. Identity is the PROCESS, not a file: the sanctioned
@@ -43,10 +49,10 @@ fi
 # refreshes the watermark, which is what makes "since the last flush" meaningful.
 SESSFILE="$HOME/.claudemanager.session"
 MY_ID="${CLAUDE_CODE_SESSION_ID:-unknown}"
-MY_TX="$(find /home/ubuntu/.claude/projects -name "$MY_ID.jsonl" 2>/dev/null | head -1)"
+MY_TX="$(find "$HOME/.claude/projects" -name "$MY_ID.jsonl" 2>/dev/null | head -1)"
 read -r PREV_ID PREV_AT PREV_TX < "$SESSFILE" 2>/dev/null || true
 if [ "$MY_ID" != "${PREV_ID:-}" ]; then
-  VERDICT="$(/home/ubuntu/.local/bin/claudemanager handover-check --consume)"
+  VERDICT="$("$HOME/.local/bin/claudemanager" handover-check --consume)"
   echo "--- BOOT · handover verdict: $VERDICT"
   case "$VERDICT" in
     CLEAN*)
@@ -58,7 +64,7 @@ if [ "$MY_ID" != "${PREV_ID:-}" ]; then
       if [ -n "${PREV_TX:-}" ] && [ -f "${PREV_TX:-/nonexistent}" ]; then
         echo "       RECOVER THE UNFLUSHED STRETCH (everything before it is already on the"
         echo "       board — this is the only part that exists nowhere else):"
-        echo "         /home/ubuntu/.local/bin/mgr-tail ${PREV_AT:-0}"
+        echo "         $HOME/.local/bin/mgr-tail ${PREV_AT:-0}"
       else
         echo "       (no predecessor transcript recorded — first run after this upgrade,"
         echo "        or the session file was cleared)"
@@ -67,11 +73,11 @@ if [ "$MY_ID" != "${PREV_ID:-}" ]; then
 fi
 printf '%s %s %s\n' "$MY_ID" "$(date +%s)" "${MY_TX:-none}" > "$SESSFILE"
 
-cd /home/ubuntu/NORTH_STAR || { echo "FATAL: NORTH_STAR missing"; exit 1; }
+cd "$NS_REPO" || { echo "FATAL: north-star repo missing at $NS_REPO"; exit 1; }
 touch ~/.claudemanager.heartbeat
 git pull 2>&1 | tail -2
 echo "--- diff since close:"
-git diff --name-only "$(cat /home/ubuntu/NORTH_STAR/BOARDS/PROJECT_HERO/.last-close-sha)"..HEAD
+git diff --name-only "$(cat "$CLOSE_SHA_FILE")"..HEAD
 echo "--- HEAD:"
 # HEAD check baked in (10 Aug 2026): hops kept composing `git log` inline
 # without its cd — same failure family as the 9 Aug pull. Never compose it.
@@ -95,3 +101,31 @@ if [ -s "$MSGS" ]; then
     echo "$total" > "$SEEN"
   fi
 fi
+
+# --- THE s1 DROP-BOX (28 Aug 2026) — s1's agents + Marc's s1 terminals still write
+# `mgr` into s1's OWN ~/.claudemanager.msgs; cross-box SendMessage does not work, so this
+# drain is their only lane. Mechanized here for the 9 Aug reason: scripts cannot forget.
+# 🚨 FAILS LOUDLY: unreadable s1 ≠ empty s1 — say so, never advance the watermark
+# (guard-that-cannot-fail trap, SERVERS-BUILD_PLAN §12 18 Aug).
+S1_HOST="ubuntu@148.113.170.120"
+S1_SSH="ssh -o BatchMode=yes -o ConnectTimeout=8 -i $HOME/.ssh/marc-keypair.pem"
+S1_SEEN="$HOME/.claudemanager.msgs.s1.seen"
+s1_total="$($S1_SSH "$S1_HOST" 'wc -l < ~/.claudemanager.msgs 2>/dev/null || echo 0' 2>/dev/null)"
+case "$s1_total" in
+  ''|*[!0-9]*)
+    echo "--- ⚠️  s1 DROP-BOX UNREACHABLE — could not read the mgr line on s1."
+    echo "    Messages from s1 agents may be waiting unseen. Diagnose, do not ignore:"
+    echo "      $S1_SSH $S1_HOST true    (and: systemctl status s1-link)"
+    ;;
+  *)
+    s1_seen="$(cat "$S1_SEEN" 2>/dev/null || echo 0)"
+    case "$s1_seen" in ''|*[!0-9]*) s1_seen=0 ;; esac
+    if [ "$s1_total" -gt "$s1_seen" ]; then
+      echo "--- MGR LINE ON s1 — $((s1_total - s1_seen)) new (from Marc or an agent on that box):"
+      $S1_SSH "$S1_HOST" "tail -n $((s1_total - s1_seen)) ~/.claudemanager.msgs"
+      echo "    ↩ ANSWER THERE, or the sender never sees it — their 'mgr' reads s1's file:"
+      echo '      printf "%s\n" "your reply" | ssh -i ~/.ssh/marc-keypair.pem '"$S1_HOST"' "cat >> ~/.claudemanager.replies"'
+      printf '%s\n' "$s1_total" > "$S1_SEEN"
+    fi
+    ;;
+esac

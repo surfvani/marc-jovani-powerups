@@ -6,8 +6,9 @@
 #   · CLAUDEMANAGER_NO_START=1 → no claude session is ever spawned
 #   · memory values INJECTED → zero real memory pressure on a box that OOM'd tonight
 set -u
-CM=/home/ubuntu/.local/bin/claudemanager
-TS=/tmp/claude-1000/-home-ubuntu/7c66fd4e-ae52-48ae-88e6-3f94891fd4af/scratchpad/mtest
+CM="$HOME/.local/bin/claudemanager"
+TS="${TMPDIR:-/tmp}/mtest-state/mtest"
+mkdir -p "$(dirname "$TS")"
 export CLAUDEMANAGER_SESSION=cs-mtest
 export CLAUDEMANAGER_STATE="$TS"
 export CLAUDEMANAGER_NO_START=1
@@ -34,7 +35,7 @@ OUT=$(CLAUDEMANAGER_FAKE_RSS_KB=$((600*1024)) CLAUDEMANAGER_FAKE_CHILD_KB=$((400
 ck "1a no warning"        "!MEMORY WARNING" "$OUT"
 ck "1b no emergency"      "!EMERGENCY"      "$OUT"
 ck "1c session survives"  "ALIVE"           "$(alive_test)"
-ck "1d curve line written" "$(date +%Y-%m-%d)" "$(cat "$TS.mem" 2>/dev/null)"
+ck "1d curve line written" "$(TZ=America/Los_Angeles date +%Y-%m-%d)" "$(cat "$TS.mem" 2>/dev/null)"   # curve stamps are Pacific by design (box is UTC)
 echo "   curve: $(tail -1 "$TS.mem")"
 
 echo "══════ 2. WARN at 6 GB — once per session ══════"
@@ -93,16 +94,16 @@ ck "8e --consume deletes"  "NONE"          "$($CM handover-check --consume >/dev
 
 echo "══════ 9. DESIGNATED VICTIM — applied to the tree, and ONLY the tree ══════"
 reset_state; mk_session
-BEFORE_FLAGGED=$(for p in $(ps -eo pid= -u ubuntu); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo x; done | wc -l)
+BEFORE_FLAGGED=$(for p in $(ps -eo pid= -u "$(id -un)"); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo x; done | wc -l)
 CLAUDEMANAGER_FAKE_RSS_KB=$((600*1024)) CLAUDEMANAGER_FAKE_AVAIL_KB=$((10*GB)) run >/dev/null
 PP=$(tmux list-panes -t cs-mtest -F '#{pane_pid}' | head -1)
 ck "9a oom_score_adj set"  "500"  "$(cat /proc/$PP/oom_score_adj 2>/dev/null)"
-TREE_N=$(bash -c 'source /dev/stdin <<<"$(sed -n "/^mgr_tree()/,/^}/p" /home/ubuntu/.local/bin/claudemanager)"; mgr_tree '"$PP"' | grep -c .')
+TREE_N=$(bash -c 'source /dev/stdin <<<"$(sed -n "/^mgr_tree()/,/^}/p" '"$CM"')"; mgr_tree '"$PP"' | grep -c .')
 ck "9b tree is small"      "1"    "$([ "$TREE_N" -le 3 ] && echo 1 || echo "0 (walk returned $TREE_N pids)")"
-AFTER_FLAGGED=$(for p in $(ps -eo pid= -u ubuntu); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo x; done | wc -l)
+AFTER_FLAGGED=$(for p in $(ps -eo pid= -u "$(id -un)"); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo x; done | wc -l)
 ck "9c no collateral"      "1"    "$([ $((AFTER_FLAGGED - BEFORE_FLAGGED)) -le 2 ] && echo 1 || echo "0 (flagged $((AFTER_FLAGGED-BEFORE_FLAGGED)) extra processes)")"
 echo "   flagged before=$BEFORE_FLAGGED after=$AFTER_FLAGGED · tree pids=$TREE_N"
-for p in $(ps -eo pid= -u ubuntu); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo 0 > /proc/$p/oom_score_adj 2>/dev/null; done   # leave the box as we found it
+for p in $(ps -eo pid= -u "$(id -un)"); do [ "$(cat /proc/$p/oom_score_adj 2>/dev/null)" = "500" ] && echo 0 > /proc/$p/oom_score_adj 2>/dev/null; done   # leave the box as we found it
 
 echo "══════ 10. REGRESSION — quiet healthy session + STALE marker: LEAVE IT ALONE ══════"
 # The screen must differ between runs, or the liveness ladder (90 min) claims the

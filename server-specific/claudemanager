@@ -12,8 +12,16 @@
 #   claudemanager unstick   clear a dialog that is blocking the message queue
 #   claudemanager handover-check [--consume]
 #                           is the handover marker a real relevo, or a crash wearing its clothes?
-#   claudemanager watchdog  (for cron) clear a stuck dialog · respawn if DEAD · recycle only a CORPSE
+#   claudemanager shutdown-close
+#                           the box is powering off: order the brief, wait up to 10 min,
+#                           then end the session with a marker (see the verb below)
+#   claudemanager watchdog  (for systemd timer) clear a stuck dialog · respawn if DEAD · recycle only a CORPSE
 #                           · log the memory curve · warn at 6 GB · graceful rotate at 16 GB / <2 GB free
+#
+# WHERE THIS RUNS: lake-vault (Marc's tower) since 28 Aug 2026 — it lived on s1 until
+# then. Supervision is systemd here, not cron: claudemanager-watchdog.timer (every 5 min
+# + OnBootSec) · claudemanager-rotate.timer (02:00 America/Los_Angeles, DST-proof on a
+# UTC box) · claudemanager-shutdown.service (ExecStop → shutdown-close).
 #
 # WHEN THE SESSION IS REPLACED (Marc's rule, 12 Aug 2026 — "me molesta que el agente
 # decida cerrar y abrir sesión… prefiero mantener un agente más tiempo para conservar
@@ -62,6 +70,13 @@ SESSION="${CLAUDEMANAGER_SESSION:-cs-manager}"
 STATE="${CLAUDEMANAGER_STATE:-$HOME/.claudemanager}"
 TITLE="MANAGER"
 WORKDIR="$HOME"   # home, not NORTH_STAR: keeps personas/, skills/, NORTH_STAR/ all in-scope so auto-mode never stalls on permission prompts
+# Repo name differs per box (lake-vault `north-star` · s1 `NORTH_STAR`) — detect, never hardcode.
+NS_REPO="$HOME/north-star"; [ -d "$NS_REPO" ] || NS_REPO="$HOME/NORTH_STAR"
+# 🚨 Box is UTC; the manager runs PACIFIC and that is load-bearing (5:10 brief, checkout
+# ping, clock edges, `date` before any time claim). s1 was Pacific natively; here it must
+# be explicit or every clock is 7-8h wrong with no error. Same TZ pattern as the app units.
+MGR_TZ="America/Los_Angeles"
+export TZ="$MGR_TZ"
 HEART="$STATE.heartbeat"
 OFF="$STATE.off"
 HANDOVER="$STATE.handover"
@@ -118,7 +133,13 @@ MARKER_FRESH_SECS=10800      # 3h — a bare marker older than this is a crash i
 # The current board's close marker. The graceful rotate waits for THIS file's mtime to
 # move: the close ritual's own Step 7 writes it, so it is the one unambiguous "the brief
 # is written" signal. Swap the path when the board changes (persona § Current Board).
-CLOSE_SHA="${CLAUDEMANAGER_CLOSE_SHA:-$HOME/NORTH_STAR/BOARDS/PROJECT_HERO/.last-close-sha}"
+CLOSE_SHA="${CLAUDEMANAGER_CLOSE_SHA:-$NS_REPO/BOARDS/PROJECT_HERO/.last-close-sha}"
+# How long a power-off waits for the manager to write its brief before the box goes
+# down anyway (Marc's call, 28 Aug 2026: "up to 10 minutes"). A typical close lands in
+# 2-4 min; systemd holds the shutdown for this long via TimeoutStopSec on
+# claudemanager-shutdown.service, and not one second longer. Override = test-only,
+# same precedent as CLAUDEMANAGER_ROTATE_MIN_AGE.
+SHUTDOWN_GRACE="${CLAUDEMANAGER_SHUTDOWN_GRACE:-600}"
 
 # Is a turn RUNNING right now? Defined up here (moved 15 Aug 2026) because the watchdog
 # now needs it too: sending Escape into a running turn CANCELS that turn, so every
@@ -247,7 +268,7 @@ marker_verdict() {
   age=$(( $(date +%s) - $(stat -c %Y "$HANDOVER") ))
   reason=$(awk 'NR==1{print $1}' "$HANDOVER" 2>/dev/null)
   case "$reason" in
-    rotate|solo|brief|emergency-rotate|blocked-rung3|manual)
+    rotate|solo|brief|emergency-rotate|blocked-rung3|manual|shutdown)
       echo "CLEAN $reason ${age}s" ;;
     *)
       if [ "$age" -lt "$MARKER_FRESH_SECS" ]; then echo "CLEAN bare-marker ${age}s"
@@ -351,6 +372,45 @@ case "$1" in
     else
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] rotate: nothing was running — starting fresh"
     fi
+    ;;
+  shutdown-close)
+    # POWER OFF = the 2am ritual with a different trigger (Marc, 28 Aug 2026: "the same
+    # transition process that happens at 2AM… triggered by a shut down and a turn on").
+    # Phase 1 here: brief written → marker → session ends → box goes down. Phase 2 is
+    # boot: watchdog.timer OnBootSec respawns; marker → silent takeover.
+    # Runs as ExecStop of claudemanager-shutdown.service — systemd holds the shutdown;
+    # button and vault-panel poweroff both end in `systemctl poweroff`, so both land here.
+    # Mechanism = the emergency rotate, reused: order the close on the mgr line (the
+    # armed Monitor wakes the session), then watch /manager-close Step 7's own signal —
+    # .last-close-sha mtime. Never kill first: the written brief is the point.
+    if ! alive; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: no manager running — nothing to close"
+      exit 0
+    fi
+    ORDERED=$(date +%s)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: box is powering off — ordering /manager-close (up to $((SHUTDOWN_GRACE/60)) min)"
+    printf '[%s] WATCHDOG (shutdown): 🔻 THE BOX IS POWERING OFF — Marc pressed the button or used the vault panel. Run /manager-close NOW (digest Today block staged for tomorrow + plan ticks + log rows + close SHA + push). You have %s minutes, then the box goes down regardless. Write the brief so your successor — the session that boots when Marc turns the box back on — needs nothing re-explained. Do NOT set a handover marker and do NOT kill the session yourself: the shutdown hook does both the moment it sees your close SHA move.\n' \
+      "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$((SHUTDOWN_GRACE/60))" >> "$MSGS"
+    while [ $(( $(date +%s) - ORDERED )) -lt "$SHUTDOWN_GRACE" ]; do
+      sleep 10
+      CLOSE_AT=$(stat -c %Y "$CLOSE_SHA" 2>/dev/null || echo 0)
+      case "$CLOSE_AT" in ''|*[!0-9]*) CLOSE_AT=0 ;; esac
+      if [ "$CLOSE_AT" -ge "$ORDERED" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: brief WRITTEN after $(( $(date +%s) - ORDERED ))s — clean close, powering off"
+        set_marker shutdown   # → the post-boot session takes over silently
+        tmux kill-session -t "$SESSION" 2>/dev/null
+        exit 0
+      fi
+      alive || { echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: session ended on its own — proceeding"; exit 0; }
+    done
+    # Cap reached. The box must go down; it cannot wait on an agent forever. NO marker,
+    # exactly as the memory guard's expired grace does — so the session that boots next
+    # CONFESSES the unclean end and recovers the unwritten stretch from the transcript
+    # (mgr-opencheck prints the mgr-tail command). A death disguised as a clean relevo is
+    # the 18 Aug 2026 failure; it is never repeated to save face.
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] shutdown-close: $((SHUTDOWN_GRACE/60))-min cap reached with NO close — ending session WITHOUT marker (successor confesses + recovers from transcript)"
+    tmux kill-session -t "$SESSION" 2>/dev/null
+    exit 0
     ;;
   watchdog)
     [ -f "$OFF" ] && exit 0
@@ -603,7 +663,11 @@ touch "$HEART"   # grace period so the watchdog never kill-loops a booting sessi
 # permissions.defaultMode ("auto"), so behaviour is unchanged — it is simply no longer
 # negotiable at runtime. Anything the boot needs arrives as a flag: model (4 Aug),
 # persona (10 Aug), permission mode (15 Aug).
-tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
+# `-e TZ=...` puts Pacific inside the SESSION's environment (see MGR_TZ at the top —
+# the box is UTC and every clock the manager touches is Marc's day). It must be set on
+# the tmux session, not merely exported here: the tmux SERVER is a daemon with its own
+# environment, so a variable exported by this script does not reach the spawned pane.
+tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
   "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max --permission-mode auto claudemanager"
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
@@ -611,7 +675,7 @@ sleep 12
 # old check matched the settings.json banner and so could never actually fail.
 if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
-  tmux new-session -d -s "$SESSION" -c "$WORKDIR" \
+  tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
     "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager"
   sleep 12
 fi
