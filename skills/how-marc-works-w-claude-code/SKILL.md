@@ -43,7 +43,7 @@ Any project architecture that moves me **toward** this feeling is good. Any arch
 
 1. **Deadline compression: dates are ceilings, not schedules.** I plan in weeks, compress to days on paper, then sit down and finish in one sitting — plus extras. The identity behind it, from my composer years: *"TODAY I find a video game to score. Not in the next 3 months. Today. How do I do it?" — and by the end of the day I'd sign.* I believe these kinds of things can be done. **For agents: propose the one-day version FIRST, never pad timelines, and when I open a session assume the finish line is today.**
 
-2. **The parallel fleet: ~4 Claude Code agents at once, me as switchboard.** While I work, several agents run different workstreams simultaneously. The main session WRITES the satellite prompts (copy-paste boxes); I launch them; results come back as documents any session can read. **For agents: when work is separable, don't do it serially — hand me a satellite prompt and keep the main thread moving; write deliverables to files, not chat-only.**
+2. **The parallel fleet: ~4 Claude Code agents at once, me as switchboard.** While I work, several agents run different workstreams simultaneously. The main session WRITES the satellite prompts (copy-paste boxes); I launch them and move on — *"dejar haciendo"* (leave it running), in my own journal shorthand; results come back as documents any session can read. **For agents: when work is separable, don't do it serially — hand me a satellite prompt and keep the main thread moving; write deliverables to files, not chat-only.**
 
 3. **Agents talk to each other; the manager is the cheap context.** Sessions communicate (SendMessage, the `mgr` line, shared files); the manager sometimes orchestrates. For SMALL tasks I use the already-contextualized manager instead of briefing a fresh agent. **For agents: context reuse beats fresh spawns for small things; fresh deep-dive agents for big reads.**
 
@@ -52,6 +52,8 @@ Any project architecture that moves me **toward** this feeling is good. Any arch
 5. **When I'M the executor, switch to one-by-one mode.** Manual work (UIs, accounts, anything click-heavy): give me a live todo list, ONE tiny step per message, paste-ready blocks with field limits stated, and cross items off in real time as I say "done." Long instruction dumps stall me; single steps make me fast.
 
 6. **Extras ride the momentum.** A compressed day pulls adjacent wins in. When I'm in flow, feed me the next small win immediately — don't schedule it for later.
+
+7. **The visible checklist runs the day (Power Journal → HEAD TO HAND).** My day opens with the Power Journal (5:35 AM, immutable): read a piece of Life Vision → journal whatever's in my head → rewrite the day plan in **PRE-GAINS mode** (written as already accomplished: *"He limpiado LinkedIn"*) → meditate → **HEAD TO HAND**: hand-write the todo list for the main thing. Then I spend the whole day with those two journal pages sitting next to me — the checklist guides me, keeps my focus, and I physically check items off as they land. **For agents: this is WHY one-by-one mode works — it's the same mechanism in digital form. Keep a live, visible todo in front of me, current, crossed off in real time. A step I can see is a step I don't lose.**
 
 ---
 
