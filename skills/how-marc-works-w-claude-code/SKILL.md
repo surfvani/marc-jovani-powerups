@@ -1,6 +1,6 @@
 ---
 name: how-marc-works-w-claude-code
-description: "Marc's builder profile — identity, workflow, pain points, architectural principles, technical context, and the CC-Sampler case study. Load this as context during plan-build, brainstorming, or any architecture/infrastructure decision so the agent designs for how Marc actually works (vibe coder, tight feedback loops, text-native, AI-first) instead of assuming a traditional developer workflow."
+description: "Marc's builder profile — identity, operating patterns (how Marc ships: deadline compression, the parallel agent fleet, one-by-one mode), workflow, pain points, architectural principles, technical context, and the CC-Sampler case study. Load this as context during plan-build, brainstorming, or any architecture/infrastructure decision so the agent designs for how Marc actually works (vibe coder, tight feedback loops, text-native, AI-first) instead of assuming a traditional developer workflow."
 user-invocable: false
 ---
 
@@ -33,6 +33,25 @@ My web development workflow is the bar everything else gets measured against. He
 **This is where I'm happiest.** I can actionate fast. As CEO, the ability to think of something at 10am and have it live by lunch is not just productive — it's motivating. It's the reason I keep building.
 
 Any project architecture that moves me **toward** this feeling is good. Any architecture that moves me **away** from it — toward slow compile cycles, complex toolchains, multi-step build processes, or environments I can't directly touch — needs to justify itself or be redesigned.
+
+
+---
+
+## How I Ship — Operating Patterns
+
+*Session-level patterns — how I actually run the work, day to day. Dated receipt for all of them at once: 28 Aug 2026 — a LinkedIn/investor-outreach task planned for a week, compressed to Monday on paper, executed in ONE day (profile + company page rebuilt, first investor messages sent, first acceptance and pitch the same evening) — with a full server migration done in parallel.*
+
+1. **Deadline compression: dates are ceilings, not schedules.** I plan in weeks, compress to days on paper, then sit down and finish in one sitting — plus extras. The identity behind it, from my composer years: *"TODAY I find a video game to score. Not in the next 3 months. Today. How do I do it?" — and by the end of the day I'd sign.* I believe these kinds of things can be done. **For agents: propose the one-day version FIRST, never pad timelines, and when I open a session assume the finish line is today.**
+
+2. **The parallel fleet: ~4 Claude Code agents at once, me as switchboard.** While I work, several agents run different workstreams simultaneously. The main session WRITES the satellite prompts (copy-paste boxes); I launch them; results come back as documents any session can read. **For agents: when work is separable, don't do it serially — hand me a satellite prompt and keep the main thread moving; write deliverables to files, not chat-only.**
+
+3. **Agents talk to each other; the manager is the cheap context.** Sessions communicate (SendMessage, the `mgr` line, shared files); the manager sometimes orchestrates. For SMALL tasks I use the already-contextualized manager instead of briefing a fresh agent. **For agents: context reuse beats fresh spawns for small things; fresh deep-dive agents for big reads.**
+
+4. **Autonomy is earned at the gate — then don't tax me.** The flow is front-loaded alignment → long autonomy: /whatdocs research → simplll explanation → samepage gate → my explicit GO → the agent runs autonomously for a long stretch. **After the gate: decide-and-notify, don't ask. Every question costs me a decision from a finite daily budget.**
+
+5. **When I'M the executor, switch to one-by-one mode.** Manual work (UIs, accounts, anything click-heavy): give me a live todo list, ONE tiny step per message, paste-ready blocks with field limits stated, and cross items off in real time as I say "done." Long instruction dumps stall me; single steps make me fast.
+
+6. **Extras ride the momentum.** A compressed day pulls adjacent wins in. When I'm in flow, feed me the next small win immediately — don't schedule it for later.
 
 ---
 
