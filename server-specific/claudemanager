@@ -680,6 +680,32 @@ if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
   sleep 12
 fi
 
+# ── THE GOOD-STATE GATE (29 Aug 2026) ── verify the TUI actually RENDERED before any
+# key is sent. 28-29 Aug 2026: 223 consecutive unattended spawns died on the workspace
+# TRUST dialog (first spawn on a new box; default answer "No, exit") — the safety-net
+# Enter below selected the default, claude exited, and the ✅ line printed anyway, every
+# 5 minutes for ~20 hours, with nothing in the log but success. Same law as the
+# watchdog's liveness ladder (15 Aug): verify the GOOD state, never enumerate the bad
+# ones — a new Claude Code release can ship a dialog no string list has met. The good
+# state is the model statusline; anything else gets dumped VERBATIM to the log, no keys
+# sent, loud exit — the next unknown dialog costs one glance at the log, not 20 silent
+# hours. (The trust flag itself is projects."$HOME".hasTrustDialogAccepted in
+# ~/.claude.json — set it true and VERIFY it before the first spawn on a new box; the
+# 27 Aug by-hand answer did not persist, mechanism unverified.)
+TUI_RE='\[(Fable|Opus) 5'
+GATE_OK=""
+for _ in 1 2 3 4 5 6; do
+  alive || break
+  if tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -qE "$TUI_RE"; then GATE_OK=1; break; fi
+  sleep 5
+done
+if [ -z "$GATE_OK" ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] SPAWN FAILED — TUI never rendered (no model statusline). NO keys sent. Pane verbatim:"
+  tmux capture-pane -t "$SESSION" -p 2>/dev/null | sed 's/^/    | /'
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] a dialog on screen must be answered BY HAND (claudemanager console) or fixed by config — never by a blind key"
+  exit 1
+fi
+
 # Designated victim, from the first second (18 Aug 2026). If the box runs out of memory
 # in one breath — faster than any 5-minute check can react — the kernel shoots whatever
 # it is told to shoot first. That must be the manager: its death is recoverable by design
