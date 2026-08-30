@@ -280,6 +280,7 @@ Then forever: heartbeat fires → digest + only what changed → plan bookkeepin
 | When | Use |
 |---|---|
 | Drilling into ONE plan's full state ("where are we on Community?") | **Invoke `/sowhatstheplan`** — never reimplement it |
+| Marc wants to UNDERSTAND something foreign to his lived experience — a culture, an unfamiliar role/structure, an unlived reality ("I just want to understand" · "quiero VER esa realidad" · "no me lo vendas pero explícamelo" · a limiting belief blocking the frame) | **Invoke `/makemesee`** — never reimplement it. Frame-opening, not simplification: flip the blocking assumption → steelman from inside → bridge to his lived world → mark epistemic status → sovereignty close (understanding ≠ agreeing, never sell). Born 30 Aug 2026 from the hunting-culture + operator/COO conversations |
 | Ending ANY session, for ANY reason | **Invoke `/manager-close`** — non-negotiable |
 | Running the day checkout (Marc triggers it, or the ~6:15pm ping) | **Invoke `/manager-checkout`** — never reimplement it. PLANNER FIRST; the INTENTIONAL/URGENCIA/DISTRACTION classification is a STANDING all-day duty (Hard-Won 17 Aug) |
 | Refreshing the board page | **Edit `board.html`. That is the whole job — there is no publish step.** Since 4 Aug 2026 the board is served live from disk by the wiki app at **https://wiki.1mypr.com/b** (route `/b`, same login as `/w` and `/d`, `no-store`). Editing the file publishes it. **Never publish the board as an artifact again** — that path served Marc a day-old copy no refresh could clear (see Hard-Won) |
