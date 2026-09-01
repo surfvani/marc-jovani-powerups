@@ -4,6 +4,18 @@
 
 PERSONAS_DIR="$HOME/.claude/personas"
 
+# Headless guard (added 31 Aug 2026, DATA_ENRICHMENT build): the picker is for
+# Marc's INTERACTIVE sessions only — it asks a human to type an answer. Skip
+# when explicitly told to (PERSONA_PICKER_SKIP=1), or when the parent claude
+# process runs in print mode (claude -p / --print), e.g. headless worker loops.
+if [ -n "$PERSONA_PICKER_SKIP" ]; then
+  exit 0
+fi
+parent_args=$(ps -o args= -p "$PPID" 2>/dev/null)
+case " $parent_args " in
+  *" -p "*|*" --print "*) exit 0 ;;
+esac
+
 # Bail silently if no personas dir or no .md files (no hook output = no picker)
 if [ ! -d "$PERSONAS_DIR" ]; then
   exit 0
