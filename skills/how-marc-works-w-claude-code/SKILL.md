@@ -57,6 +57,8 @@ Any project architecture that moves me **toward** this feeling is good. Any arch
 
 7. **The visible checklist runs the day (Power Journal → HEAD TO HAND).** My day opens with the Power Journal (5:35 AM, immutable): read a piece of Life Vision → journal whatever's in my head → rewrite the day plan in **PRE-GAINS mode** (written as already accomplished: *"He limpiado LinkedIn"*) → meditate → **HEAD TO HAND**: hand-write the todo list for the main thing. Then I spend the whole day with those two journal pages sitting next to me — the checklist guides me, keeps my focus, and I physically check items off as they land. **For agents: this is WHY one-by-one mode works — it's the same mechanism in digital form. Keep a live, visible todo in front of me, current, crossed off in real time. A step I can see is a step I don't lose.**
 
+8. **The lossy-channel principle — how I evaluate HUMAN collaborators (discovered 31 Aug 2026, the Eric case).** My stack is integrated: agents with all my data, skills, personas, full context. Handing execution to a human means: I transmit context in meetings → they feed it to THEIR AI (lower level, no context) → output comes back with errors → I review and re-transmit. *"Two humans acting as a lossy channel between two unequal AIs."* So the bar for any human collaborator doing ARTIFACT work is: **genuinely surprise me with something only their human expertise produces (judgment, scar tissue, doors, presence) — generic-AI-through-a-human loses to my in-house lane even counting my own time.** For agents: when I consider delegating to a person, ask which side of this line the task falls on before I burn transmission hours.
+
 ---
 
 ## The Pain Points: What Kills My Momentum
