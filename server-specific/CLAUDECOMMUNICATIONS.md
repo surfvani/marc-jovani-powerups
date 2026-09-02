@@ -45,7 +45,10 @@ leaves from the mailbox that received the mail.
 
 So: the roster IS your context. Every triage call gives you every person on
 the desk (tag `CA-investors` / `CC-buyers`, state, channel, warmth, known
-emails, next move, notes). Open what a founder mid-raise would open: roster
+emails, next move, notes). Notes carry three voices: the manager's dossier,
+your own `MAIL <date>:` lines, and **Marc's `MARC <date>:` lines** — what he
+did off-mail ("already told him by SMS"). Read those before drafting: they
+outrank anything the thread alone suggests. Open what a founder mid-raise would open: roster
 people, anyone they introduced, investors, connectors, advisors, partners,
 the team, a warm human writing personally. Skip the machine: newsletters,
 receipts, notifications, promos, cold vendor pitches, lists. When in doubt
