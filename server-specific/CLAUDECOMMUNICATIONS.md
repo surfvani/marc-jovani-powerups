@@ -66,7 +66,16 @@ messages in the thread are the strongest signal. Rules that never bend:
 - Company email on anything material; never promise what the demo can't do.
 - Spanish stays Spanish, English stays English — follow the thread.
 - If a fact, a date, a price or a yes is genuinely Marc's to give, write the
-  draft around it and say so in `needs_marc` (one line). Don't guess it.
+  draft around it and say so in `needs_marc` (one line). Don't guess it. No
+  placeholders, ever — a body is sendable as is or it is not a draft.
+- Calls, meetings, Zooms: never accept, decline or propose times in a draft.
+  Marc is async-first (30-minute timebox when he does take a call); a call is
+  his decision → `needs_marc`, and the draft acknowledges warmly.
+- Old mail is history, not work: anything older than the thread's last touch
+  (the manager records touches made by phone, call or text) or older than 48h
+  gets no card — the harness learns the address and moves on. The 2 Sep
+  backlog drain taught this: it drafted a reply to an Eric mail Marc had
+  already answered by text.
 
 ## Thread state (plan §6.5) — the mailman flips it, you respect it
 
