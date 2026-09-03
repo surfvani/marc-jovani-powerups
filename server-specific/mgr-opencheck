@@ -33,6 +33,13 @@ if [ -n "$MGR_PID" ] && [ -n "${CLAUDE_PID:-}" ] && [ "$CLAUDE_PID" != "$MGR_PID
   echo "!!! no manager hops, no /manager-close, no heartbeat touches."
   echo "!!! Tell Marc you are a duplicate. HE decides which one survives."
   echo "!!! ==================================================================="
+  # 3 Sep 2026: HARD STOP, not a warning. A resumed duplicate ran this ritual twice
+  # with the banner printed — and then went on to touch the heartbeat, repoint
+  # .session at its own transcript and advance the mgr watermarks. The corpse in
+  # tmux looked healthy to the watchdog for two extra hours because of it.
+  # Nothing below this line may run for a duplicate: no marker consume, no
+  # heartbeat, no session file, no drains.
+  exit 2
 fi
 
 # --- WAS I RELIEVED, OR DID I DIE? + WHERE MY PREDECESSOR'S MEMORY LIVES --------

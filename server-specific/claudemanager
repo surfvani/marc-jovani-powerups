@@ -106,7 +106,9 @@ STALE_SECS=7200   # two missed hourly beats = dead brain
 # perfectly healthy manager that is simply sitting between wakes, which is exactly the
 # session Marc's 12 Aug rule protects.
 BLOCKED_SECS=5400
-MODEL_PRIMARY="claude-fable-5[1m]"    # Marc's requirement (3 Aug 2026): Fable + max effort
+MODEL_PRIMARY="claude-fable-5-1[1m]"  # Marc's requirement (3 Aug 2026): Fable + max effort
+                                      # ⟳ 3 Sep 2026: Fable 5 → Fable 5.1 on Marc's order. Statusline
+                                      # renders "[Fable 5.1]" (measured live, Claude Code v2.1.259).
 MODEL_FALLBACK="claude-opus-5[1m]"    # if Fable is unavailable (usage limits)
 
 # ── MEMORY GUARD state + thresholds (18 Aug 2026) ────────────────────────────
@@ -671,9 +673,12 @@ tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
   "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max --permission-mode auto claudemanager"
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
-# Check the live status line "[Fable 5]", NOT the word "Fable" anywhere on screen — the
+# Check the live status line "[Fable 5.1]", NOT the word "Fable" anywhere on screen — the
 # old check matched the settings.json banner and so could never actually fail.
-if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\]"; then
+# ⟳ 3 Sep 2026: "[Fable 5]" → "[Fable 5.1]" together with MODEL_PRIMARY. The dot is
+# escaped on purpose: "[Fable 5.1]" does NOT contain "[Fable 5]", so keeping the old
+# pattern would have sent EVERY spawn to the Opus fallback, silently, forever.
+if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\.1\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
   tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
     "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager"
