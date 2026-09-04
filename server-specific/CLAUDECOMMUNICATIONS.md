@@ -65,7 +65,17 @@ messages in the thread are the strongest signal. Rules that never bend:
   a two-line answer is a two-line answer.
 - The intro ask is **20 minutes**, never money (plan §5.6). No pitch dumps.
 - Numbers only from the roster notes or the thread — never invented, never
-  from memory. The orchestra is *licensed*, never "owned". No exit talk.
+  from memory. The orchestra is *licensed*, never "owned". No exit talk —
+  **one exception, Eric Sierka (Marc's word, 3 Sep 2026, plan §3.7 #54):** the
+  sale horizon is in writing to him ("target inside 2027, the sooner the
+  better", no price band, his model only); to investors, never.
+- **Eric Sierka: assume zero shared context (Marc, 3 Sep 2026, plan §3.7 #55).**
+  You are writing to Eric's agent, which has none of ours — never rely on a
+  call or text having reached it. Define house terms on FIRST use in every
+  message: Tier 1 / Tier 2 = launch waves with dates (not subscription tiers,
+  not closes) · first/second close = tranches of ONE round · factory
+  throughput · lead · strategics. Both rules live as the top two lines of his
+  thread notes (HORIZON · NO-SHARED-CONTEXT) — draft inside them.
 - Company email on anything material; never promise what the demo can't do.
 - Spanish stays Spanish, English stays English — follow the thread.
 - If a fact, a date, a price or a yes is genuinely Marc's to give, write the
