@@ -669,8 +669,14 @@ touch "$HEART"   # grace period so the watchdog never kill-loops a booting sessi
 # the box is UTC and every clock the manager touches is Marc's day). It must be set on
 # the tmux session, not merely exported here: the tmux SERVER is a daemon with its own
 # environment, so a variable exported by this script does not reach the spawned pane.
+# ⟳ 4 Sep 2026 — `9>&-` on both spawns closes the start-lock fd for tmux. Without it the
+# tmux SERVER (forked by whichever spawn finds no server running) inherits fd 9 and holds
+# the flock for its whole life — and it outlives the manager whenever other tmux sessions
+# (dev, writer, csvx…) keep it alive. Seen 4 Sep 19:09–19:20: three watchdog runs aborted
+# "Another claudemanager start is already in progress" and no successor spawned; the fork
+# spawned one by hand. Proven in an isolated `tmux -L` server before shipping.
 tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
-  "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max --permission-mode auto claudemanager"
+  "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_PRIMARY\" --effort max --permission-mode auto claudemanager" 9>&-
 sleep 12
 # Fallback (Marc, 3 Aug 2026): if Fable didn't take (usage limits), relaunch on Opus 5.
 # Check the live status line "[Fable 5.1]", NOT the word "Fable" anywhere on screen — the
@@ -681,7 +687,7 @@ sleep 12
 if ! alive || ! tmux capture-pane -t "$SESSION" -p | grep -q "\[Fable 5\.1\]"; then
   tmux kill-session -t "$SESSION" 2>/dev/null
   tmux new-session -d -s "$SESSION" -c "$WORKDIR" -e TZ="$MGR_TZ" \
-    "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager"
+    "claude --name \"$TITLE\" --remote-control \"$TITLE\" --model \"$MODEL_FALLBACK\" --effort max --permission-mode auto claudemanager" 9>&-
   sleep 12
 fi
 
