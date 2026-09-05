@@ -7,7 +7,6 @@
 
 ## STEP 0 — NON-NEGOTIABLE (Marc, 4 Sep 2026)
 - **No query, no grep, no curl, no ssh read against app_cc until steps 1–4 below are done and the `/whatdocs` TODO list is on screen.** Not for a lookup, not for a "quick check": a read-only audit IS a task and runs the same ladder.
-- Born 4 Sep 2026, 22:4x: the manager was asked whether anything in app_cc still said 6AM, read app_cc `CLAUDE.md` and then went straight to psql/curl — skipping CLAUDEDEV, the system's documentation and `/whatdocs`. Result correct, process wrong, slow, and the slug change was found by database luck instead of by the map. Marc: *"lo ponía? lo has hecho?"* — it was written; it was not done.
 
 ## Read before you start, in this order
 1. `ssh dev 'cat /home/ubuntu/app_cc/CLAUDE.md'` — **entirely** (489 lines). The pipeline (dev → GitHub → prod, auto-pull every 2 min, no review gate), the `.env` safety rules on dev, the processes that must never run on dev, the adhoc-scripts rule on prod, the round-trip for tracked files edited on prod.
