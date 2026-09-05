@@ -340,6 +340,13 @@ This makes remote servers self-sync. Skip if you prefer manual control.
 - **Purpose:** Marc's live-production execution discipline — invoked when about to apply a fix, update, or new implementation to a live production app with real users and live payments. Enforces: a final context check before any file is touched, no modifying files Claude hasn't seen, per-file backup with descriptive suffix before edits, no "ninja" sed/awk/echo injection (Edit/MultiEdit only), route/endpoint matching across JS↔API (no `/resource/api/...` vs `/api/...` mismatches), auto-create-and-execute any migration scripts (don't make user run them), focus strictly on the task at hand (no scope creep), then after the work is done restart pm2 and write a SAFE test script (dry-run, no live emails or mass sends) that validates the fix actually works — not just that files changed. Pairs with `whatdocs` (the pre-implementation companion). Since v1.1, the CONTINUITY section requires the samepage-brainstorming gate to have closed with an explicit GO before execution.
 - **Last updated:** 2026-07-16 v1.1 (gate guard added to CONTINUITY FROM /whatdocs — "approved" now means the samepage-brainstorming gate closed with an explicit GO; if the gate never ran, STOP and run it before touching any file; spec explicitly = the PROPOSED SOLUTION as amended by the gate conversation. Defense-in-depth mirror of whatdocs' ending lock, same pattern as defcode's existing duplicate re-check. Also: Rule 3 now notes MultiEdit was dropped in newer Claude Code versions — repeated Edit calls are equivalent (verified absent from the Fable 5 session toolset). Designed with Fable 5.) Prior: 2026-05-15 (added)
 
+### `data-extraction-from-forms`
+
+- **Source:** written by the manager session 4 Sep 2026 from the live SVO survey extraction (2,227 rows, 3 MB CSV → 9 subtopics + 3 verbatim part files by 6 Opus 5 sessions); Marc: "ese proceso ha funcionado y ha funcionado bien — vamos a crear un skill"
+- **Trigger description:** see frontmatter `description:` field in `skills/data-extraction-from-forms/SKILL.md`
+- **Purpose:** Verbatim voice-of-customer extraction from large form/survey exports for one topic, run as a team of separate Claude sessions (readers → merged subtopics → writers in 50-row tranches), sized by file weight (~800 KB/agent), with the don'ts that killed sessions on the first run (whatdocs in workers, fat chunks, notes files, double reads, tags/translations, agent chatter).
+- **Last updated:** 2026-09-04 v1.0 (generic; ships to every server via `install.sh`)
+
 ### `simplll`
 
 - **Source:** pasted in chat 2026-07-16 (Marc's TextExpander clarity prompt — verbatim port, byte-verified via the cat + diff procedure)
