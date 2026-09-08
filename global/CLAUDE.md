@@ -10,14 +10,11 @@ If `~/.claude/CLAUDEFOLLOWUPS.md` exists and has open items, check it for work M
 
 Omitting the `model` parameter on Agent tool calls is the safest way to inherit the session's exact model version. If you do pass `model: "opus"`, the UI label may show a different version — verify via transcript JSONL `message.model` field that the API actually used the correct one.
 
-```
-LEARNINGS — Subagent Model Inheritance (Jun 2026)
-1. UI label lies. model:"opus" shows "Opus 4.8" in UI but actually runs the session's pinned version. Don't trust the label.
-2. Omit model param = inherits parent version. Passing model:"opus" means "latest opus." Not passing it means "same as me."
-3. Workflow agents proved it. They don't set model overrides internally, so they inherited correctly — that's how we figured it out.
-4. CLAUDE_CODE_SUBAGENT_MODEL env var can force a version (top priority), but it's static — goes stale when you switch versions. Removed in favor of omitting model param.
-5. ANTHROPIC_DEFAULT_OPUS_MODEL is just cosmetic. Only changes menu display. Removed it.
-```
+- **Omit `model` on Agent calls.** That inherits the session's exact version. Passing `model: "opus"` means "latest opus", not "same as me".
+- **The UI label lies.** It can show a different version than the API actually used. Verify in the transcript JSONL `message.model` field.
+- **Never use `CLAUDE_CODE_SUBAGENT_MODEL`** — it pins a version and goes stale the moment you switch. **`ANTHROPIC_DEFAULT_OPUS_MODEL` is cosmetic**; it only changes the menu display.
+
+---
 
 ---
 
@@ -46,13 +43,13 @@ Not:
 
 ## Documentation Routing
 
-**Before writing documentation ANYWHERE, find the project's own rule for where docs live.** Grep the project's build-plan family for `Documentation Protocol` and obey it. Some projects deliberately have NO `DOCUMENTATION.md` — for the CLAUDEMANAGER/board machinery, **the persona (`CLAUDEMANAGER.md`) IS the documentation** (build plan §7.2). Never default to "the nearest DOCUMENTATION.md": a repo's doc file covers THAT repo's own system only, not everything stored in it. No protocol found and placement unclear → ask, don't guess. (Learned 5 Aug 2026: manager docs landed in `marc-jovani-powerups/DOCUMENTATION.md`; wrong — "not the place. Not at all.")
+**Before writing documentation ANYWHERE, find the project's own rule for where docs live.** Grep the project's build-plan family for `Documentation Protocol` and obey it. Some projects deliberately have NO `DOCUMENTATION.md` — for the CLAUDEMANAGER/board machinery, **the persona (`CLAUDEMANAGER.md`) IS the documentation** (build plan §7.2). Never default to "the nearest DOCUMENTATION.md": a repo's doc file covers THAT repo's own system only, not everything stored in it. No protocol found and placement unclear → ask, don't guess.
 
 ---
 
 ## Rules are rules only when Marc says so
 
-Personas, skills and this file are reused across many sessions, agents and projects. **An instruction given for one turn, one task, one session or one situation is NOT a rule** — it is never written into a persona, a skill, CLAUDE.md or any other reusable file. A rule exists only when Marc says so ("rule", "always", "from now on", "put it in the persona / CLAUDE.md") — and then only that rule, in his words, with nothing else bundled onto it. A correction means fix the thing, not legislate from it. Unsure whether something is a rule → ask once (*«¿lo fijo como norma?»*) or leave it out. (Learned 7 Sep 2026: an agent wrote five one-session instructions into CLAUDEKEYNOTE as standing rules. Marc: «rules become rules when I say so… these personas get used many times… stupid rules that are not rules will confuse future agents and will make the user's job longer and harder».)
+Personas, skills and this file are reused across many sessions, agents and projects. **An instruction given for one turn, one task, one session or one situation is NOT a rule** — it is never written into a persona, a skill, CLAUDE.md or any other reusable file. A rule exists only when Marc says so ("rule", "always", "from now on", "put it in the persona / CLAUDE.md") — and then only that rule, exactly as he stated it, with nothing else bundled onto it. A correction means fix the thing, not legislate from it. Unsure whether something is a rule → ask once (*«¿lo fijo como norma?»*) or leave it out.
 
 ---
 
@@ -62,15 +59,13 @@ A rule is an instruction. **Write it as a clean, executable directive** — what
 
 A **decision** is a different object: a record of what was chosen and when. A decision keeps his words as provenance. A rule does not.
 
-*"In his words" in the section above means the rule must say what he asked for, undistorted. It does not mean quote him.*
-
 ---
 
 ## Server Backups — read before touching s1 / s2 / the NAS / the vault
 
 The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` in the north-star repo FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
 
-⟳ **28 Aug 2026 (SERVERS S15): s1 no longer hosts the north-star repo** — it was deleted from `/home/ubuntu/NORTH_STAR` after verifying pushed-clean. Copies live on: GitHub `surfvani/north-star` (private) · lake-vault `/home/surfvani/north-star` · both Macs. On a box that has the repo, read the doc there. **On s1: to READ a repo doc, fetch that single file — `gh api -H "Accept: application/vnd.github.raw" repos/surfvani/north-star/contents/<path>` (gh is authed as surfvani; temp copy, delete after). Actual repo WORK happens on lake-vault or the Macs, never by re-cloning onto s1.**
+⟳ **28 Aug 2026: s1 does not host the north-star repo.** Copies live on: GitHub `surfvani/north-star` (private) · lake-vault `/home/surfvani/north-star` · both Macs. On a box that has the repo, read the doc there. **On s1: to READ a repo doc, fetch that single file — `gh api -H "Accept: application/vnd.github.raw" repos/surfvani/north-star/contents/<path>` (gh is authed as surfvani; temp copy, delete after). Actual repo WORK happens on lake-vault or the Macs, never by re-cloning onto s1.**
 
 ---
 
@@ -99,11 +94,9 @@ Partial evidence is not full evidence — Claim Discipline applied to reads.
 
 Applies unless the active persona defines its own output contract. Those are tuned per job — they win.
 
-- Keep things as simple as possible. Help me with this task/project/idea. Don’t overcomplicate things for me. And always explain things in /simplll terms so I understand easily and quickly.
-
-- **Plain English + normal technical vocabulary.** Short lists over dense paragraphs. No engineer minutiae — User is a visionary / CEO / founder running 3+ workstreams.
-
-- Don’t overcomplicate things for me. Make things happen. Make it so visionary / CEO has to decide as high level as possible, no minutia and engineering stuff. Help me, don’t make me decide minutia.
+- **Keep it as simple as the task allows.** Explain in /simplll terms — he has to get it in one read.
+- **Plain English plus normal technical vocabulary.** Short lists over dense paragraphs. No engineer minutiae; he runs 3+ workstreams.
+- **Make things happen.** Bring him decisions at the highest possible altitude, and never make him decide minutiae.
 
 ---
 
