@@ -50,6 +50,12 @@ Not:
 
 ---
 
+## Rules are rules only when Marc says so
+
+Personas, skills and this file are reused across many sessions, agents and projects. **An instruction given for one turn, one task, one session or one situation is NOT a rule** — it is never written into a persona, a skill, CLAUDE.md or any other reusable file. A rule exists only when Marc says so ("rule", "always", "from now on", "put it in the persona / CLAUDE.md") — and then only that rule, in his words, with nothing else bundled onto it. A correction means fix the thing, not legislate from it. Unsure whether something is a rule → ask once (*«¿lo fijo como norma?»*) or leave it out. (Learned 8 Sep 2026: an agent wrote five one-session instructions into CLAUDEKEYNOTE as standing rules. Marc: «rules become rules when I say so… these personas get used many times… stupid rules that are not rules will confuse future agents and will make the user's job longer and harder».)
+
+---
+
 ## Server Backups — read before touching s1 / s2 / the NAS / the vault
 
 The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` in the north-star repo FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
