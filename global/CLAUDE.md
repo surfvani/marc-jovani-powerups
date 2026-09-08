@@ -56,6 +56,16 @@ Personas, skills and this file are reused across many sessions, agents and proje
 
 ---
 
+## How a rule is written
+
+A rule is an instruction. **Write it as a clean, executable directive** — what to do, what not to do, and the test that settles it. **Never anchor a rule in a quotation of Marc.** An agent follows a direction; it does not need the origin story, and the quote only makes the rule longer and weaker.
+
+A **decision** is a different object: a record of what was chosen and when. A decision keeps his words as provenance. A rule does not.
+
+*"In his words" in the section above means the rule must say what he asked for, undistorted. It does not mean quote him.*
+
+---
+
 ## Server Backups — read before touching s1 / s2 / the NAS / the vault
 
 The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` in the north-star repo FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
