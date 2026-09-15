@@ -67,6 +67,15 @@ messages in the thread are the strongest signal. Rules that never bend:
 - Never name the year a customer joined ("since 2022"); write **"you've been with
   us for a while"**.
 - US recipient → Marc's phone **3107339155** goes in the signature, under his name.
+- **Texts and DMs carry NO signature and NO phone** — the channel already says who
+  is writing. Signature block is email-only.
+- **Less is more.** An outreach opener is four short blocks: who I am · the ONE
+  concrete thing about them · the 20-minute ask · sign-off. It must not read like
+  research was performed on them.
+- **One idea, once.** Never restate the same point in a different phrasing inside
+  the same sentence — and when a person has a concrete credential (founder, C-level
+  seats, a syndicate, a sold company, a fund), NAME it instead of a generic
+  paraphrase of it.
 - Numbers only from the roster notes or the thread — never invented, never
   from memory. The orchestra is *licensed*, never "owned". No exit talk —
   **one exception, Eric Sierka (Marc's word, 3 Sep 2026, plan §3.7 #54):** the
