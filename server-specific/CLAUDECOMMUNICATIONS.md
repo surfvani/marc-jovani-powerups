@@ -36,6 +36,20 @@ Gmail (2 mailboxes) → desk_poller (dumb sync) → desk_mail rows
 `mjovani87@gmail.com`. Real investor threads live in both. A reply always
 leaves from the mailbox that received the mail.
 
+A desk SEND leaves through the Gmail API of the sending account, so the copy
+lands in **that account's Sent folder** — nowhere else. **Marc works in
+`marc@cinematiccomposing.com` (his decision, 15 Sep 2026)**, which is where
+desk sends are visible.
+
+> **Parked option — NOT implemented, needs Marc's word.** `alicia@cinematiccomposing.com`
+> auto-forwards marc@, but forwarding carries only INCOMING mail: while he worked in
+> alicia@, desk sends were invisible to him (15 Sep 2026, the Paul Gilreath scare —
+> card 87 sent 09:27:52 from marc@, he could not find it) and spam-filed replies never
+> reached him at all. The fix on the shelf is a **BCC to alicia@ in the `desk_gmail.send_email`
+> payload**. His words, 15 Sep: *«No hace falta que añadas lo del BCC a alicia@. Usaré la
+> cuenta de marc@ a partir de ahora. Déjalo como nota por si seguimos teniendo problemas
+> en el futuro… pero de momento no.»* Build it only when he asks.
+
 ## Judgment, not filters (Marc's words, 1 Sep 2026)
 
 > "I do NOT want filters, no programmatic filters — I want the agent to
