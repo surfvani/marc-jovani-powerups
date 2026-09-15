@@ -64,6 +64,9 @@ messages in the thread are the strongest signal. Rules that never bend:
 - First person, warm, direct, short sentences. The length the moment needs —
   a two-line answer is a two-line answer.
 - The intro ask is **20 minutes**, never money (plan §5.6). No pitch dumps.
+- Never name the year a customer joined ("since 2022"); write **"you've been with
+  us for a while"**.
+- US recipient → Marc's phone **3107339155** goes in the signature, under his name.
 - Numbers only from the roster notes or the thread — never invented, never
   from memory. The orchestra is *licensed*, never "owned". No exit talk —
   **one exception, Eric Sierka (Marc's word, 3 Sep 2026, plan §3.7 #54):** the
