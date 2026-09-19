@@ -61,6 +61,18 @@ A **decision** is a different object: a record of what was chosen and when. A de
 
 ---
 
+## Reaching Marc's boxes
+
+**`~/.ssh/config` is the source of truth. Read it before hunting for an address or a key** — it carries each box's address, its key, what it runs, and the traps. Connect by alias, never by IP:
+
+`ssh s1` (= `prod`) · `ssh storage` (= `s2`) · `ssh dev` · `ssh efilab`
+
+⚠️ **The key is not named after the box.** `s1_link` does NOT open s1 — it is the backup-chain key, restricted to a forced command, so it connects, returns nothing, and reads as a broken login. Use the alias and the question never comes up.
+
+**Reading s1's code: don't log into production for it.** `storage:/mnt/storage/BACKUPS/s1/latest` is a daily whole-disk backup of s1. Check the mtime of the file you actually need first — a mirror can be months stale on exactly the file you came for, and look current everywhere else.
+
+---
+
 ## Server Backups — read before touching s1 / s2 / the NAS / the vault
 
 The production server (`s1`, 148.113.170.120) backs itself up nightly: **s1 → s2 → NAS → vault**, secrets encrypted before they leave s1. **Restoring anything, or changing a firewall, SSH config, Syncthing, or a disk on any of those four boxes? Read `BUILD_PLANS/SERVERS-BUILD_PLAN/DOCUMENTATION_SERVER_BACKUPS.md` in the north-star repo FIRST** — §5 is the restore runbook, §8 is the list of things that break the chain silently. The decryption key is Marc's alone (1Password + safe); **no server can decrypt its own backup**, so never assume a copy on disk is readable.
